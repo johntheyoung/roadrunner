@@ -100,6 +100,7 @@ Destructive commands require confirmation. If stdin is not a TTY or `--no-input`
 - Message search is literal word match; all words must match exactly.
 - Global `rr search` can page message results with `--messages-cursor`, `--messages-direction`, and `--messages-limit` (max 20).
 - Use `rr chats search --scope=participants` to search by participant names.
+- JSON output includes `display_name` for single chats (derived from participants).
 
 ```bash
 # Paginate message results within global search

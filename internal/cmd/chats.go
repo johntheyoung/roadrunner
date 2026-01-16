@@ -75,7 +75,11 @@ func (c *ChatsListCmd) Run(ctx context.Context, flags *RootFlags) error {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	u.Out().Printf("Chats (%d):\n", len(resp.Items))
 	for _, item := range resp.Items {
-		title := ui.Truncate(item.Title, 40)
+		title := item.Title
+		if item.DisplayName != "" {
+			title = item.DisplayName
+		}
+		title = ui.Truncate(title, 40)
 		_, _ = w.Write([]byte(fmt.Sprintf("  %s\t%s\n", title, item.ID)))
 	}
 	w.Flush()
@@ -154,7 +158,11 @@ func (c *ChatsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	u.Out().Printf("Found %d chats:\n", len(resp.Items))
 	for _, item := range resp.Items {
-		title := ui.Truncate(item.Title, 35)
+		title := item.Title
+		if item.DisplayName != "" {
+			title = item.DisplayName
+		}
+		title = ui.Truncate(title, 35)
 		unread := ""
 		if item.UnreadCount > 0 {
 			unread = fmt.Sprintf("(%d)", item.UnreadCount)
@@ -207,7 +215,14 @@ func (c *ChatsGetCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 
 	// Human-readable output
-	u.Out().Printf("Chat: %s", chat.Title)
+	displayTitle := chat.Title
+	if chat.DisplayName != "" {
+		displayTitle = chat.DisplayName
+	}
+	u.Out().Printf("Chat: %s", displayTitle)
+	if chat.DisplayName != "" && chat.DisplayName != chat.Title {
+		u.Out().Printf("Title:  %s", chat.Title)
+	}
 	u.Out().Printf("ID:      %s", chat.ID)
 	u.Out().Printf("Account: %s", chat.AccountID)
 	u.Out().Printf("Type:    %s", chat.Type)

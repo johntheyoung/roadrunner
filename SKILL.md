@@ -43,6 +43,7 @@ Notes
 - Token stored at `~/.config/beeper/config.json`. `BEEPER_TOKEN` overrides.
 - Message search is literal word match (not semantic).
 - If a DM title shows your own Matrix ID, use `--scope=participants` to find by name.
+- JSON output includes `display_name` for single chats (derived from participants).
 - `rr messages send` returns `pending_message_id` (temporary ID).
 - Prefer `--json` (and `--no-input`) for automation.
 - `BEEPER_URL` overrides API base URL; `BEEPER_TIMEOUT` sets timeout in seconds.

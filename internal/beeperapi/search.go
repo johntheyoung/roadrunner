@@ -70,9 +70,10 @@ func (c *Client) Search(ctx context.Context, params SearchParams) (SearchResult,
 	// Map chats
 	for _, chat := range resp.Results.Chats {
 		result.Chats = append(result.Chats, SearchChat{
-			ID:          chat.ID,
-			Title:       chat.Title,
-			Type:        string(chat.Type),
+			ID:    chat.ID,
+			Title: chat.Title,
+			Type:  string(chat.Type),
+			//nolint:staticcheck // Network is deprecated in SDK but still returned by API for display.
 			Network:     chat.Network,
 			AccountID:   chat.AccountID,
 			UnreadCount: chat.UnreadCount,
@@ -82,9 +83,10 @@ func (c *Client) Search(ctx context.Context, params SearchParams) (SearchResult,
 	// Map in_groups
 	for _, chat := range resp.Results.InGroups {
 		result.InGroups = append(result.InGroups, SearchChat{
-			ID:          chat.ID,
-			Title:       chat.Title,
-			Type:        string(chat.Type),
+			ID:    chat.ID,
+			Title: chat.Title,
+			Type:  string(chat.Type),
+			//nolint:staticcheck // Network is deprecated in SDK but still returned by API for display.
 			Network:     chat.Network,
 			AccountID:   chat.AccountID,
 			UnreadCount: chat.UnreadCount,
@@ -125,12 +127,7 @@ func (c *Client) Search(ctx context.Context, params SearchParams) (SearchResult,
 		if err != nil {
 			return SearchResult{}, err
 		}
-		result.Messages = SearchMessages{
-			Items:        msgs.Items,
-			HasMore:      msgs.HasMore,
-			OldestCursor: msgs.OldestCursor,
-			NewestCursor: msgs.NewestCursor,
-		}
+		result.Messages = SearchMessages(msgs)
 	}
 
 	return result, nil

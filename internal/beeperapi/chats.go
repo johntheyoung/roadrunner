@@ -190,9 +190,10 @@ func (s *ChatsService) Search(ctx context.Context, params ChatSearchParams) (Cha
 
 	for _, chat := range page.Items {
 		result.Items = append(result.Items, ChatSearchItem{
-			ID:          chat.ID,
-			Title:       chat.Title,
-			Type:        string(chat.Type),
+			ID:    chat.ID,
+			Title: chat.Title,
+			Type:  string(chat.Type),
+			//nolint:staticcheck // Network is deprecated in SDK but still returned by API for display.
 			Network:     chat.Network,
 			UnreadCount: chat.UnreadCount,
 			IsArchived:  chat.IsArchived,
@@ -214,9 +215,10 @@ func (s *ChatsService) Get(ctx context.Context, chatID string) (ChatDetail, erro
 	}
 
 	detail := ChatDetail{
-		ID:                     chat.ID,
-		Title:                  chat.Title,
-		AccountID:              chat.AccountID,
+		ID:        chat.ID,
+		Title:     chat.Title,
+		AccountID: chat.AccountID,
+		//nolint:staticcheck // Network is deprecated in SDK but still returned by API for display.
 		Network:                chat.Network,
 		Type:                   string(chat.Type),
 		UnreadCount:            chat.UnreadCount,

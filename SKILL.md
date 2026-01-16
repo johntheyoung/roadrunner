@@ -18,12 +18,15 @@ Common commands
 - List accounts: `rr accounts list --json`
 - List chats: `rr chats list --json`
 - Search chats: `rr chats search "John" --json`
+- Search chats (filters): `rr chats search --inbox=primary --unread-only --json`
 - Get chat: `rr chats get "!chatid:beeper.com" --json`
 - List messages: `rr messages list "!chatid:beeper.com" --json`
 - Search messages: `rr messages search "dinner" --json`
 - Send message: `rr messages send "!chatid:beeper.com" "Hello!"`
 - Reminders: `rr reminders set "!chatid:beeper.com" "2h"` / `rr reminders clear "!chatid:beeper.com"`
+- Archive chat: `rr chats archive "!chatid:beeper.com"` / `rr chats archive "!chatid:beeper.com" --unarchive`
 - Focus app: `rr focus`
+- Focus chat: `rr focus --chat-id="!chatid:beeper.com" --draft-text="Hello!"`
 - Global search: `rr search "dinner" --json`
 
 Pagination
@@ -40,5 +43,6 @@ Notes
 - Message search is literal word match (not semantic).
 - `rr messages send` returns `pending_message_id` (temporary ID).
 - Prefer `--json` (and `--no-input`) for automation.
+- `BEEPER_URL` overrides API base URL; `BEEPER_TIMEOUT` sets timeout in seconds.
 - JSON/Plain output goes to stdout; errors/hints go to stderr.
 - Destructive commands prompt unless `--force`; `--no-input`/`BEEPER_NO_INPUT` fails without `--force`.

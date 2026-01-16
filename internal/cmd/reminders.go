@@ -29,6 +29,7 @@ type RemindersSetCmd struct {
 // Run executes the reminders set command.
 func (c *RemindersSetCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
+	chatID := normalizeChatID(c.ChatID)
 
 	// Parse the time
 	remindAt, err := parseTime(c.At)
@@ -52,7 +53,7 @@ func (c *RemindersSetCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
-	if err := client.Reminders().Set(ctx, c.ChatID, beeperapi.SetParams{
+	if err := client.Reminders().Set(ctx, chatID, beeperapi.SetParams{
 		RemindAt:                 remindAt,
 		DismissOnIncomingMessage: c.DismissOnIncomingMessage,
 	}); err != nil {
@@ -62,7 +63,7 @@ func (c *RemindersSetCmd) Run(ctx context.Context, flags *RootFlags) error {
 	// JSON output
 	if outfmt.IsJSON(ctx) {
 		result := map[string]any{
-			"chat_id":   c.ChatID,
+			"chat_id":   chatID,
 			"remind_at": remindAt.Format(time.RFC3339),
 		}
 		return outfmt.WriteJSON(os.Stdout, result)
@@ -70,13 +71,13 @@ func (c *RemindersSetCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// Plain output
 	if outfmt.IsPlain(ctx) {
-		u.Out().Printf("%s\t%s", c.ChatID, remindAt.Format(time.RFC3339))
+		u.Out().Printf("%s\t%s", chatID, remindAt.Format(time.RFC3339))
 		return nil
 	}
 
 	// Human-readable output
 	u.Out().Success("Reminder set")
-	u.Out().Printf("Chat ID: %s", c.ChatID)
+	u.Out().Printf("Chat ID: %s", chatID)
 	u.Out().Printf("Time:    %s", remindAt.Format("Jan 2 15:04"))
 
 	return nil
@@ -90,8 +91,9 @@ type RemindersClearCmd struct {
 // Run executes the reminders clear command.
 func (c *RemindersClearCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
+	chatID := normalizeChatID(c.ChatID)
 
-	if err := confirmDestructive(flags, "clear reminder for "+c.ChatID); err != nil {
+	if err := confirmDestructive(flags, "clear reminder for "+chatID); err != nil {
 		return err
 	}
 
@@ -106,14 +108,14 @@ func (c *RemindersClearCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
-	if err := client.Reminders().Clear(ctx, c.ChatID); err != nil {
+	if err := client.Reminders().Clear(ctx, chatID); err != nil {
 		return err
 	}
 
 	// JSON output
 	if outfmt.IsJSON(ctx) {
 		result := map[string]any{
-			"chat_id": c.ChatID,
+			"chat_id": chatID,
 			"cleared": true,
 		}
 		return outfmt.WriteJSON(os.Stdout, result)
@@ -121,7 +123,7 @@ func (c *RemindersClearCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// Plain output
 	if outfmt.IsPlain(ctx) {
-		u.Out().Printf("%s\tcleared", c.ChatID)
+		u.Out().Printf("%s\tcleared", chatID)
 		return nil
 	}
 

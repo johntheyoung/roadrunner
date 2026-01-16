@@ -31,6 +31,7 @@ type MessagesListCmd struct {
 // Run executes the messages list command.
 func (c *MessagesListCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
+	chatID := normalizeChatID(c.ChatID)
 
 	token, _, err := config.GetToken()
 	if err != nil {
@@ -43,7 +44,7 @@ func (c *MessagesListCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
-	resp, err := client.Messages().List(ctx, c.ChatID, beeperapi.MessageListParams{
+	resp, err := client.Messages().List(ctx, chatID, beeperapi.MessageListParams{
 		Cursor:    c.Cursor,
 		Direction: c.Direction,
 	})
@@ -158,7 +159,7 @@ func (c *MessagesSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 	resp, err := client.Messages().Search(ctx, beeperapi.MessageSearchParams{
 		Query:              c.Query,
 		AccountIDs:         c.AccountIDs,
-		ChatIDs:            c.ChatIDs,
+		ChatIDs:            normalizeChatIDs(c.ChatIDs),
 		ChatType:           c.ChatType,
 		Sender:             c.Sender,
 		MediaTypes:         c.MediaTypes,
@@ -225,6 +226,7 @@ type MessagesSendCmd struct {
 // Run executes the messages send command.
 func (c *MessagesSendCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
+	chatID := normalizeChatID(c.ChatID)
 
 	if c.Text == "" {
 		return errfmt.UsageError("message text is required")
@@ -241,7 +243,7 @@ func (c *MessagesSendCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
-	resp, err := client.Messages().Send(ctx, c.ChatID, beeperapi.SendParams{
+	resp, err := client.Messages().Send(ctx, chatID, beeperapi.SendParams{
 		Text:             c.Text,
 		ReplyToMessageID: c.ReplyToMessageID,
 	})

@@ -222,6 +222,7 @@ type ChatsCreateCmd struct {
 // Run executes the chats get command.
 func (c *ChatsGetCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
+	chatID := normalizeChatID(c.ChatID)
 
 	token, _, err := config.GetToken()
 	if err != nil {
@@ -234,7 +235,7 @@ func (c *ChatsGetCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
-	chat, err := client.Chats().Get(ctx, c.ChatID)
+	chat, err := client.Chats().Get(ctx, chatID)
 	if err != nil {
 		return err
 	}
@@ -346,6 +347,7 @@ type ChatsArchiveCmd struct {
 // Run executes the chats archive command.
 func (c *ChatsArchiveCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
+	chatID := normalizeChatID(c.ChatID)
 
 	token, _, err := config.GetToken()
 	if err != nil {
@@ -359,21 +361,21 @@ func (c *ChatsArchiveCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 
 	archived := !c.Unarchive
-	action := "archive chat " + c.ChatID
+	action := "archive chat " + chatID
 	if c.Unarchive {
-		action = "unarchive chat " + c.ChatID
+		action = "unarchive chat " + chatID
 	}
 	if err := confirmDestructive(flags, action); err != nil {
 		return err
 	}
-	if err := client.Chats().Archive(ctx, c.ChatID, archived); err != nil {
+	if err := client.Chats().Archive(ctx, chatID, archived); err != nil {
 		return err
 	}
 
 	// JSON output
 	if outfmt.IsJSON(ctx) {
 		result := map[string]any{
-			"chat_id":  c.ChatID,
+			"chat_id":  chatID,
 			"archived": archived,
 		}
 		return outfmt.WriteJSON(os.Stdout, result)
@@ -385,7 +387,7 @@ func (c *ChatsArchiveCmd) Run(ctx context.Context, flags *RootFlags) error {
 		if c.Unarchive {
 			action = "unarchived"
 		}
-		u.Out().Printf("%s\t%s", c.ChatID, action)
+		u.Out().Printf("%s\t%s", chatID, action)
 		return nil
 	}
 

@@ -22,6 +22,7 @@ type FocusCmd struct {
 // Run executes the focus command.
 func (c *FocusCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
+	chatID := normalizeChatID(c.ChatID)
 
 	token, _, err := config.GetToken()
 	if err != nil {
@@ -35,7 +36,7 @@ func (c *FocusCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 
 	resp, err := client.Focus(ctx, beeperapi.FocusParams{
-		ChatID:              c.ChatID,
+		ChatID:              chatID,
 		MessageID:           c.MessageID,
 		DraftText:           c.DraftText,
 		DraftAttachmentPath: c.DraftAttachmentPath,

@@ -63,6 +63,17 @@ rr chats list --json
 rr chats list --plain
 ```
 
+## Search Notes
+
+- Message search is literal word match; all words must match exactly.
+- Global `rr search` can page message results with `--messages-cursor`, `--messages-direction`, and `--messages-limit` (max 20).
+
+```bash
+# Paginate message results within global search
+rr search "dinner" --messages-limit=20 --json
+rr search "dinner" --messages-cursor="<cursor>" --messages-direction=before --json
+```
+
 ## Scripting Examples
 
 ```bash

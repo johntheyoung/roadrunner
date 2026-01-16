@@ -40,9 +40,15 @@ rr chats get "!chatid:beeper.com" --json
 ```
 
 ### Global search
+Note: Message search is literal word match, not semantic.
+
 ```bash
 # Search across chats and messages
 rr search "dinner" --json
+
+# Paginate message results (max 20)
+rr search "dinner" --messages-limit=20 --json
+rr search "dinner" --messages-cursor="<cursor>" --messages-direction=before --json
 ```
 
 ### Send message

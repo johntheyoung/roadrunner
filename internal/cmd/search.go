@@ -9,13 +9,17 @@ import (
 
 	"github.com/johntheyoung/roadrunner/internal/beeperapi"
 	"github.com/johntheyoung/roadrunner/internal/config"
+	"github.com/johntheyoung/roadrunner/internal/errfmt"
 	"github.com/johntheyoung/roadrunner/internal/outfmt"
 	"github.com/johntheyoung/roadrunner/internal/ui"
 )
 
 // SearchCmd performs a global search.
 type SearchCmd struct {
-	Query string `arg:"" help:"Search query (literal word match)"`
+	Query             string `arg:"" help:"Search query (literal word match)"`
+	MessagesCursor    string `help:"Cursor for message results pagination" name:"messages-cursor"`
+	MessagesDirection string `help:"Pagination direction for message results: before|after" name:"messages-direction" enum:"before,after,"`
+	MessagesLimit     int    `help:"Max messages per page when paging (1-20)" name:"messages-limit" default:"0"`
 }
 
 // Run executes the search command.
@@ -33,7 +37,16 @@ func (c *SearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
-	resp, err := client.Search(ctx, c.Query)
+	if c.MessagesLimit < 0 || c.MessagesLimit > 20 {
+		return errfmt.UsageError("invalid --messages-limit %d (expected 1-20)", c.MessagesLimit)
+	}
+
+	resp, err := client.Search(ctx, beeperapi.SearchParams{
+		Query:             c.Query,
+		MessagesCursor:    c.MessagesCursor,
+		MessagesDirection: c.MessagesDirection,
+		MessagesLimit:     c.MessagesLimit,
+	})
 	if err != nil {
 		return err
 	}
@@ -107,7 +120,11 @@ func (c *SearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 		w.Flush()
 
 		if resp.Messages.HasMore {
-			u.Out().Dim("\nMore message results available. Use 'rr messages search' for pagination.")
+			if resp.Messages.OldestCursor != "" {
+				u.Out().Dim(fmt.Sprintf("\nMore message results available. Use --messages-cursor=%q --messages-direction=before.", resp.Messages.OldestCursor))
+			} else {
+				u.Out().Dim("\nMore message results available. Use 'rr messages search' for pagination.")
+			}
 		}
 	}
 

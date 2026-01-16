@@ -7,11 +7,19 @@ import (
 	beeperdesktopapi "github.com/beeper/desktop-api-go"
 )
 
+// SearchParams configures global search behavior.
+type SearchParams struct {
+	Query             string
+	MessagesCursor    string
+	MessagesDirection string // before|after
+	MessagesLimit     int
+}
+
 // SearchResult is the response from global search.
 type SearchResult struct {
-	Chats    []SearchChat    `json:"chats"`
-	InGroups []SearchChat    `json:"in_groups"`
-	Messages SearchMessages  `json:"messages"`
+	Chats    []SearchChat   `json:"chats"`
+	InGroups []SearchChat   `json:"in_groups"`
+	Messages SearchMessages `json:"messages"`
 }
 
 // SearchChat represents a chat in search results.
@@ -33,12 +41,14 @@ type SearchMessages struct {
 }
 
 // Search performs a global search across chats and messages.
-func (c *Client) Search(ctx context.Context, query string) (SearchResult, error) {
+// If message pagination params are provided, it uses /v1/messages/search
+// for the message results while still using /v1/search for chats/groups.
+func (c *Client) Search(ctx context.Context, params SearchParams) (SearchResult, error) {
 	ctx, cancel := c.contextWithTimeout(ctx)
 	defer cancel()
 
 	sdkParams := beeperdesktopapi.SearchParams{
-		Query: query,
+		Query: params.Query,
 	}
 
 	resp, err := c.SDK.Search(ctx, sdkParams)
@@ -98,6 +108,29 @@ func (c *Client) Search(ctx context.Context, query string) (SearchResult, error)
 			item.Timestamp = msg.Timestamp.Format(time.RFC3339)
 		}
 		result.Messages.Items = append(result.Messages.Items, item)
+	}
+
+	useMessagePaging := params.MessagesCursor != "" || params.MessagesDirection != "" || params.MessagesLimit > 0
+	if useMessagePaging {
+		limit := params.MessagesLimit
+		if limit <= 0 {
+			limit = 20
+		}
+		msgs, err := c.Messages().Search(ctx, MessageSearchParams{
+			Query:     params.Query,
+			Cursor:    params.MessagesCursor,
+			Direction: params.MessagesDirection,
+			Limit:     limit,
+		})
+		if err != nil {
+			return SearchResult{}, err
+		}
+		result.Messages = SearchMessages{
+			Items:        msgs.Items,
+			HasMore:      msgs.HasMore,
+			OldestCursor: msgs.OldestCursor,
+			NewestCursor: msgs.NewestCursor,
+		}
 	}
 
 	return result, nil

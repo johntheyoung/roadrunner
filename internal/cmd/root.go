@@ -15,8 +15,8 @@ import (
 // Build info set at build time via ldflags.
 var (
 	Version = "dev"
-	Commit  = "none"
-	Date    = "unknown"
+	Commit  = ""
+	Date    = ""
 )
 
 // RootFlags contains global flags available to all commands.
@@ -36,13 +36,13 @@ type RootFlags struct {
 type CLI struct {
 	RootFlags
 
-	Auth      AuthCmd      `cmd:"" help:"Manage authentication"`
-	Accounts  AccountsCmd  `cmd:"" help:"Manage messaging accounts"`
-	Chats     ChatsCmd     `cmd:"" help:"Manage chats"`
-	Messages  MessagesCmd  `cmd:"" help:"Manage messages"`
-	Reminders RemindersCmd `cmd:"" help:"Manage chat reminders"`
-	Search    SearchCmd    `cmd:"" help:"Global search across chats and messages"`
-	Focus     FocusCmd     `cmd:"" help:"Focus Beeper Desktop app"`
+	Auth       AuthCmd       `cmd:"" help:"Manage authentication"`
+	Accounts   AccountsCmd   `cmd:"" help:"Manage messaging accounts"`
+	Chats      ChatsCmd      `cmd:"" help:"Manage chats"`
+	Messages   MessagesCmd   `cmd:"" help:"Manage messages"`
+	Reminders  RemindersCmd  `cmd:"" help:"Manage chat reminders"`
+	Search     SearchCmd     `cmd:"" help:"Global search across chats and messages"`
+	Focus      FocusCmd      `cmd:"" help:"Focus Beeper Desktop app"`
 	Doctor     DoctorCmd     `cmd:"" help:"Diagnose configuration and connectivity"`
 	Version    VersionCmd    `cmd:"" help:"Show version information"`
 	Completion CompletionCmd `cmd:"" help:"Generate shell completions"`
@@ -60,7 +60,7 @@ func Execute() int {
 		kong.Name("rr"),
 		kong.Description("CLI for Beeper Desktop. Beep beep!"),
 		kong.UsageOnError(),
-		kong.Vars{"version": Version},
+		kong.Vars{"version": VersionString()},
 		kong.ConfigureHelp(kong.HelpOptions{Compact: helpCompact}),
 	)
 	if err != nil {

@@ -170,6 +170,10 @@ rr reminders set "$CHAT_ID" "2h"
 rr focus --chat-id="$CHAT_ID" --draft-text="Hello!"
 ```
 
+## Shell Notes
+
+- In bash/zsh, `!` triggers history expansion. Prefer single quotes for chat IDs or draft text, or disable history expansion (`set +H` in bash, `setopt NO_HIST_EXPAND` in zsh). If you see `\!` in text, it came from your shell/runner.
+
 ## Shell Completions
 
 ```bash

@@ -1,6 +1,6 @@
-# 🐦💨 roadrunner — Beeper Desktop CLI: chat, search, send.
+# 🐦💨 roadrunner — Beeper Desktop CLI: chats, messages, search, reminders.
 
-Beep beep! Local-first CLI for Beeper Desktop.
+Beeper Desktop in your terminal — CLI for chats, messages, search, and reminders.
 
 ## Features
 
@@ -9,6 +9,7 @@ Beep beep! Local-first CLI for Beeper Desktop.
 - Send messages and manage reminders
 - Global search across chats and messages
 - Doctor command for diagnostics
+- Focus the Beeper Desktop window (optionally open a chat or draft)
 - JSON/Plain output for scripting
 
 ## Install
@@ -23,6 +24,7 @@ Or download a binary from the [releases page](https://github.com/johntheyoung/ro
 
 - [Beeper Desktop](https://www.beeper.com/) running locally
 - API token from Beeper Desktop settings
+- Desktop API docs: https://developers.beeper.com/desktop-api
 
 ## Status
 
@@ -61,7 +63,7 @@ rr messages send "!chatid:beeper.com" "Hello!"
 | `rr messages list/search/send` | Manage messages |
 | `rr reminders set/clear` | Manage chat reminders |
 | `rr search <query>` | Global search |
-| `rr focus` | Focus Beeper Desktop |
+| `rr focus` | Focus Beeper Desktop (optionally open a chat or draft) |
 | `rr doctor` | Diagnose configuration |
 | `rr completion <shell>` | Generate shell completions |
 
@@ -115,6 +117,9 @@ rr chats search --inbox=primary --unread-only --json
 
 # Set a reminder for 2 hours from now
 rr reminders set "$CHAT_ID" "2h"
+
+# Focus a chat and pre-fill a draft
+rr focus --chat-id="$CHAT_ID" --draft-text="Hello!"
 ```
 
 ## Shell Completions

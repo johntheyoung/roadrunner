@@ -22,26 +22,25 @@ Or download a binary from the [releases page](https://github.com/johntheyoung/ro
 
 ## Requirements
 
-- [Beeper Desktop](https://www.beeper.com/) running locally
-- API token from Beeper Desktop settings
+- [Beeper Desktop](https://www.beeper.com/) **v4.1.169 or later** running locally
 
-## Status
+## Setup
 
-Local Beeper Desktop API only; requires the app running.
+1. Open Beeper Desktop → **Settings** → **Developers**
+2. Toggle **Beeper Desktop API** to enable it (server starts at `localhost:23373`)
+3. Click **+** next to "Approved connections" to create a token
+4. Configure the CLI:
 
-## Config & Token Storage
+```bash
+rr auth set <your-token>
+rr doctor  # verify setup
+```
 
-Token is stored in `~/.config/beeper/config.json`. `BEEPER_TOKEN` overrides the config file.
+Token is stored in `~/.config/beeper/config.json`. `BEEPER_TOKEN` env var overrides the config file.
 
 ## Quick Start
 
 ```bash
-# Set your token (get it from Beeper Desktop settings)
-rr auth set <token>
-
-# Verify setup
-rr doctor
-
 # List your chats
 rr chats list
 
@@ -50,6 +49,9 @@ rr chats search "John"
 
 # Send a message
 rr messages send "!chatid:beeper.com" "Hello!"
+
+# Global search
+rr search "dinner" --json
 ```
 
 ## Commands

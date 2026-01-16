@@ -7,6 +7,11 @@ All notable changes to this project will be documented in this file.
 ### Added
 - (none)
 
+## v0.4.1 - 2026-01-17
+
+### Fixed
+- Normalize chat IDs that were passed with shell-escaped `\!` before API calls.
+
 ## v0.3.2 - 2026-01-16
 
 ### Added

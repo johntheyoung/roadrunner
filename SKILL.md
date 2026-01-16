@@ -23,10 +23,10 @@ Common commands
 - List messages: `rr messages list "!chatid:beeper.com" --json`
 - Search messages: `rr messages search "dinner" --json`
 - Send message: `rr messages send "!chatid:beeper.com" "Hello!"`
+- Draft message (pre-fill without sending): `rr focus --chat-id="!chatid:beeper.com" --draft-text="Hello!"`
 - Reminders: `rr reminders set "!chatid:beeper.com" "2h"` / `rr reminders clear "!chatid:beeper.com"`
 - Archive chat: `rr chats archive "!chatid:beeper.com"` / `rr chats archive "!chatid:beeper.com" --unarchive`
 - Focus app: `rr focus`
-- Focus chat: `rr focus --chat-id="!chatid:beeper.com" --draft-text="Hello!"`
 - Global search: `rr search "dinner" --json`
 
 Pagination

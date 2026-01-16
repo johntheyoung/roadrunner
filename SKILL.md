@@ -11,6 +11,8 @@ rr auth set <token>
 
 Or use environment variable: `export BEEPER_TOKEN=<token>`
 
+Token is stored in `~/.config/beeper/config.json`. `BEEPER_TOKEN` overrides the config file.
+
 ## Commands
 
 ### List accounts
@@ -121,6 +123,11 @@ rr focus --chat-id="!chatid:beeper.com" --draft-text="Hello!"
 - Default: Human-readable colored output
 - `--json`: Machine-readable JSON to stdout (best for scripting/AI)
 - `--plain`: Tab-separated values to stdout (no colors)
+- JSON/Plain output goes to stdout; errors and hints go to stderr
+
+## Non-interactive Safety
+
+Destructive commands require confirmation. If stdin is not a TTY or `--no-input`/`BEEPER_NO_INPUT` is set, the command fails unless `--force` is provided.
 
 ## Composing Commands
 

@@ -15,6 +15,10 @@ Or download a binary from the [releases page](https://github.com/johntheyoung/ro
 - [Beeper Desktop](https://www.beeper.com/) running locally
 - API token from Beeper Desktop settings
 
+## Config & Token Storage
+
+Token is stored in `~/.config/beeper/config.json`. `BEEPER_TOKEN` overrides the config file.
+
 ## Quick Start
 
 ```bash
@@ -50,6 +54,12 @@ rr messages send "!chatid:beeper.com" "Hello!"
 
 Run `rr --help` or `rr <command> --help` for details.
 
+## Help
+
+- `rr --help` shows the command tree.
+- `rr <command> --help` drills into subcommands.
+- `BEEPER_HELP=full rr --help` shows the full expanded command list.
+
 ## Output Modes
 
 ```bash
@@ -62,6 +72,12 @@ rr chats list --json
 # Plain TSV
 rr chats list --plain
 ```
+
+JSON/Plain output is written to stdout. Errors and hints are written to stderr.
+
+## Non-interactive Safety
+
+Destructive commands require confirmation. If stdin is not a TTY or `--no-input`/`BEEPER_NO_INPUT` is set, the command fails unless `--force` is provided.
 
 ## Search Notes
 
@@ -107,9 +123,12 @@ rr completion fish > ~/.config/fish/completions/rr.fish
 |----------|-------------|
 | `BEEPER_TOKEN` | API token (overrides config) |
 | `BEEPER_URL` | API base URL (default: http://localhost:23373) |
+| `BEEPER_TIMEOUT` | API timeout in seconds (0 disables) |
+| `BEEPER_COLOR` | Color mode: auto|always|never |
 | `BEEPER_JSON` | Default to JSON output |
 | `BEEPER_PLAIN` | Default to plain output |
 | `BEEPER_NO_INPUT` | Never prompt, fail instead |
+| `BEEPER_HELP` | Set to `full` for expanded help |
 | `NO_COLOR` | Disable colored output |
 
 ## Exit Codes

@@ -1,12 +1,38 @@
 package beeperapi
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 
 	beeperdesktopapi "github.com/beeper/desktop-api-go"
 )
+
+// findJSONBody extracts the JSON body from a full HTTP response dump.
+// DumpResponse(true) returns headers followed by body, separated by \r\n\r\n.
+func findJSONBody(resp []byte) []byte {
+	// Look for the body separator
+	sep := []byte("\r\n\r\n")
+	idx := bytes.Index(resp, sep)
+	if idx == -1 {
+		// Try with just \n\n as fallback
+		sep = []byte("\n\n")
+		idx = bytes.Index(resp, sep)
+	}
+	if idx == -1 {
+		// No separator found, try parsing the whole thing as JSON
+		if len(resp) > 0 && resp[0] == '{' {
+			return resp
+		}
+		return nil
+	}
+	body := resp[idx+len(sep):]
+	if len(body) == 0 {
+		return nil
+	}
+	return body
+}
 
 // FormatError converts SDK errors to user-friendly messages.
 func FormatError(err error) string {
@@ -24,14 +50,20 @@ func FormatError(err error) string {
 
 func formatAPIError(err *beeperdesktopapi.Error) string {
 	// Try to extract message from response body
-	respBody := err.DumpResponse(false)
-	var body map[string]any
-	if jsonErr := json.Unmarshal(respBody, &body); jsonErr == nil {
-		if msg, ok := body["message"].(string); ok && msg != "" {
-			return fmt.Sprintf("API error (%d): %s", err.StatusCode, msg)
-		}
-		if errMsg, ok := body["error"].(string); ok && errMsg != "" {
-			return fmt.Sprintf("API error (%d): %s", err.StatusCode, errMsg)
+	// DumpResponse(true) includes the body, (false) only includes headers
+	respBody := err.DumpResponse(true)
+
+	// The response body is after the headers, separated by \r\n\r\n
+	// Try to find and parse the JSON body
+	if bodyStart := findJSONBody(respBody); bodyStart != nil {
+		var body map[string]any
+		if jsonErr := json.Unmarshal(bodyStart, &body); jsonErr == nil {
+			if msg, ok := body["message"].(string); ok && msg != "" {
+				return fmt.Sprintf("API error (%d): %s", err.StatusCode, msg)
+			}
+			if errMsg, ok := body["error"].(string); ok && errMsg != "" {
+				return fmt.Sprintf("API error (%d): %s", err.StatusCode, errMsg)
+			}
 		}
 	}
 

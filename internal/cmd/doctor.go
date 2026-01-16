@@ -18,13 +18,15 @@ type DoctorCmd struct{}
 
 // DoctorResult holds the results of all checks.
 type DoctorResult struct {
-	ConfigPath   string `json:"config_path"`
-	ConfigExists bool   `json:"config_exists"`
-	TokenSource  string `json:"token_source"`
-	HasToken     bool   `json:"has_token"`
-	APIReachable bool   `json:"api_reachable"`
-	APIURL       string `json:"api_url"`
-	AllPassed    bool   `json:"all_passed"`
+	ConfigPath   string   `json:"config_path"`
+	ConfigExists bool     `json:"config_exists"`
+	TokenSource  string   `json:"token_source"`
+	HasToken     bool     `json:"has_token"`
+	APIReachable bool     `json:"api_reachable"`
+	APIURL       string   `json:"api_url"`
+	TokenValid   bool     `json:"token_valid"`
+	AccountID    string   `json:"account_id,omitempty"`
+	AllPassed    bool     `json:"all_passed"`
 	Errors       []string `json:"errors,omitempty"`
 }
 
@@ -66,8 +68,18 @@ func (c *DoctorCmd) Run(ctx context.Context, flags *RootFlags) error {
 		result.Errors = append(result.Errors, fmt.Sprintf("api: %v", apiErr))
 	}
 
+	// Check 4: Token valid (only if we have a token and API is reachable)
+	if result.HasToken && result.APIReachable {
+		validation := ValidateToken(ctx, token, flags.BaseURL, flags.Timeout)
+		result.TokenValid = validation.Valid
+		result.AccountID = validation.Account
+		if !validation.Valid {
+			result.Errors = append(result.Errors, fmt.Sprintf("auth: %s", validation.Error))
+		}
+	}
+
 	// Determine overall pass/fail
-	result.AllPassed = result.ConfigPath != "" && result.HasToken && result.APIReachable
+	result.AllPassed = result.ConfigPath != "" && result.HasToken && result.APIReachable && result.TokenValid
 
 	// Output
 	if outfmt.IsJSON(ctx) {
@@ -78,6 +90,15 @@ func (c *DoctorCmd) Run(ctx context.Context, flags *RootFlags) error {
 	printCheck(u, "Config", result.ConfigPath, result.ConfigExists, "found", "not found")
 	printCheck(u, "Token", result.TokenSource, result.HasToken, "", "missing")
 	printCheck(u, "API", result.APIURL, result.APIReachable, "reachable", "unreachable")
+
+	// Auth check (only show if we attempted it)
+	if result.HasToken && result.APIReachable {
+		authValue := "valid"
+		if result.AccountID != "" {
+			authValue = "valid (account: " + result.AccountID + ")"
+		}
+		printCheck(u, "Auth", authValue, result.TokenValid, "", "invalid")
+	}
 
 	u.Out().Println("")
 

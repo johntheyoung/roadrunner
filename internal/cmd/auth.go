@@ -46,7 +46,7 @@ type AuthStatusCmd struct {
 }
 
 // Run executes the auth status command.
-func (c *AuthStatusCmd) Run(ctx context.Context) error {
+func (c *AuthStatusCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
 
 	token, source, err := config.GetToken()
@@ -65,6 +65,13 @@ func (c *AuthStatusCmd) Run(ctx context.Context) error {
 
 	configPath, _ := config.FilePath()
 
+	// Validate token if requested
+	var validation *ValidateTokenResult
+	if c.Check {
+		result := ValidateToken(ctx, token, flags.BaseURL, flags.Timeout)
+		validation = &result
+	}
+
 	if outfmt.IsJSON(ctx) {
 		result := map[string]any{
 			"authenticated": true,
@@ -77,9 +84,14 @@ func (c *AuthStatusCmd) Run(ctx context.Context) error {
 			result["token_preview"] = token[:4] + "..." + token[len(token)-4:]
 		}
 
-		if c.Check {
-			// TODO: Validate token with API call when SDK adapter is ready
-			result["valid"] = "unknown (API check not implemented)"
+		if validation != nil {
+			result["valid"] = validation.Valid
+			if validation.Account != "" {
+				result["account"] = validation.Account
+			}
+			if validation.Error != "" {
+				result["validation_error"] = validation.Error
+			}
 		}
 
 		return outfmt.WriteJSON(os.Stdout, result)
@@ -94,9 +106,19 @@ func (c *AuthStatusCmd) Run(ctx context.Context) error {
 		u.Out().Printf("Token:         %s...%s", token[:4], token[len(token)-4:])
 	}
 
-	if c.Check {
-		// TODO: Validate token with API call when SDK adapter is ready
-		u.Out().Warn("API validation not yet implemented")
+	if validation != nil {
+		if validation.Valid {
+			msg := "Token valid:   yes"
+			if validation.Account != "" {
+				msg += " (account: " + validation.Account + ")"
+			}
+			u.Out().Success(msg)
+		} else {
+			u.Out().Error("Token valid:   no")
+			if validation.Error != "" {
+				u.Out().Dim("  " + validation.Error)
+			}
+		}
 	}
 
 	return nil

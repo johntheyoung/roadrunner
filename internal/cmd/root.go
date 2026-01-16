@@ -41,12 +41,16 @@ type CLI struct {
 func Execute() int {
 	cli := &CLI{}
 
+	// Check for expanded help mode
+	helpCompact := os.Getenv("BEEPER_HELP") != "full"
+
 	// Pre-parse to get flags for UI setup
 	parser, err := kong.New(cli,
 		kong.Name("rr"),
 		kong.Description("CLI for Beeper Desktop. Beep beep!"),
 		kong.UsageOnError(),
 		kong.Vars{"version": Version},
+		kong.HelpOptions{Compact: helpCompact},
 	)
 	if err != nil {
 		_, _ = os.Stderr.WriteString("error: " + err.Error() + "\n")
@@ -55,7 +59,10 @@ func Execute() int {
 
 	kongCtx, err := parser.Parse(os.Args[1:])
 	if err != nil {
-		parser.FatalIfErrorf(err)
+		// Handle parse errors with our custom exit codes
+		// Kong's FatalIfErrorf calls os.Exit directly, bypassing our handling
+		_, _ = os.Stderr.WriteString("error: " + err.Error() + "\n")
+		_, _ = os.Stderr.WriteString("Run with --help to see available commands and flags\n")
 		return errfmt.ExitUsageError
 	}
 

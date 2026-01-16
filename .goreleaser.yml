@@ -20,6 +20,8 @@ builds:
     ldflags:
       - -s -w
       - -X github.com/johntheyoung/roadrunner/internal/cmd.Version={{.Version}}
+      - -X github.com/johntheyoung/roadrunner/internal/cmd.Commit={{.ShortCommit}}
+      - -X github.com/johntheyoung/roadrunner/internal/cmd.Date={{.Date}}
 
 archives:
   - id: default

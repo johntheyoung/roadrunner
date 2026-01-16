@@ -12,8 +12,12 @@ import (
 	"github.com/johntheyoung/roadrunner/internal/ui"
 )
 
-// Version is set at build time via ldflags.
-var Version = "dev"
+// Build info set at build time via ldflags.
+var (
+	Version = "dev"
+	Commit  = "none"
+	Date    = "unknown"
+)
 
 // RootFlags contains global flags available to all commands.
 type RootFlags struct {

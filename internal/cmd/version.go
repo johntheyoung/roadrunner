@@ -18,9 +18,15 @@ func (c *VersionCmd) Run(ctx context.Context) error {
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, map[string]string{
 			"version": Version,
+			"commit":  Commit,
+			"date":    Date,
 		})
 	}
 
 	u.Out().Printf("rr version %s", Version)
+	if Commit != "none" {
+		u.Out().Printf("  commit: %s", Commit)
+		u.Out().Printf("  built:  %s", Date)
+	}
 	return nil
 }

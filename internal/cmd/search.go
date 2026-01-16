@@ -18,7 +18,7 @@ import (
 type SearchCmd struct {
 	Query             string `arg:"" help:"Search query (literal word match)"`
 	MessagesCursor    string `help:"Cursor for message results pagination" name:"messages-cursor"`
-	MessagesDirection string `help:"Pagination direction for message results: before|after" name:"messages-direction" enum:"before,after,"`
+	MessagesDirection string `help:"Pagination direction for message results: before|after" name:"messages-direction" enum:"before,after," default:""`
 	MessagesLimit     int    `help:"Max messages per page when paging (1-20)" name:"messages-limit" default:"0"`
 }
 

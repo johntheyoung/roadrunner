@@ -93,6 +93,7 @@ type ChatsSearchCmd struct {
 	Inbox      string `help:"Filter by inbox: primary|low-priority|archive" enum:"primary,low-priority,archive," default:""`
 	UnreadOnly bool   `help:"Only show unread chats" name:"unread-only"`
 	Type       string `help:"Filter by type: direct|group|any" enum:"direct,group,any," default:""`
+	Scope      string `help:"Search scope: titles|participants" enum:"titles,participants," default:""`
 	Limit      int    `help:"Max results (1-200)" default:"50"`
 	Cursor     string `help:"Pagination cursor"`
 	Direction  string `help:"Pagination direction: before|after" enum:"before,after," default:""`
@@ -122,6 +123,7 @@ func (c *ChatsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 		Inbox:      c.Inbox,
 		UnreadOnly: c.UnreadOnly,
 		Type:       c.Type,
+		Scope:      c.Scope,
 		Limit:      c.Limit,
 		Cursor:     c.Cursor,
 		Direction:  c.Direction,

@@ -42,6 +42,7 @@ type ChatSearchParams struct {
 	Inbox      string // primary|low-priority|archive
 	UnreadOnly bool
 	Type       string // direct|group|any
+	Scope      string // titles|participants
 	Limit      int
 	Cursor     string
 	Direction  string // before|after
@@ -174,6 +175,12 @@ func (s *ChatsService) Search(ctx context.Context, params ChatSearchParams) (Cha
 		sdkParams.Type = beeperdesktopapi.ChatSearchParamsTypeGroup
 	case "any":
 		sdkParams.Type = beeperdesktopapi.ChatSearchParamsTypeAny
+	}
+	switch params.Scope {
+	case "titles":
+		sdkParams.Scope = beeperdesktopapi.ChatSearchParamsScopeTitles
+	case "participants":
+		sdkParams.Scope = beeperdesktopapi.ChatSearchParamsScopeParticipants
 	}
 
 	page, err := s.client.SDK.Chats.Search(ctx, sdkParams)

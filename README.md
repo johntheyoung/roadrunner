@@ -62,13 +62,24 @@ rr messages send "!chatid:beeper.com" "Hello!"
 rr search "dinner" --json
 ```
 
+## Start a New Chat
+
+```bash
+# Find a contact on an account
+rr contacts search "<account-id>" "Alice" --json
+
+# Create a chat (single)
+rr chats create "<account-id>" --participant "<user-id>"
+```
+
 ## Commands
 
 | Command | Description |
 |---------|-------------|
 | `rr auth set/status/clear` | Manage authentication |
 | `rr accounts list` | List messaging accounts |
-| `rr chats list/search/get/archive` | Manage chats |
+| `rr contacts search` | Search contacts on an account |
+| `rr chats list/search/get/create/archive` | Manage chats |
 | `rr messages list/search/send` | Manage messages |
 | `rr reminders set/clear` | Manage chat reminders |
 | `rr search <query>` | Global search |

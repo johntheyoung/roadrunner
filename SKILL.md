@@ -16,12 +16,14 @@ Setup (once)
 
 Common commands
 - List accounts: `rr accounts list --json`
+- Search contacts: `rr contacts search "<account-id>" "Alice" --json`
 - List chats: `rr chats list --json`
 - Search chats: `rr chats search "John" --json`
 - Search chats (filters): `rr chats search --inbox=primary --unread-only --json`
 - Search chats (activity): `rr chats search --last-activity-after="2024-07-01T00:00:00Z" --json`
 - Search by participant name: `rr chats search "Jamie" --scope=participants --json`
 - Get chat: `rr chats get "!chatid:beeper.com" --json`
+- Create chat: `rr chats create "<account-id>" --participant "<user-id>"`
 - List messages: `rr messages list "!chatid:beeper.com" --json`
 - Search messages: `rr messages search "dinner" --json`
 - Search messages (filters): `rr messages search --sender=me --date-after="2024-07-01T00:00:00Z" --media-types=image --json`

@@ -19,6 +19,7 @@ type ChatsCmd struct {
 	List    ChatsListCmd    `cmd:"" help:"List chats"`
 	Search  ChatsSearchCmd  `cmd:"" help:"Search chats"`
 	Get     ChatsGetCmd     `cmd:"" help:"Get chat details"`
+	Create  ChatsCreateCmd  `cmd:"" help:"Create a new chat"`
 	Archive ChatsArchiveCmd `cmd:"" help:"Archive or unarchive a chat"`
 }
 
@@ -209,6 +210,15 @@ type ChatsGetCmd struct {
 	ChatID string `arg:"" name:"chatID" help:"Chat ID to retrieve"`
 }
 
+// ChatsCreateCmd creates a new chat.
+type ChatsCreateCmd struct {
+	AccountID    string   `arg:"" name:"accountID" help:"Account ID to create the chat on"`
+	Participants []string `help:"Participant IDs (repeatable)" name:"participant"`
+	Type         string   `help:"Chat type: single|group" enum:"single,group," default:""`
+	Title        string   `help:"Title for group chats"`
+	Message      string   `help:"Optional first message content"`
+}
+
 // Run executes the chats get command.
 func (c *ChatsGetCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
@@ -260,6 +270,70 @@ func (c *ChatsGetCmd) Run(ctx context.Context, flags *RootFlags) error {
 		u.Out().Printf("Last:    %s", chat.LastActivity)
 	}
 
+	return nil
+}
+
+// Run executes the chats create command.
+func (c *ChatsCreateCmd) Run(ctx context.Context, flags *RootFlags) error {
+	u := ui.FromContext(ctx)
+
+	if c.AccountID == "" {
+		return errfmt.UsageError("account ID is required")
+	}
+	if len(c.Participants) == 0 {
+		return errfmt.UsageError("at least one --participant is required")
+	}
+
+	chatType := c.Type
+	if chatType == "" {
+		if len(c.Participants) == 1 {
+			chatType = "single"
+		} else {
+			chatType = "group"
+		}
+	}
+	if chatType == "single" && len(c.Participants) != 1 {
+		return errfmt.UsageError("single chats require exactly one --participant")
+	}
+	if chatType == "group" && len(c.Participants) < 2 {
+		return errfmt.UsageError("group chats require at least two --participant values")
+	}
+
+	token, _, err := config.GetToken()
+	if err != nil {
+		return err
+	}
+
+	timeout := time.Duration(flags.Timeout) * time.Second
+	client, err := beeperapi.NewClient(token, flags.BaseURL, timeout)
+	if err != nil {
+		return err
+	}
+
+	resp, err := client.Chats().Create(ctx, beeperapi.ChatCreateParams{
+		AccountID:      c.AccountID,
+		ParticipantIDs: c.Participants,
+		Type:           chatType,
+		Title:          c.Title,
+		MessageText:    c.Message,
+	})
+	if err != nil {
+		return err
+	}
+
+	// JSON output
+	if outfmt.IsJSON(ctx) {
+		return outfmt.WriteJSON(os.Stdout, resp)
+	}
+
+	// Plain output
+	if outfmt.IsPlain(ctx) {
+		u.Out().Printf("%s", resp.ChatID)
+		return nil
+	}
+
+	u.Out().Success("Chat created")
+	u.Out().Printf("Chat ID: %s", resp.ChatID)
 	return nil
 }
 

@@ -94,6 +94,20 @@ type ChatDetail struct {
 	ParticipantsHasMore    bool   `json:"participants_has_more"`
 }
 
+// ChatCreateParams configures chat creation.
+type ChatCreateParams struct {
+	AccountID      string
+	ParticipantIDs []string
+	Type           string // single|group
+	Title          string
+	MessageText    string
+}
+
+// ChatCreateResult is the response from creating a chat.
+type ChatCreateResult struct {
+	ChatID string `json:"chat_id"`
+}
+
 // List retrieves chats with cursor-based pagination.
 func (s *ChatsService) List(ctx context.Context, params ChatListParams) (ChatListResult, error) {
 	ctx, cancel := s.client.contextWithTimeout(ctx)
@@ -266,6 +280,36 @@ func (s *ChatsService) Get(ctx context.Context, chatID string) (ChatDetail, erro
 	detail.DisplayName = displayNameForChat(string(chat.Type), chat.Title, chat.Participants.Items)
 
 	return detail, nil
+}
+
+// Create creates a new chat.
+func (s *ChatsService) Create(ctx context.Context, params ChatCreateParams) (ChatCreateResult, error) {
+	ctx, cancel := s.client.contextWithTimeout(ctx)
+	defer cancel()
+
+	sdkParams := beeperdesktopapi.ChatNewParams{
+		AccountID:      params.AccountID,
+		ParticipantIDs: params.ParticipantIDs,
+	}
+	switch params.Type {
+	case "single":
+		sdkParams.Type = beeperdesktopapi.ChatNewParamsTypeSingle
+	case "group":
+		sdkParams.Type = beeperdesktopapi.ChatNewParamsTypeGroup
+	}
+	if params.Title != "" {
+		sdkParams.Title = beeperdesktopapi.String(params.Title)
+	}
+	if params.MessageText != "" {
+		sdkParams.MessageText = beeperdesktopapi.String(params.MessageText)
+	}
+
+	resp, err := s.client.SDK.Chats.New(ctx, sdkParams)
+	if err != nil {
+		return ChatCreateResult{}, err
+	}
+
+	return ChatCreateResult{ChatID: resp.ChatID}, nil
 }
 
 // Archive archives or unarchives a chat.

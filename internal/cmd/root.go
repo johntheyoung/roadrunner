@@ -32,6 +32,7 @@ type RootFlags struct {
 type CLI struct {
 	RootFlags
 
+	Auth    AuthCmd    `cmd:"" help:"Manage authentication"`
 	Version VersionCmd `cmd:"" help:"Show version information"`
 }
 

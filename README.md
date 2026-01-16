@@ -1,7 +1,5 @@
 # 🐦💨 roadrunner — Beeper Desktop CLI
 
-Chats • Messages • Search • Reminders
-
 ## Features
 
 - **Chats** — list, search, get, create, archive conversations

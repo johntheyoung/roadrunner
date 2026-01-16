@@ -161,6 +161,8 @@ rr completion fish > ~/.config/fish/completions/rr.fish
 ## Docs
 
 - Desktop API: https://developers.beeper.com/desktop-api
+- Troubleshooting: docs/troubleshooting.md
+- API notes: docs/api-notes.md
 
 ## License
 

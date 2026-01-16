@@ -1,4 +1,4 @@
-# 🐦💨 roadrunner — Beep beep! CLI for Beeper Desktop.
+# 🐦💨 roadrunner — Beeper Desktop CLI
 
 Chats • Messages • Search • Reminders
 

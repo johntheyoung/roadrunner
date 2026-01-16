@@ -11,6 +11,7 @@
 - `rr chats search` supports `--scope=participants` to search by participant names.
 - CLI derives `display_name` for single chats from participants (fullName → username → id).
 - Contacts search uses the account-specific contacts endpoint; use results to create new chats.
+- Asset downloads use `mxc://` or `localmxc://` URLs and return a local `file://` URL.
 
 ## Pagination
 

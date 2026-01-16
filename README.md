@@ -92,6 +92,7 @@ rr chats create "<account-id>" --participant "<user-a>" --participant "<user-b>"
 | `rr auth set/status/clear` | Manage authentication |
 | `rr accounts list` | List messaging accounts |
 | `rr contacts search` | Search contacts on an account |
+| `rr assets download` | Download an attachment by mxc:// URL |
 | `rr chats list/search/get/create/archive` | Manage chats |
 | `rr messages list/search/send` | Manage messages |
 | `rr reminders set/clear` | Manage chat reminders |
@@ -147,6 +148,9 @@ rr chats search "Jamie" --scope=participants --json
 
 # Filter message search by sender and date
 rr messages search --sender=me --date-after="2024-07-01T00:00:00Z" --json
+
+# Download an attachment by MXC URL
+rr assets download "mxc://example.org/abc123" --dest "./attachment.jpg"
 ```
 
 ## Scripting Examples

@@ -25,10 +25,6 @@ Or download a binary from the [releases page](https://github.com/johntheyoung/ro
 - [Beeper Desktop](https://www.beeper.com/) running locally
 - API token from Beeper Desktop settings
 
-## Docs
-
-- Desktop API: https://developers.beeper.com/desktop-api
-
 ## Status
 
 Local Beeper Desktop API only; requires the app running.
@@ -159,6 +155,10 @@ rr completion fish > ~/.config/fish/completions/rr.fish
 | 0 | Success |
 | 1 | General error |
 | 2 | Usage error |
+
+## Docs
+
+- Desktop API: https://developers.beeper.com/desktop-api
 
 ## License
 

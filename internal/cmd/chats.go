@@ -93,14 +93,18 @@ func (c *ChatsListCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 // ChatsSearchCmd searches for chats.
 type ChatsSearchCmd struct {
-	Query      string `arg:"" optional:"" help:"Search query"`
-	Inbox      string `help:"Filter by inbox: primary|low-priority|archive" enum:"primary,low-priority,archive," default:""`
-	UnreadOnly bool   `help:"Only show unread chats" name:"unread-only"`
-	Type       string `help:"Filter by type: direct|group|any" enum:"direct,group,any," default:""`
-	Scope      string `help:"Search scope: titles|participants" enum:"titles,participants," default:""`
-	Limit      int    `help:"Max results (1-200)" default:"50"`
-	Cursor     string `help:"Pagination cursor"`
-	Direction  string `help:"Pagination direction: before|after" enum:"before,after," default:""`
+	Query              string   `arg:"" optional:"" help:"Search query"`
+	AccountIDs         []string `help:"Filter by account IDs" name:"account-ids"`
+	Inbox              string   `help:"Filter by inbox: primary|low-priority|archive" enum:"primary,low-priority,archive," default:""`
+	UnreadOnly         bool     `help:"Only show unread chats" name:"unread-only"`
+	IncludeMuted       *bool    `help:"Include muted chats (default true)" name:"include-muted"`
+	LastActivityAfter  string   `help:"Only include chats after time (RFC3339 or duration)" name:"last-activity-after"`
+	LastActivityBefore string   `help:"Only include chats before time (RFC3339 or duration)" name:"last-activity-before"`
+	Type               string   `help:"Filter by type: direct|group|any" enum:"direct,group,any," default:""`
+	Scope              string   `help:"Search scope: titles|participants" enum:"titles,participants," default:""`
+	Limit              int      `help:"Max results (1-200)" default:"50"`
+	Cursor             string   `help:"Pagination cursor"`
+	Direction          string   `help:"Pagination direction: before|after" enum:"before,after," default:""`
 }
 
 // Run executes the chats search command.
@@ -109,6 +113,24 @@ func (c *ChatsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	if c.Limit < 1 || c.Limit > 200 {
 		return errfmt.UsageError("invalid --limit %d (expected 1-200)", c.Limit)
+	}
+
+	var lastAfter *time.Time
+	if c.LastActivityAfter != "" {
+		t, err := parseTime(c.LastActivityAfter)
+		if err != nil {
+			return errfmt.UsageError("invalid --last-activity-after %q (expected RFC3339 or duration)", c.LastActivityAfter)
+		}
+		lastAfter = &t
+	}
+
+	var lastBefore *time.Time
+	if c.LastActivityBefore != "" {
+		t, err := parseTime(c.LastActivityBefore)
+		if err != nil {
+			return errfmt.UsageError("invalid --last-activity-before %q (expected RFC3339 or duration)", c.LastActivityBefore)
+		}
+		lastBefore = &t
 	}
 
 	token, _, err := config.GetToken()
@@ -123,14 +145,18 @@ func (c *ChatsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 
 	resp, err := client.Chats().Search(ctx, beeperapi.ChatSearchParams{
-		Query:      c.Query,
-		Inbox:      c.Inbox,
-		UnreadOnly: c.UnreadOnly,
-		Type:       c.Type,
-		Scope:      c.Scope,
-		Limit:      c.Limit,
-		Cursor:     c.Cursor,
-		Direction:  c.Direction,
+		Query:              c.Query,
+		AccountIDs:         c.AccountIDs,
+		Inbox:              c.Inbox,
+		UnreadOnly:         c.UnreadOnly,
+		IncludeMuted:       c.IncludeMuted,
+		LastActivityAfter:  lastAfter,
+		LastActivityBefore: lastBefore,
+		Type:               c.Type,
+		Scope:              c.Scope,
+		Limit:              c.Limit,
+		Cursor:             c.Cursor,
+		Direction:          c.Direction,
 	})
 	if err != nil {
 		return err

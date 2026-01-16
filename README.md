@@ -108,6 +108,8 @@ Destructive commands require confirmation. If stdin is not a TTY or `--no-input`
 - Message search is literal word match; all words must match exactly.
 - Global `rr search` can page message results with `--messages-cursor`, `--messages-direction`, and `--messages-limit` (max 20).
 - Use `rr chats search --scope=participants` to search by participant names.
+- `rr messages search` supports filters like `--account-ids`, `--chat-id`, `--chat-type`, `--sender`, `--media-types`, `--date-after`, and `--date-before`.
+- `rr chats search` supports `--account-ids`, `--include-muted`, and `--last-activity-after/--last-activity-before`.
 - JSON output includes `display_name` for single chats (derived from participants).
 
 ```bash
@@ -117,6 +119,9 @@ rr search "dinner" --messages-cursor="<cursor>" --messages-direction=before --js
 
 # Search chats by participant name
 rr chats search "Jamie" --scope=participants --json
+
+# Filter message search by sender and date
+rr messages search --sender=me --date-after="2024-07-01T00:00:00Z" --json
 ```
 
 ## Scripting Examples

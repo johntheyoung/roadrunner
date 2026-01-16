@@ -39,14 +39,18 @@ type ChatListItem struct {
 
 // ChatSearchParams configures chat search queries.
 type ChatSearchParams struct {
-	Query      string
-	Inbox      string // primary|low-priority|archive
-	UnreadOnly bool
-	Type       string // direct|group|any
-	Scope      string // titles|participants
-	Limit      int
-	Cursor     string
-	Direction  string // before|after
+	Query              string
+	AccountIDs         []string
+	Inbox              string // primary|low-priority|archive
+	UnreadOnly         bool
+	IncludeMuted       *bool
+	LastActivityAfter  *time.Time
+	LastActivityBefore *time.Time
+	Type               string // direct|group|any
+	Scope              string // titles|participants
+	Limit              int
+	Cursor             string
+	Direction          string // before|after
 }
 
 // ChatSearchResult is the search response with pagination info.
@@ -149,8 +153,20 @@ func (s *ChatsService) Search(ctx context.Context, params ChatSearchParams) (Cha
 	if params.Query != "" {
 		sdkParams.Query = beeperdesktopapi.String(params.Query)
 	}
+	if len(params.AccountIDs) > 0 {
+		sdkParams.AccountIDs = params.AccountIDs
+	}
 	if params.UnreadOnly {
 		sdkParams.UnreadOnly = beeperdesktopapi.Bool(true)
+	}
+	if params.IncludeMuted != nil {
+		sdkParams.IncludeMuted = beeperdesktopapi.Bool(*params.IncludeMuted)
+	}
+	if params.LastActivityAfter != nil {
+		sdkParams.LastActivityAfter = beeperdesktopapi.Time(*params.LastActivityAfter)
+	}
+	if params.LastActivityBefore != nil {
+		sdkParams.LastActivityBefore = beeperdesktopapi.Time(*params.LastActivityBefore)
 	}
 	if params.Limit > 0 {
 		sdkParams.Limit = beeperdesktopapi.Int(int64(params.Limit))

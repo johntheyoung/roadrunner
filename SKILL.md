@@ -19,10 +19,12 @@ Common commands
 - List chats: `rr chats list --json`
 - Search chats: `rr chats search "John" --json`
 - Search chats (filters): `rr chats search --inbox=primary --unread-only --json`
+- Search chats (activity): `rr chats search --last-activity-after="2024-07-01T00:00:00Z" --json`
 - Search by participant name: `rr chats search "Jamie" --scope=participants --json`
 - Get chat: `rr chats get "!chatid:beeper.com" --json`
 - List messages: `rr messages list "!chatid:beeper.com" --json`
 - Search messages: `rr messages search "dinner" --json`
+- Search messages (filters): `rr messages search --sender=me --date-after="2024-07-01T00:00:00Z" --media-types=image --json`
 - Send message: `rr messages send "!chatid:beeper.com" "Hello!"`
 - Draft message (pre-fill without sending): `rr focus --chat-id="!chatid:beeper.com" --draft-text="Hello!"`
 - Reminders: `rr reminders set "!chatid:beeper.com" "2h"` / `rr reminders clear "!chatid:beeper.com"`

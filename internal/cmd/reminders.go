@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/johntheyoung/roadrunner/internal/beeperapi"
@@ -90,6 +91,10 @@ type RemindersClearCmd struct {
 func (c *RemindersClearCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
 
+	if err := confirmDestructive(flags, "clear reminder for "+c.ChatID); err != nil {
+		return err
+	}
+
 	token, _, err := config.GetToken()
 	if err != nil {
 		return err
@@ -128,8 +133,30 @@ func (c *RemindersClearCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 // parseTime parses a time string as either RFC3339 or a duration from now.
 func parseTime(s string) (time.Time, error) {
+	s = strings.TrimSpace(s)
+
 	// Try RFC3339 first
 	if t, err := time.Parse(time.RFC3339, s); err == nil {
+		return t, nil
+	}
+	if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
+		return t, nil
+	}
+
+	// Try RFC3339 without timezone (interpret as local time)
+	loc := time.Local
+	if t, err := time.ParseInLocation("2006-01-02T15:04:05.999999999", s, loc); err == nil {
+		return t, nil
+	}
+	if t, err := time.ParseInLocation("2006-01-02T15:04:05", s, loc); err == nil {
+		return t, nil
+	}
+	if t, err := time.ParseInLocation("2006-01-02T15:04", s, loc); err == nil {
+		return t, nil
+	}
+
+	// Try date only (local midnight)
+	if t, err := time.ParseInLocation("2006-01-02", s, loc); err == nil {
 		return t, nil
 	}
 

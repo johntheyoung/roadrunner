@@ -217,7 +217,7 @@ func (c *MessagesSendCmd) Run(ctx context.Context, flags *RootFlags) error {
 	// Human-readable output
 	u.Out().Success("Message sent")
 	u.Out().Printf("Chat ID:    %s", resp.ChatID)
-	u.Out().Printf("Message ID: %s", resp.PendingMessageID)
+	u.Out().Printf("Pending ID: %s", resp.PendingMessageID)
 
 	return nil
 }

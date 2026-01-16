@@ -242,6 +242,13 @@ func (c *ChatsArchiveCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 
 	archived := !c.Unarchive
+	action := "archive chat " + c.ChatID
+	if c.Unarchive {
+		action = "unarchive chat " + c.ChatID
+	}
+	if err := confirmDestructive(flags, action); err != nil {
+		return err
+	}
 	if err := client.Chats().Archive(ctx, c.ChatID, archived); err != nil {
 		return err
 	}

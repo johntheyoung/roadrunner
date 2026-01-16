@@ -1,6 +1,6 @@
 ---
 name: roadrunner
-description: Beeper Desktop CLI for chats, messages, search, and reminders. Prefer JSON output for automation.
+description: Beeper Desktop CLI for chats, messages, search, and reminders.
 homepage: https://github.com/johntheyoung/roadrunner
 metadata: {"clawdbot":{"emoji":"🐦💨","requires":{"bins":["rr"]},"install":[{"id":"go","kind":"go","module":"github.com/johntheyoung/roadrunner/cmd/rr@latest","bins":["rr"],"label":"Install rr (go)"}]}}
 ---

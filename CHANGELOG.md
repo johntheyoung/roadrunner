@@ -7,6 +7,11 @@ All notable changes to this project will be documented in this file.
 ### Added
 - (none)
 
+## v0.3.2 - 2026-01-16
+
+### Added
+- Align ClawdHub skill description with README tagline.
+
 ## v0.3.0 - 2026-01-16
 
 ### Added

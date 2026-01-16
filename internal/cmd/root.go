@@ -33,6 +33,7 @@ type CLI struct {
 	RootFlags
 
 	Auth    AuthCmd    `cmd:"" help:"Manage authentication"`
+	Doctor  DoctorCmd  `cmd:"" help:"Diagnose configuration and connectivity"`
 	Version VersionCmd `cmd:"" help:"Show version information"`
 }
 
@@ -87,8 +88,9 @@ func Execute() int {
 	ctx = ui.WithUI(ctx, u)
 	ctx = outfmt.WithMode(ctx, mode)
 
-	// Bind context for command execution
+	// Bind context and flags for command execution
 	kongCtx.BindTo(ctx, (*context.Context)(nil))
+	kongCtx.Bind(&cli.RootFlags)
 
 	// Run the command
 	if err := kongCtx.Run(); err != nil {

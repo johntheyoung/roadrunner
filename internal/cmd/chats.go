@@ -16,16 +16,17 @@ import (
 
 // ChatsCmd is the parent command for chat subcommands.
 type ChatsCmd struct {
-	List   ChatsListCmd   `cmd:"" help:"List chats"`
-	Search ChatsSearchCmd `cmd:"" help:"Search chats"`
-	Get    ChatsGetCmd    `cmd:"" help:"Get chat details"`
+	List    ChatsListCmd    `cmd:"" help:"List chats"`
+	Search  ChatsSearchCmd  `cmd:"" help:"Search chats"`
+	Get     ChatsGetCmd     `cmd:"" help:"Get chat details"`
+	Archive ChatsArchiveCmd `cmd:"" help:"Archive or unarchive a chat"`
 }
 
 // ChatsListCmd lists chats.
 type ChatsListCmd struct {
 	AccountIDs []string `help:"Filter by account IDs" name:"account-ids"`
 	Cursor     string   `help:"Pagination cursor"`
-	Direction  string   `help:"Pagination direction: before|after" enum:"before,after,"`
+	Direction  string   `help:"Pagination direction: before|after" enum:"before,after," default:""`
 }
 
 // Run executes the chats list command.
@@ -89,12 +90,12 @@ func (c *ChatsListCmd) Run(ctx context.Context, flags *RootFlags) error {
 // ChatsSearchCmd searches for chats.
 type ChatsSearchCmd struct {
 	Query      string `arg:"" optional:"" help:"Search query"`
-	Inbox      string `help:"Filter by inbox: primary|low-priority|archive" enum:"primary,low-priority,archive,"`
+	Inbox      string `help:"Filter by inbox: primary|low-priority|archive" enum:"primary,low-priority,archive," default:""`
 	UnreadOnly bool   `help:"Only show unread chats" name:"unread-only"`
-	Type       string `help:"Filter by type: direct|group|any" enum:"direct,group,any,"`
+	Type       string `help:"Filter by type: direct|group|any" enum:"direct,group,any," default:""`
 	Limit      int    `help:"Max results (1-200)" default:"50"`
 	Cursor     string `help:"Pagination cursor"`
-	Direction  string `help:"Pagination direction: before|after" enum:"before,after,"`
+	Direction  string `help:"Pagination direction: before|after" enum:"before,after," default:""`
 }
 
 // Run executes the chats search command.
@@ -214,6 +215,61 @@ func (c *ChatsGetCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 	if chat.LastActivity != "" {
 		u.Out().Printf("Last:    %s", chat.LastActivity)
+	}
+
+	return nil
+}
+
+// ChatsArchiveCmd archives or unarchives a chat.
+type ChatsArchiveCmd struct {
+	ChatID    string `arg:"" name:"chatID" help:"Chat ID to archive/unarchive"`
+	Unarchive bool   `help:"Unarchive instead of archive" name:"unarchive"`
+}
+
+// Run executes the chats archive command.
+func (c *ChatsArchiveCmd) Run(ctx context.Context, flags *RootFlags) error {
+	u := ui.FromContext(ctx)
+
+	token, _, err := config.GetToken()
+	if err != nil {
+		return err
+	}
+
+	timeout := time.Duration(flags.Timeout) * time.Second
+	client, err := beeperapi.NewClient(token, flags.BaseURL, timeout)
+	if err != nil {
+		return err
+	}
+
+	archived := !c.Unarchive
+	if err := client.Chats().Archive(ctx, c.ChatID, archived); err != nil {
+		return err
+	}
+
+	// JSON output
+	if outfmt.IsJSON(ctx) {
+		result := map[string]any{
+			"chat_id":  c.ChatID,
+			"archived": archived,
+		}
+		return outfmt.WriteJSON(os.Stdout, result)
+	}
+
+	// Plain output
+	if outfmt.IsPlain(ctx) {
+		action := "archived"
+		if c.Unarchive {
+			action = "unarchived"
+		}
+		u.Out().Printf("%s\t%s", c.ChatID, action)
+		return nil
+	}
+
+	// Human-readable output
+	if c.Unarchive {
+		u.Out().Success("Chat unarchived")
+	} else {
+		u.Out().Success("Chat archived")
 	}
 
 	return nil

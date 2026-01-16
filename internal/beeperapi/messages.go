@@ -55,11 +55,6 @@ type MessageItem struct {
 	Reactions  []string `json:"reactions,omitempty"`
 }
 
-// Messages returns the messages service.
-func (c *Client) Messages() *MessagesService {
-	return &MessagesService{client: c}
-}
-
 // List retrieves messages for a chat with cursor-based pagination.
 func (s *MessagesService) List(ctx context.Context, chatID string, params MessageListParams) (MessageListResult, error) {
 	ctx, cancel := s.client.contextWithTimeout(ctx)
@@ -120,6 +115,42 @@ func (s *MessagesService) List(ctx context.Context, chatID string, params Messag
 	}
 
 	return result, nil
+}
+
+// SendParams configures message send requests.
+type SendParams struct {
+	Text             string
+	ReplyToMessageID string
+}
+
+// SendResult is the response from sending a message.
+type SendResult struct {
+	ChatID           string `json:"chat_id"`
+	PendingMessageID string `json:"pending_message_id"`
+}
+
+// Send sends a text message to a chat.
+func (s *MessagesService) Send(ctx context.Context, chatID string, params SendParams) (SendResult, error) {
+	ctx, cancel := s.client.contextWithTimeout(ctx)
+	defer cancel()
+
+	sdkParams := beeperdesktopapi.MessageSendParams{}
+	if params.Text != "" {
+		sdkParams.Text = beeperdesktopapi.String(params.Text)
+	}
+	if params.ReplyToMessageID != "" {
+		sdkParams.ReplyToMessageID = beeperdesktopapi.String(params.ReplyToMessageID)
+	}
+
+	resp, err := s.client.SDK.Messages.Send(ctx, chatID, sdkParams)
+	if err != nil {
+		return SendResult{}, err
+	}
+
+	return SendResult{
+		ChatID:           resp.ChatID,
+		PendingMessageID: resp.PendingMessageID,
+	}, nil
 }
 
 // Search retrieves messages matching a query.

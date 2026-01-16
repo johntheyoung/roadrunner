@@ -86,11 +86,6 @@ type ChatDetail struct {
 	ParticipantsHasMore    bool   `json:"participants_has_more"`
 }
 
-// Chats returns the chats service.
-func (c *Client) Chats() *ChatsService {
-	return &ChatsService{client: c}
-}
-
 // List retrieves chats with cursor-based pagination.
 func (s *ChatsService) List(ctx context.Context, params ChatListParams) (ChatListResult, error) {
 	ctx, cancel := s.client.contextWithTimeout(ctx)
@@ -237,9 +232,18 @@ func (s *ChatsService) Get(ctx context.Context, chatID string) (ChatDetail, erro
 	if !chat.LastActivity.IsZero() {
 		detail.LastActivity = chat.LastActivity.Format(time.RFC3339)
 	}
-	if chat.JSON.Preview.Valid() {
-		detail.Preview = chat.Preview.Text
-	}
 
 	return detail, nil
+}
+
+// Archive archives or unarchives a chat.
+func (s *ChatsService) Archive(ctx context.Context, chatID string, archived bool) error {
+	ctx, cancel := s.client.contextWithTimeout(ctx)
+	defer cancel()
+
+	sdkParams := beeperdesktopapi.ChatArchiveParams{
+		Archived: beeperdesktopapi.Bool(archived),
+	}
+
+	return s.client.SDK.Chats.Archive(ctx, chatID, sdkParams)
 }

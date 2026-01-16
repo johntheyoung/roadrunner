@@ -18,6 +18,7 @@ import (
 type MessagesCmd struct {
 	List   MessagesListCmd   `cmd:"" help:"List messages in a chat"`
 	Search MessagesSearchCmd `cmd:"" help:"Search messages"`
+	Send   MessagesSendCmd   `cmd:"" help:"Send a message to a chat"`
 }
 
 // MessagesListCmd lists messages in a chat.
@@ -93,7 +94,7 @@ type MessagesSearchCmd struct {
 	Query     string `arg:"" help:"Search query (literal word match)"`
 	ChatID    string `help:"Filter by chat ID" name:"chat-id"`
 	Cursor    string `help:"Pagination cursor"`
-	Direction string `help:"Pagination direction: before|after" enum:"before,after,"`
+	Direction string `help:"Pagination direction: before|after" enum:"before,after," default:""`
 	Limit     int    `help:"Max results (1-20)" default:"20"`
 }
 
@@ -164,6 +165,59 @@ func (c *MessagesSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if resp.HasMore && resp.OldestCursor != "" {
 		u.Out().Dim(fmt.Sprintf("\nMore results available. Use --cursor=%q --direction=before", resp.OldestCursor))
 	}
+
+	return nil
+}
+
+// MessagesSendCmd sends a message to a chat.
+type MessagesSendCmd struct {
+	ChatID           string `arg:"" name:"chatID" help:"Chat ID to send message to"`
+	Text             string `arg:"" help:"Message text to send"`
+	ReplyToMessageID string `help:"Message ID to reply to" name:"reply-to"`
+}
+
+// Run executes the messages send command.
+func (c *MessagesSendCmd) Run(ctx context.Context, flags *RootFlags) error {
+	u := ui.FromContext(ctx)
+
+	if c.Text == "" {
+		return errfmt.UsageError("message text is required")
+	}
+
+	token, _, err := config.GetToken()
+	if err != nil {
+		return err
+	}
+
+	timeout := time.Duration(flags.Timeout) * time.Second
+	client, err := beeperapi.NewClient(token, flags.BaseURL, timeout)
+	if err != nil {
+		return err
+	}
+
+	resp, err := client.Messages().Send(ctx, c.ChatID, beeperapi.SendParams{
+		Text:             c.Text,
+		ReplyToMessageID: c.ReplyToMessageID,
+	})
+	if err != nil {
+		return err
+	}
+
+	// JSON output
+	if outfmt.IsJSON(ctx) {
+		return outfmt.WriteJSON(os.Stdout, resp)
+	}
+
+	// Plain output
+	if outfmt.IsPlain(ctx) {
+		u.Out().Printf("%s\t%s", resp.ChatID, resp.PendingMessageID)
+		return nil
+	}
+
+	// Human-readable output
+	u.Out().Success("Message sent")
+	u.Out().Printf("Chat ID:    %s", resp.ChatID)
+	u.Out().Printf("Message ID: %s", resp.PendingMessageID)
 
 	return nil
 }

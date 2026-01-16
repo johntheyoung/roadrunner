@@ -78,3 +78,8 @@ func (c *Client) Chats() *ChatsService {
 func (c *Client) Messages() *MessagesService {
 	return &MessagesService{client: c}
 }
+
+// Assets returns the assets service.
+func (c *Client) Assets() *AssetsService {
+	return &AssetsService{client: c}
+}

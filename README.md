@@ -1,16 +1,15 @@
-# 🐦💨 roadrunner — Beeper Desktop CLI: chats, messages, search, reminders.
+# 🐦💨 roadrunner — Beep beep! CLI for Beeper Desktop.
 
-Beeper Desktop in your terminal — CLI for chats, messages, search, and reminders.
+Chats • Messages • Search • Reminders
 
 ## Features
 
-- Authenticate once with your Beeper Desktop token
-- List/search chats and messages
-- Send messages and manage reminders
-- Global search across chats and messages
-- Doctor command for diagnostics
-- Focus the Beeper Desktop window (optionally open a chat or draft)
-- JSON/Plain output for scripting
+- **Chats** — list, search, get, create, archive conversations
+- **Messages** — list, search, send, reply to messages
+- **Search** — global search across all chats and messages
+- **Reminders** — set and clear chat reminders
+- **Focus** — focus app window, pre-fill drafts with text or attachments
+- **Output** — JSON, plain (TSV), or human-readable formats
 
 ## Install
 
@@ -26,7 +25,9 @@ brew install johntheyoung/tap/roadrunner
 go install github.com/johntheyoung/roadrunner/cmd/rr@latest
 ```
 
-Or download a binary from the [releases page](https://github.com/johntheyoung/roadrunner/releases).
+### Binary download
+
+Download from the [releases page](https://github.com/johntheyoung/roadrunner/releases).
 
 ## Requirements
 
@@ -46,118 +47,160 @@ rr doctor  # verify setup
 
 Token is stored in `~/.config/beeper/config.json`. `BEEPER_TOKEN` env var overrides the config file.
 
-## Quick Start
+## Chats
 
 ```bash
 # List your chats
 rr chats list
 
-# Search for a chat
-rr chats search "John"
+# Search chats by name
+rr chats search "Alice"
 
-# Send a message
-rr messages send "!chatid:beeper.com" "Hello!"
+# Search by participant name (useful when chat title shows Matrix ID)
+rr chats search "Alice" --scope=participants
 
-# Global search
-rr search "dinner" --json
-```
+# Filter by inbox and unread status
+rr chats search --inbox=primary --unread-only
 
-## Reply and Draft
+# Filter by activity date
+rr chats search --last-activity-after="2024-07-01T00:00:00Z"
 
-```bash
-# Reply to a specific message
-rr messages send "!chatid:beeper.com" "Thanks!" --reply-to "<message-id>"
+# Get chat details
+rr chats get '!roomid:beeper.local'
 
-# Pre-fill a draft (no message sent)
-rr focus --chat-id="!chatid:beeper.com" --draft-text="Hello!" --draft-attachment="/path/to/file.jpg"
-```
-
-## Start a New Chat
-
-```bash
-# Find a contact on an account
-rr contacts search "<account-id>" "Alice" --json
-
-# Create a chat (single)
+# Create a new chat (single)
 rr chats create "<account-id>" --participant "<user-id>"
 
-# Create a chat (group)
-rr chats create "<account-id>" --participant "<user-a>" --participant "<user-b>" --type group --title "Project Chat" --message "Welcome!"
+# Create a group chat
+rr chats create "<account-id>" \
+  --participant "<user-a>" \
+  --participant "<user-b>" \
+  --type group \
+  --title "Project Team" \
+  --message "Welcome!"
+
+# Archive a chat
+rr chats archive '!roomid:beeper.local'
+
+# Unarchive
+rr chats archive '!roomid:beeper.local' --unarchive
 ```
 
-## Commands
+## Messages
 
-| Command | Description |
-|---------|-------------|
-| `rr auth set/status/clear` | Manage authentication |
-| `rr accounts list` | List messaging accounts |
-| `rr contacts search` | Search contacts on an account |
-| `rr assets download` | Download an attachment by mxc:// URL |
-| `rr chats list/search/get/create/archive` | Manage chats |
-| `rr messages list/search/send` | Manage messages |
-| `rr reminders set/clear` | Manage chat reminders |
-| `rr search <query>` | Global search |
-| `rr focus` | Focus Beeper Desktop (optionally open a chat or draft) |
-| `rr doctor` | Diagnose configuration |
-| `rr completion <shell>` | Generate shell completions |
+```bash
+# List messages in a chat
+rr messages list '!roomid:beeper.local'
 
-Run `rr --help` or `rr <command> --help` for details.
+# Search messages globally
+rr messages search "meeting notes"
 
-## Help
+# Filter by sender
+rr messages search --sender=me
 
-- `rr --help` shows the command tree.
-- `rr <command> --help` drills into subcommands.
-- `BEEPER_HELP=full rr --help` shows the full expanded command list.
+# Filter by date range
+rr messages search --date-after="2024-07-01T00:00:00Z" --date-before="2024-08-01T00:00:00Z"
+
+# Filter by media type
+rr messages search --media-types=image
+
+# Send a message
+rr messages send '!roomid:beeper.local' "Hello!"
+
+# Reply to a specific message
+rr messages send '!roomid:beeper.local' "Thanks!" --reply-to "<message-id>"
+```
+
+## Search
+
+```bash
+# Global search across chats and messages
+rr search "dinner plans"
+
+# Paginate message results (max 20 per page)
+rr search "project" --messages-limit=20
+rr search "project" --messages-cursor="<cursor>" --messages-direction=before
+```
+
+Global search returns matching chats, messages, and an "In Groups" section for participant name matches.
+
+## Reminders
+
+```bash
+# Set a reminder (relative time)
+rr reminders set '!roomid:beeper.local' "2h"
+
+# Set a reminder (absolute time)
+rr reminders set '!roomid:beeper.local' "2024-12-25T09:00:00Z"
+
+# Clear a reminder
+rr reminders clear '!roomid:beeper.local'
+```
+
+## Focus & Drafts
+
+```bash
+# Focus Beeper Desktop window
+rr focus
+
+# Focus and open a specific chat
+rr focus --chat-id='!roomid:beeper.local'
+
+# Jump to a specific message
+rr focus --chat-id='!roomid:beeper.local' --message-id="<message-id>"
+
+# Pre-fill a draft (message not sent)
+rr focus --chat-id='!roomid:beeper.local' --draft-text="Hello!"
+
+# Pre-fill a draft with attachment
+rr focus --chat-id='!roomid:beeper.local' --draft-attachment="/path/to/file.jpg"
+
+# Combine draft text and attachment
+rr focus --chat-id='!roomid:beeper.local' --draft-text="Check this out!" --draft-attachment="/path/to/file.jpg"
+```
 
 ## Output Modes
 
-```bash
-# Human-readable (default)
-rr chats list
-
-# JSON for scripting
-rr chats list --json
-
-# Plain TSV
-rr chats list --plain
-```
-
-JSON/Plain output is written to stdout. Errors and hints are written to stderr.
-
-## Non-interactive Safety
-
-Destructive commands require confirmation. If stdin is not a TTY or `--no-input`/`BEEPER_NO_INPUT` is set, the command fails unless `--force` is provided.
-
-## Search Notes
-
-- Message search is literal word match; all words must match exactly.
-- Global `rr search` can page message results with `--messages-cursor`, `--messages-direction`, and `--messages-limit` (max 20).
-- Global `rr search` includes an "In Groups" section for participant name matches.
-- Use `rr chats search --scope=participants` to search by participant names.
-- `rr messages search` supports filters like `--account-ids`, `--chat-id`, `--chat-type`, `--sender`, `--media-types`, `--date-after`, `--date-before`, `--include-muted`, and `--exclude-low-priority`.
-- `rr chats search` supports `--account-ids`, `--include-muted`, and `--last-activity-after/--last-activity-before`.
-- JSON output includes `display_name` for single chats (derived from participants).
+### Human-readable (default)
 
 ```bash
-# Paginate message results within global search
-rr search "dinner" --messages-limit=20 --json
-rr search "dinner" --messages-cursor="<cursor>" --messages-direction=before --json
-
-# Search chats by participant name
-rr chats search "Jamie" --scope=participants --json
-
-# Filter message search by sender and date
-rr messages search --sender=me --date-after="2024-07-01T00:00:00Z" --json
-
-# Download an attachment by MXC URL
-rr assets download "mxc://example.org/abc123" --dest "./attachment.jpg"
+$ rr chats list
+CHAT                              LAST MESSAGE           TIME
+Alice                             See you tomorrow!      2h ago
+Project Team                      Meeting at 3pm         5h ago
 ```
+
+### JSON (for scripting)
+
+```bash
+$ rr chats list --json
+{
+  "items": [
+    {
+      "id": "!abc123:beeper.local",
+      "display_name": "Alice",
+      "last_message": "See you tomorrow!",
+      ...
+    }
+  ]
+}
+```
+
+### Plain (TSV)
+
+```bash
+$ rr chats list --plain
+!abc123:beeper.local	Alice	See you tomorrow!
+!def456:beeper.local	Project Team	Meeting at 3pm
+```
+
+JSON and plain output go to stdout. Errors and hints go to stderr.
 
 ## Scripting Examples
 
 ```bash
-# Find chat ID and send message
-CHAT_ID=$(rr chats search "John" --json | jq -r '.items[0].id')
+# Find a chat and send a message
+CHAT_ID=$(rr chats search "Alice" --json | jq -r '.items[0].id')
 rr messages send "$CHAT_ID" "Hey!"
 
 # List unread chats
@@ -168,11 +211,13 @@ rr reminders set "$CHAT_ID" "2h"
 
 # Focus a chat and pre-fill a draft
 rr focus --chat-id="$CHAT_ID" --draft-text="Hello!"
+
+# Download an attachment
+rr assets download "mxc://beeper.local/abc123" --dest "./attachment.jpg"
+
+# Search contacts on an account
+rr contacts search "<account-id>" "Alice" --json
 ```
-
-## Shell Notes
-
-- In bash/zsh, `!` triggers history expansion. Prefer single quotes for chat IDs or draft text, or disable history expansion (`set +H` in bash, `setopt NO_HIST_EXPAND` in zsh). If you see `\!` in text, it came from your shell/runner.
 
 ## Shell Completions
 
@@ -192,14 +237,26 @@ rr completion fish > ~/.config/fish/completions/rr.fish
 | Variable | Description |
 |----------|-------------|
 | `BEEPER_TOKEN` | API token (overrides config) |
-| `BEEPER_URL` | API base URL (default: http://localhost:23373) |
+| `BEEPER_URL` | API base URL (default: `http://localhost:23373`) |
 | `BEEPER_TIMEOUT` | API timeout in seconds (0 disables) |
-| `BEEPER_COLOR` | Color mode: auto|always|never |
+| `BEEPER_COLOR` | Color mode: `auto` \| `always` \| `never` |
 | `BEEPER_JSON` | Default to JSON output |
 | `BEEPER_PLAIN` | Default to plain output |
 | `BEEPER_NO_INPUT` | Never prompt, fail instead |
 | `BEEPER_HELP` | Set to `full` for expanded help |
 | `NO_COLOR` | Disable colored output |
+
+## Shell Notes
+
+In bash/zsh, `!` triggers history expansion. Chat IDs starting with `!` may cause issues.
+
+**Solutions:**
+- Use single quotes: `rr chats get '!roomid:beeper.local'`
+- Disable history expansion: `set +H` (bash) or `setopt NO_HIST_EXPAND` (zsh)
+
+## Non-interactive Mode
+
+Destructive commands require confirmation. In non-interactive environments (no TTY, or `--no-input` / `BEEPER_NO_INPUT`), commands fail unless `--force` is provided.
 
 ## Exit Codes
 
@@ -209,11 +266,11 @@ rr completion fish > ~/.config/fish/completions/rr.fish
 | 1 | General error |
 | 2 | Usage error |
 
-## Docs
+## Links
 
-- Desktop API: https://developers.beeper.com/desktop-api
-- Troubleshooting: docs/troubleshooting.md
-- API notes: docs/api-notes.md
+- [Desktop API Documentation](https://developers.beeper.com/desktop-api)
+- [Troubleshooting Guide](docs/troubleshooting.md)
+- [API Notes](docs/api-notes.md)
 
 ## License
 

@@ -1,6 +1,15 @@
-# roadrunner
+# 🐦💨 roadrunner — Beeper Desktop CLI: chat, search, send.
 
-CLI for Beeper Desktop. Beep beep!
+Beep beep! Local-first CLI for Beeper Desktop.
+
+## Features
+
+- Authenticate once with your Beeper Desktop token
+- List/search chats and messages
+- Send messages and manage reminders
+- Global search across chats and messages
+- Doctor command for diagnostics
+- JSON/Plain output for scripting
 
 ## Install
 
@@ -14,6 +23,10 @@ Or download a binary from the [releases page](https://github.com/johntheyoung/ro
 
 - [Beeper Desktop](https://www.beeper.com/) running locally
 - API token from Beeper Desktop settings
+
+## Status
+
+Local Beeper Desktop API only; requires the app running.
 
 ## Config & Token Storage
 

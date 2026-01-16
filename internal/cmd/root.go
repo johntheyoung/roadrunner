@@ -35,6 +35,7 @@ type CLI struct {
 	Auth     AuthCmd     `cmd:"" help:"Manage authentication"`
 	Accounts AccountsCmd `cmd:"" help:"Manage messaging accounts"`
 	Chats    ChatsCmd    `cmd:"" help:"Manage chats"`
+	Messages MessagesCmd `cmd:"" help:"Manage messages"`
 	Doctor   DoctorCmd   `cmd:"" help:"Diagnose configuration and connectivity"`
 	Version  VersionCmd  `cmd:"" help:"Show version information"`
 }

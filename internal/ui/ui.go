@@ -184,6 +184,8 @@ func (p *Printer) Table() *tabwriter.Writer {
 
 // Truncate shortens a string to maxLen, adding "..." if truncated.
 func Truncate(s string, maxLen int) string {
+	s = strings.ReplaceAll(s, "\n", " ")
+	s = strings.TrimSpace(s)
 	if len(s) <= maxLen {
 		return s
 	}

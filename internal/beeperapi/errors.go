@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	beeperdesktopapi "github.com/beeper/desktop-api-go"
 )
@@ -48,6 +49,12 @@ func FormatError(err error) string {
 	return err.Error()
 }
 
+// IsAPIError returns true if the error is an API error from the SDK.
+func IsAPIError(err error) bool {
+	var apiErr *beeperdesktopapi.Error
+	return errors.As(err, &apiErr)
+}
+
 func formatAPIError(err *beeperdesktopapi.Error) string {
 	// Try to extract message from response body
 	// DumpResponse(true) includes the body, (false) only includes headers
@@ -58,6 +65,19 @@ func formatAPIError(err *beeperdesktopapi.Error) string {
 	if bodyStart := findJSONBody(respBody); bodyStart != nil {
 		var body map[string]any
 		if jsonErr := json.Unmarshal(bodyStart, &body); jsonErr == nil {
+			if msg, ok := body["message"].(string); ok && msg != "" {
+				return fmt.Sprintf("API error (%d): %s", err.StatusCode, msg)
+			}
+			if errMsg, ok := body["error"].(string); ok && errMsg != "" {
+				return fmt.Sprintf("API error (%d): %s", err.StatusCode, errMsg)
+			}
+		}
+	}
+
+	// Fallback to raw JSON if available
+	if raw := strings.TrimSpace(err.RawJSON()); raw != "" {
+		var body map[string]any
+		if jsonErr := json.Unmarshal([]byte(raw), &body); jsonErr == nil {
 			if msg, ok := body["message"].(string); ok && msg != "" {
 				return fmt.Sprintf("API error (%d): %s", err.StatusCode, msg)
 			}

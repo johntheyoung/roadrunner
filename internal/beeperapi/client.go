@@ -68,3 +68,13 @@ func (c *Client) contextWithTimeout(ctx context.Context) (context.Context, conte
 func (c *Client) Accounts() *AccountsService {
 	return &AccountsService{client: c}
 }
+
+// Chats returns the chats service.
+func (c *Client) Chats() *ChatsService {
+	return &ChatsService{client: c}
+}
+
+// Messages returns the messages service.
+func (c *Client) Messages() *MessagesService {
+	return &MessagesService{client: c}
+}

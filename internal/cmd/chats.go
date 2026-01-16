@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"text/tabwriter"
 	"time"
 
-	beeperdesktopapi "github.com/beeper/desktop-api-go"
-	"github.com/beeper/desktop-api-go/option"
+	"github.com/johntheyoung/roadrunner/internal/beeperapi"
 	"github.com/johntheyoung/roadrunner/internal/config"
+	"github.com/johntheyoung/roadrunner/internal/errfmt"
 	"github.com/johntheyoung/roadrunner/internal/outfmt"
 	"github.com/johntheyoung/roadrunner/internal/ui"
 )
@@ -29,22 +28,6 @@ type ChatsListCmd struct {
 	Direction  string   `help:"Pagination direction: before|after" enum:"before,after,"`
 }
 
-// ChatsListResponse is the JSON output structure.
-type ChatsListResponse struct {
-	Items      []ChatListItem `json:"items"`
-	HasMore    bool           `json:"has_more"`
-	NextCursor string         `json:"next_cursor,omitempty"`
-}
-
-// ChatListItem represents a chat in list output.
-type ChatListItem struct {
-	ID           string `json:"id"`
-	Title        string `json:"title"`
-	AccountID    string `json:"account_id"`
-	LastActivity string `json:"last_activity,omitempty"`
-	Preview      string `json:"preview,omitempty"`
-}
-
 // Run executes the chats list command.
 func (c *ChatsListCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
@@ -55,59 +38,18 @@ func (c *ChatsListCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 
 	timeout := time.Duration(flags.Timeout) * time.Second
-	opts := []option.RequestOption{
-		option.WithAccessToken(token),
-	}
-	if flags.BaseURL != "" {
-		opts = append(opts, option.WithBaseURL(flags.BaseURL))
-	}
-	client := beeperdesktopapi.NewClient(opts...)
-
-	// Build params
-	params := beeperdesktopapi.ChatListParams{}
-	if len(c.AccountIDs) > 0 {
-		params.AccountIDs = c.AccountIDs
-	}
-	if c.Cursor != "" {
-		params.Cursor = beeperdesktopapi.String(c.Cursor)
-	}
-	if c.Direction == "before" {
-		params.Direction = beeperdesktopapi.ChatListParamsDirectionBefore
-	} else if c.Direction == "after" {
-		params.Direction = beeperdesktopapi.ChatListParamsDirectionAfter
-	}
-
-	// Create context with timeout
-	if timeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, timeout)
-		defer cancel()
-	}
-
-	page, err := client.Chats.List(ctx, params)
+	client, err := beeperapi.NewClient(token, flags.BaseURL, timeout)
 	if err != nil {
 		return err
 	}
 
-	// Build response
-	resp := ChatsListResponse{
-		Items:   make([]ChatListItem, 0, len(page.Items)),
-		HasMore: len(page.Items) > 0, // Approximate - SDK doesn't expose cursor clearly
-	}
-
-	for _, chat := range page.Items {
-		item := ChatListItem{
-			ID:        chat.ID,
-			Title:     chat.Title,
-			AccountID: chat.AccountID,
-		}
-		if !chat.LastActivity.IsZero() {
-			item.LastActivity = chat.LastActivity.Format(time.RFC3339)
-		}
-		if chat.JSON.Preview.Valid() {
-			item.Preview = chat.Preview.Text
-		}
-		resp.Items = append(resp.Items, item)
+	resp, err := client.Chats().List(ctx, beeperapi.ChatListParams{
+		AccountIDs: c.AccountIDs,
+		Cursor:     c.Cursor,
+		Direction:  c.Direction,
+	})
+	if err != nil {
+		return err
 	}
 
 	// JSON output
@@ -132,10 +74,14 @@ func (c *ChatsListCmd) Run(ctx context.Context, flags *RootFlags) error {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	u.Out().Printf("Chats (%d):\n", len(resp.Items))
 	for _, item := range resp.Items {
-		title := truncate(item.Title, 40)
+		title := ui.Truncate(item.Title, 40)
 		_, _ = w.Write([]byte(fmt.Sprintf("  %s\t%s\n", title, item.ID)))
 	}
 	w.Flush()
+
+	if resp.HasMore && resp.OldestCursor != "" {
+		u.Out().Dim(fmt.Sprintf("\nMore chats available. Use --cursor=%q --direction=before", resp.OldestCursor))
+	}
 
 	return nil
 }
@@ -143,33 +89,21 @@ func (c *ChatsListCmd) Run(ctx context.Context, flags *RootFlags) error {
 // ChatsSearchCmd searches for chats.
 type ChatsSearchCmd struct {
 	Query      string `arg:"" optional:"" help:"Search query"`
-	Inbox      string `help:"Filter by inbox: primary" enum:"primary,"`
+	Inbox      string `help:"Filter by inbox: primary|low-priority|archive" enum:"primary,low-priority,archive,"`
 	UnreadOnly bool   `help:"Only show unread chats" name:"unread-only"`
-	Type       string `help:"Filter by type: direct|group" enum:"direct,group,"`
+	Type       string `help:"Filter by type: direct|group|any" enum:"direct,group,any,"`
 	Limit      int    `help:"Max results (1-200)" default:"50"`
-}
-
-// ChatsSearchResponse is the JSON output structure.
-type ChatsSearchResponse struct {
-	Items      []ChatSearchItem `json:"items"`
-	HasMore    bool             `json:"has_more"`
-	NextCursor string           `json:"next_cursor,omitempty"`
-}
-
-// ChatSearchItem represents a chat in search output.
-type ChatSearchItem struct {
-	ID          string `json:"id"`
-	Title       string `json:"title"`
-	Type        string `json:"type"`
-	Network     string `json:"network"`
-	UnreadCount int64  `json:"unread_count"`
-	IsArchived  bool   `json:"is_archived"`
-	IsMuted     bool   `json:"is_muted"`
+	Cursor     string `help:"Pagination cursor"`
+	Direction  string `help:"Pagination direction: before|after" enum:"before,after,"`
 }
 
 // Run executes the chats search command.
 func (c *ChatsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
+
+	if c.Limit < 1 || c.Limit > 200 {
+		return errfmt.UsageError("invalid --limit %d (expected 1-200)", c.Limit)
+	}
 
 	token, _, err := config.GetToken()
 	if err != nil {
@@ -177,63 +111,22 @@ func (c *ChatsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 
 	timeout := time.Duration(flags.Timeout) * time.Second
-	opts := []option.RequestOption{
-		option.WithAccessToken(token),
-	}
-	if flags.BaseURL != "" {
-		opts = append(opts, option.WithBaseURL(flags.BaseURL))
-	}
-	client := beeperdesktopapi.NewClient(opts...)
-
-	// Build params
-	params := beeperdesktopapi.ChatSearchParams{}
-	if c.Query != "" {
-		params.Query = beeperdesktopapi.String(c.Query)
-	}
-	if c.Inbox == "primary" {
-		params.Inbox = beeperdesktopapi.ChatSearchParamsInboxPrimary
-	}
-	// Note: "other" inbox filter not yet supported by SDK
-	if c.UnreadOnly {
-		params.UnreadOnly = beeperdesktopapi.Bool(true)
-	}
-	if c.Type == "direct" {
-		params.Type = beeperdesktopapi.ChatSearchParamsTypeSingle
-	} else if c.Type == "group" {
-		params.Type = beeperdesktopapi.ChatSearchParamsTypeGroup
-	}
-	if c.Limit > 0 {
-		params.Limit = beeperdesktopapi.Int(int64(c.Limit))
-	}
-
-	// Create context with timeout
-	if timeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, timeout)
-		defer cancel()
-	}
-
-	page, err := client.Chats.Search(ctx, params)
+	client, err := beeperapi.NewClient(token, flags.BaseURL, timeout)
 	if err != nil {
 		return err
 	}
 
-	// Build response
-	resp := ChatsSearchResponse{
-		Items:   make([]ChatSearchItem, 0, len(page.Items)),
-		HasMore: len(page.Items) > 0,
-	}
-
-	for _, chat := range page.Items {
-		resp.Items = append(resp.Items, ChatSearchItem{
-			ID:          chat.ID,
-			Title:       chat.Title,
-			Type:        string(chat.Type),
-			Network:     chat.Network,
-			UnreadCount: chat.UnreadCount,
-			IsArchived:  chat.IsArchived,
-			IsMuted:     chat.IsMuted,
-		})
+	resp, err := client.Chats().Search(ctx, beeperapi.ChatSearchParams{
+		Query:      c.Query,
+		Inbox:      c.Inbox,
+		UnreadOnly: c.UnreadOnly,
+		Type:       c.Type,
+		Limit:      c.Limit,
+		Cursor:     c.Cursor,
+		Direction:  c.Direction,
+	})
+	if err != nil {
+		return err
 	}
 
 	// JSON output
@@ -258,7 +151,7 @@ func (c *ChatsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	u.Out().Printf("Found %d chats:\n", len(resp.Items))
 	for _, item := range resp.Items {
-		title := truncate(item.Title, 35)
+		title := ui.Truncate(item.Title, 35)
 		unread := ""
 		if item.UnreadCount > 0 {
 			unread = fmt.Sprintf("(%d)", item.UnreadCount)
@@ -266,6 +159,10 @@ func (c *ChatsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 		_, _ = w.Write([]byte(fmt.Sprintf("  %s\t%s\t%s\t%s\n", title, item.Type, unread, item.ID)))
 	}
 	w.Flush()
+
+	if resp.HasMore && resp.OldestCursor != "" {
+		u.Out().Dim(fmt.Sprintf("\nMore chats available. Use --cursor=%q --direction=before", resp.OldestCursor))
+	}
 
 	return nil
 }
@@ -285,22 +182,12 @@ func (c *ChatsGetCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 
 	timeout := time.Duration(flags.Timeout) * time.Second
-	opts := []option.RequestOption{
-		option.WithAccessToken(token),
-	}
-	if flags.BaseURL != "" {
-		opts = append(opts, option.WithBaseURL(flags.BaseURL))
-	}
-	client := beeperdesktopapi.NewClient(opts...)
-
-	// Create context with timeout
-	if timeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, timeout)
-		defer cancel()
+	client, err := beeperapi.NewClient(token, flags.BaseURL, timeout)
+	if err != nil {
+		return err
 	}
 
-	chat, err := client.Chats.Get(ctx, c.ChatID, beeperdesktopapi.ChatGetParams{})
+	chat, err := client.Chats().Get(ctx, c.ChatID)
 	if err != nil {
 		return err
 	}
@@ -325,15 +212,9 @@ func (c *ChatsGetCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if chat.UnreadCount > 0 {
 		u.Out().Printf("Unread:  %d", chat.UnreadCount)
 	}
+	if chat.LastActivity != "" {
+		u.Out().Printf("Last:    %s", chat.LastActivity)
+	}
 
 	return nil
-}
-
-// truncate shortens a string to maxLen, adding "..." if truncated.
-func truncate(s string, maxLen int) string {
-	s = strings.ReplaceAll(s, "\n", " ")
-	if len(s) <= maxLen {
-		return s
-	}
-	return s[:maxLen-3] + "..."
 }

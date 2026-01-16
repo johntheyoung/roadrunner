@@ -7,9 +7,9 @@ import (
 	"text/tabwriter"
 	"time"
 
-	beeperdesktopapi "github.com/beeper/desktop-api-go"
-	"github.com/beeper/desktop-api-go/option"
+	"github.com/johntheyoung/roadrunner/internal/beeperapi"
 	"github.com/johntheyoung/roadrunner/internal/config"
+	"github.com/johntheyoung/roadrunner/internal/errfmt"
 	"github.com/johntheyoung/roadrunner/internal/outfmt"
 	"github.com/johntheyoung/roadrunner/internal/ui"
 )
@@ -27,24 +27,6 @@ type MessagesListCmd struct {
 	Direction string `help:"Pagination direction: before|after" enum:"before,after," default:"before"`
 }
 
-// MessagesListResponse is the JSON output structure.
-type MessagesListResponse struct {
-	Items   []MessageListItem `json:"items"`
-	HasMore bool              `json:"has_more"`
-}
-
-// MessageListItem represents a message in list output.
-type MessageListItem struct {
-	ID         string   `json:"id"`
-	ChatID     string   `json:"chat_id"`
-	SenderName string   `json:"sender_name"`
-	Text       string   `json:"text"`
-	Timestamp  string   `json:"timestamp"`
-	SortKey    string   `json:"sort_key,omitempty"`
-	HasMedia   bool     `json:"has_media,omitempty"`
-	Reactions  []string `json:"reactions,omitempty"`
-}
-
 // Run executes the messages list command.
 func (c *MessagesListCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
@@ -55,62 +37,17 @@ func (c *MessagesListCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 
 	timeout := time.Duration(flags.Timeout) * time.Second
-	opts := []option.RequestOption{
-		option.WithAccessToken(token),
-	}
-	if flags.BaseURL != "" {
-		opts = append(opts, option.WithBaseURL(flags.BaseURL))
-	}
-	client := beeperdesktopapi.NewClient(opts...)
-
-	// Build params
-	params := beeperdesktopapi.MessageListParams{}
-	if c.Cursor != "" {
-		params.Cursor = beeperdesktopapi.String(c.Cursor)
-	}
-	if c.Direction == "before" {
-		params.Direction = beeperdesktopapi.MessageListParamsDirectionBefore
-	} else if c.Direction == "after" {
-		params.Direction = beeperdesktopapi.MessageListParamsDirectionAfter
-	}
-
-	// Create context with timeout
-	if timeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, timeout)
-		defer cancel()
-	}
-
-	page, err := client.Messages.List(ctx, c.ChatID, params)
+	client, err := beeperapi.NewClient(token, flags.BaseURL, timeout)
 	if err != nil {
 		return err
 	}
 
-	// Build response
-	resp := MessagesListResponse{
-		Items:   make([]MessageListItem, 0, len(page.Items)),
-		HasMore: len(page.Items) > 0,
-	}
-
-	for _, msg := range page.Items {
-		item := MessageListItem{
-			ID:         msg.ID,
-			ChatID:     msg.ChatID,
-			SenderName: msg.SenderName,
-			Text:       msg.Text,
-			SortKey:    msg.SortKey,
-			HasMedia:   len(msg.Attachments) > 0,
-		}
-		if !msg.Timestamp.IsZero() {
-			item.Timestamp = msg.Timestamp.Format(time.RFC3339)
-		}
-		if len(msg.Reactions) > 0 {
-			item.Reactions = make([]string, 0, len(msg.Reactions))
-			for _, r := range msg.Reactions {
-				item.Reactions = append(item.Reactions, r.ReactionKey)
-			}
-		}
-		resp.Items = append(resp.Items, item)
+	resp, err := client.Messages().List(ctx, c.ChatID, beeperapi.MessageListParams{
+		Cursor:    c.Cursor,
+		Direction: c.Direction,
+	})
+	if err != nil {
+		return err
 	}
 
 	// JSON output
@@ -121,7 +58,7 @@ func (c *MessagesListCmd) Run(ctx context.Context, flags *RootFlags) error {
 	// Plain output (TSV)
 	if outfmt.IsPlain(ctx) {
 		for _, item := range resp.Items {
-			u.Out().Printf("%s\t%s\t%s\t%s", item.ID, item.SenderName, item.Timestamp, truncate(item.Text, 50))
+			u.Out().Printf("%s\t%s\t%s\t%s", item.ID, item.SenderName, item.Timestamp, ui.Truncate(item.Text, 50))
 		}
 		return nil
 	}
@@ -140,15 +77,12 @@ func (c *MessagesListCmd) Run(ctx context.Context, flags *RootFlags) error {
 				ts = t.Format("Jan 2 15:04")
 			}
 		}
-		text := truncate(item.Text, 60)
+		text := ui.Truncate(item.Text, 60)
 		u.Out().Printf("  [%s] %s: %s", ts, item.SenderName, text)
 	}
 
-	if resp.HasMore && len(resp.Items) > 0 {
-		lastItem := resp.Items[len(resp.Items)-1]
-		if lastItem.SortKey != "" {
-			u.Out().Dim(fmt.Sprintf("\nMore messages available. Use --cursor=%q", lastItem.SortKey))
-		}
+	if resp.HasMore && resp.NextCursor != "" {
+		u.Out().Dim(fmt.Sprintf("\nMore messages available. Use --cursor=%q", resp.NextCursor))
 	}
 
 	return nil
@@ -163,25 +97,13 @@ type MessagesSearchCmd struct {
 	Limit     int    `help:"Max results (1-20)" default:"20"`
 }
 
-// MessagesSearchResponse is the JSON output structure.
-type MessagesSearchResponse struct {
-	Items      []MessageSearchItem `json:"items"`
-	HasMore    bool                `json:"has_more"`
-	NextCursor string              `json:"next_cursor,omitempty"`
-}
-
-// MessageSearchItem represents a message in search output.
-type MessageSearchItem struct {
-	ID         string `json:"id"`
-	ChatID     string `json:"chat_id"`
-	SenderName string `json:"sender_name"`
-	Text       string `json:"text"`
-	Timestamp  string `json:"timestamp"`
-}
-
 // Run executes the messages search command.
 func (c *MessagesSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
+
+	if c.Limit < 1 || c.Limit > 20 {
+		return errfmt.UsageError("invalid --limit %d (expected 1-20)", c.Limit)
+	}
 
 	token, _, err := config.GetToken()
 	if err != nil {
@@ -189,59 +111,20 @@ func (c *MessagesSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 
 	timeout := time.Duration(flags.Timeout) * time.Second
-	opts := []option.RequestOption{
-		option.WithAccessToken(token),
-	}
-	if flags.BaseURL != "" {
-		opts = append(opts, option.WithBaseURL(flags.BaseURL))
-	}
-	client := beeperdesktopapi.NewClient(opts...)
-
-	// Build params
-	params := beeperdesktopapi.MessageSearchParams{
-		Query: beeperdesktopapi.String(c.Query),
-	}
-	if c.Cursor != "" {
-		params.Cursor = beeperdesktopapi.String(c.Cursor)
-	}
-	if c.Direction == "before" {
-		params.Direction = beeperdesktopapi.MessageSearchParamsDirectionBefore
-	} else if c.Direction == "after" {
-		params.Direction = beeperdesktopapi.MessageSearchParamsDirectionAfter
-	}
-	if c.Limit > 0 {
-		params.Limit = beeperdesktopapi.Int(int64(c.Limit))
-	}
-
-	// Create context with timeout
-	if timeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, timeout)
-		defer cancel()
-	}
-
-	page, err := client.Messages.Search(ctx, params)
+	client, err := beeperapi.NewClient(token, flags.BaseURL, timeout)
 	if err != nil {
 		return err
 	}
 
-	// Build response
-	resp := MessagesSearchResponse{
-		Items:   make([]MessageSearchItem, 0, len(page.Items)),
-		HasMore: len(page.Items) > 0,
-	}
-
-	for _, msg := range page.Items {
-		item := MessageSearchItem{
-			ID:         msg.ID,
-			ChatID:     msg.ChatID,
-			SenderName: msg.SenderName,
-			Text:       msg.Text,
-		}
-		if !msg.Timestamp.IsZero() {
-			item.Timestamp = msg.Timestamp.Format(time.RFC3339)
-		}
-		resp.Items = append(resp.Items, item)
+	resp, err := client.Messages().Search(ctx, beeperapi.MessageSearchParams{
+		Query:     c.Query,
+		ChatID:    c.ChatID,
+		Cursor:    c.Cursor,
+		Direction: c.Direction,
+		Limit:     c.Limit,
+	})
+	if err != nil {
+		return err
 	}
 
 	// JSON output
@@ -252,7 +135,7 @@ func (c *MessagesSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 	// Plain output (TSV)
 	if outfmt.IsPlain(ctx) {
 		for _, item := range resp.Items {
-			u.Out().Printf("%s\t%s\t%s\t%s", item.ID, item.ChatID, item.SenderName, truncate(item.Text, 50))
+			u.Out().Printf("%s\t%s\t%s\t%s", item.ID, item.ChatID, item.SenderName, ui.Truncate(item.Text, 50))
 		}
 		return nil
 	}
@@ -273,10 +156,14 @@ func (c *MessagesSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 				ts = t.Format("Jan 2")
 			}
 		}
-		text := truncate(item.Text, 50)
+		text := ui.Truncate(item.Text, 50)
 		_, _ = w.Write([]byte(fmt.Sprintf("  [%s]\t%s:\t%s\n", ts, item.SenderName, text)))
 	}
 	w.Flush()
+
+	if resp.HasMore && resp.OldestCursor != "" {
+		u.Out().Dim(fmt.Sprintf("\nMore results available. Use --cursor=%q --direction=before", resp.OldestCursor))
+	}
 
 	return nil
 }

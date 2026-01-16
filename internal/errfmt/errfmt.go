@@ -7,6 +7,7 @@ import (
 
 	"github.com/alecthomas/kong"
 
+	"github.com/johntheyoung/roadrunner/internal/beeperapi"
 	"github.com/johntheyoung/roadrunner/internal/config"
 	"github.com/johntheyoung/roadrunner/internal/outfmt"
 	"github.com/johntheyoung/roadrunner/internal/ui"
@@ -39,6 +40,11 @@ func Format(err error) string {
 	// Handle no token error
 	if errors.Is(err, config.ErrNoToken) {
 		return "No API token configured.\n\nSet your token:\n  rr auth set <token>\n\nOr use environment variable:\n  export BEEPER_TOKEN=<token>"
+	}
+
+	// Handle API errors
+	if beeperapi.IsAPIError(err) {
+		return beeperapi.FormatError(err)
 	}
 
 	return err.Error()

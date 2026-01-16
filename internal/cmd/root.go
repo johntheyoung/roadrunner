@@ -53,7 +53,7 @@ func Execute() int {
 		kong.Description("CLI for Beeper Desktop. Beep beep!"),
 		kong.UsageOnError(),
 		kong.Vars{"version": Version},
-		kong.HelpOptions{Compact: helpCompact},
+		kong.ConfigureHelp(kong.HelpOptions{Compact: helpCompact}),
 	)
 	if err != nil {
 		_, _ = os.Stderr.WriteString("error: " + err.Error() + "\n")

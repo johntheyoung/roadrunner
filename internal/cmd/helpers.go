@@ -18,9 +18,6 @@ type ValidateTokenResult struct {
 // Returns account info if successful.
 func ValidateToken(ctx context.Context, token, baseURL string, timeoutSec int) ValidateTokenResult {
 	timeout := time.Duration(timeoutSec) * time.Second
-	if timeoutSec == 0 {
-		timeout = 5 * time.Second // Default for validation
-	}
 
 	client, err := beeperapi.NewClient(token, baseURL, timeout)
 	if err != nil {

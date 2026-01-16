@@ -137,9 +137,6 @@ func printCheck(u *ui.UI, name, value string, ok bool, okSuffix, failSuffix stri
 
 func checkAPIReachable(baseURL string, timeoutSec int) error {
 	timeout := time.Duration(timeoutSec) * time.Second
-	if timeoutSec == 0 {
-		timeout = 5 * time.Second // Default for doctor
-	}
 
 	client := &http.Client{Timeout: timeout}
 

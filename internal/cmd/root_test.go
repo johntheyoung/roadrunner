@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os"
+	"os/exec"
 	"strings"
 	"testing"
 
@@ -35,4 +37,22 @@ func TestExecute_JSONPlainConflict(t *testing.T) {
 			t.Fatalf("expected flag conflict error, got %q", errText)
 		}
 	})
+}
+
+func TestExecute_Help(t *testing.T) {
+	if os.Getenv("RR_HELPER") == "1" {
+		os.Args = []string{"rr", "--help"}
+		os.Exit(Execute())
+		return
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run=TestExecute_Help")
+	cmd.Env = append(os.Environ(), "RR_HELPER=1")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("helper failed: %v\n%s", err, string(out))
+	}
+	if !strings.Contains(string(out), "Beeper Desktop") && !strings.Contains(string(out), "Usage:") {
+		t.Fatalf("expected help output, got %q", string(out))
+	}
 }

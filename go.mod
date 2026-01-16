@@ -1,11 +1,12 @@
 module github.com/johntheyoung/roadrunner
 
-go 1.22
+go 1.24.0
 
 require (
 	github.com/alecthomas/kong v1.13.0
 	github.com/beeper/desktop-api-go v0.1.0
 	github.com/muesli/termenv v0.16.0
+	golang.org/x/term v0.39.0
 )
 
 require (
@@ -17,5 +18,5 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
-	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/sys v0.40.0 // indirect
 )

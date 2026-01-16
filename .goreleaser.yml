@@ -55,3 +55,18 @@ release:
   draft: false
   prerelease: auto
   name_template: "v{{.Version}}"
+
+brews:
+  - name: roadrunner
+    homepage: "https://github.com/johntheyoung/roadrunner"
+    description: "Beeper Desktop CLI for chats, messages, search, reminders."
+    license: "MIT"
+    repository:
+      owner: johntheyoung
+      name: homebrew-tap
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    install: |
+      bin.install "rr"
+    test: |
+      system "#{bin}/rr", "version"

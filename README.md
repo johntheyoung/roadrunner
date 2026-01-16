@@ -14,6 +14,14 @@ Beeper Desktop in your terminal — CLI for chats, messages, search, and reminde
 
 ## Install
 
+### Homebrew (macOS)
+
+```bash
+brew install johntheyoung/tap/roadrunner
+```
+
+### Go install
+
 ```bash
 go install github.com/johntheyoung/roadrunner/cmd/rr@latest
 ```

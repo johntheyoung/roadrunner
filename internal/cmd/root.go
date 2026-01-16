@@ -37,9 +37,11 @@ type CLI struct {
 	Chats     ChatsCmd     `cmd:"" help:"Manage chats"`
 	Messages  MessagesCmd  `cmd:"" help:"Manage messages"`
 	Reminders RemindersCmd `cmd:"" help:"Manage chat reminders"`
+	Search    SearchCmd    `cmd:"" help:"Global search across chats and messages"`
 	Focus     FocusCmd     `cmd:"" help:"Focus Beeper Desktop app"`
-	Doctor    DoctorCmd    `cmd:"" help:"Diagnose configuration and connectivity"`
-	Version   VersionCmd   `cmd:"" help:"Show version information"`
+	Doctor     DoctorCmd     `cmd:"" help:"Diagnose configuration and connectivity"`
+	Version    VersionCmd    `cmd:"" help:"Show version information"`
+	Completion CompletionCmd `cmd:"" help:"Generate shell completions"`
 }
 
 // Execute runs the CLI and returns an exit code.

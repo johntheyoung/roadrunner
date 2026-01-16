@@ -1,0 +1,69 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: rr
+    main: ./cmd/rr
+    binary: rr
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/johntheyoung/roadrunner/internal/cmd.Version={{.Version}}
+
+archives:
+  - id: default
+    format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE
+      - SKILL.md
+
+checksum:
+  name_template: 'checksums.txt'
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - Merge pull request
+      - Merge branch
+
+release:
+  github:
+    owner: johntheyoung
+    name: roadrunner
+  draft: false
+  prerelease: auto
+  name_template: "v{{.Version}}"
+
+brews:
+  - name: rr
+    repository:
+      owner: johntheyoung
+      name: homebrew-tap
+    homepage: https://github.com/johntheyoung/roadrunner
+    description: CLI for Beeper Desktop
+    license: MIT
+    skip_upload: auto
+    install: |
+      bin.install "rr"
+    test: |
+      system "#{bin}/rr", "--version"

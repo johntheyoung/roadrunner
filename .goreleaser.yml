@@ -55,17 +55,3 @@ release:
   draft: false
   prerelease: auto
   name_template: "v{{.Version}}"
-
-brews:
-  - name: rr
-    repository:
-      owner: johntheyoung
-      name: homebrew-tap
-    homepage: https://github.com/johntheyoung/roadrunner
-    description: CLI for Beeper Desktop
-    license: MIT
-    skip_upload: auto
-    install: |
-      bin.install "rr"
-    test: |
-      system "#{bin}/rr", "--version"

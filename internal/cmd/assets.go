@@ -140,7 +140,9 @@ func copyAsset(srcURL string, dest string) error {
 	if err != nil {
 		return fmt.Errorf("open %s: %w", path, err)
 	}
-	defer in.Close()
+	defer func() {
+		_ = in.Close()
+	}()
 
 	if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
 		return fmt.Errorf("create dir: %w", err)

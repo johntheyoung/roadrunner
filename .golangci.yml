@@ -1,3 +1,5 @@
+version: "2"
+
 run:
   timeout: 3m
   tests: false
@@ -9,10 +11,3 @@ linters:
     - ineffassign
     - staticcheck
     - unused
-    - gosimple
-
-issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - errcheck

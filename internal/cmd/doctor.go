@@ -146,7 +146,9 @@ func checkAPIReachable(baseURL string, timeoutSec int) error {
 	if err != nil {
 		return fmt.Errorf("cannot connect to %s: %w", baseURL, err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// Any response (even 401) means API is reachable
 	// We're just checking connectivity, not auth

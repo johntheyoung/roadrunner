@@ -89,7 +89,9 @@ func (c *AccountsListCmd) Run(ctx context.Context, flags *RootFlags) error {
 	for _, a := range accounts {
 		_, _ = w.Write([]byte("  " + a.Network + "\t" + a.DisplayName + "\t" + a.ID + "\n"))
 	}
-	w.Flush()
+	if err := w.Flush(); err != nil {
+		return err
+	}
 
 	return nil
 }

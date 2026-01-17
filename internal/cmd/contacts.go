@@ -98,9 +98,13 @@ func (c *ContactsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 		if item.CannotMessage {
 			status = "cannot-message"
 		}
-		_, _ = w.Write([]byte(fmt.Sprintf("  %s\t%s\t%s\t%s\n", name, item.ID, item.Username, status)))
+		if _, err := fmt.Fprintf(w, "  %s\t%s\t%s\t%s\n", name, item.ID, item.Username, status); err != nil {
+			return err
+		}
 	}
-	w.Flush()
+	if err := w.Flush(); err != nil {
+		return err
+	}
 
 	return nil
 }

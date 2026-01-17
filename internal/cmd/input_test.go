@@ -8,10 +8,7 @@ import (
 )
 
 func TestResolveTextInput(t *testing.T) {
-	t.Parallel()
-
 	t.Run("text_arg", func(t *testing.T) {
-		t.Parallel()
 		got, err := resolveTextInput("hello", "", false, true, "message text", "--text-file", "--stdin")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -22,7 +19,6 @@ func TestResolveTextInput(t *testing.T) {
 	})
 
 	t.Run("file_path", func(t *testing.T) {
-		t.Parallel()
 		dir := t.TempDir()
 		path := filepath.Join(dir, "msg.txt")
 		if err := os.WriteFile(path, []byte("from file"), 0600); err != nil {
@@ -38,7 +34,6 @@ func TestResolveTextInput(t *testing.T) {
 	})
 
 	t.Run("stdin", func(t *testing.T) {
-		t.Parallel()
 		withStdin(t, "from stdin", func() {
 			got, err := resolveTextInput("", "", true, true, "message text", "--text-file", "--stdin")
 			if err != nil {
@@ -51,7 +46,6 @@ func TestResolveTextInput(t *testing.T) {
 	})
 
 	t.Run("stdin_dash", func(t *testing.T) {
-		t.Parallel()
 		withStdin(t, "dash stdin", func() {
 			got, err := resolveTextInput("", "-", false, true, "message text", "--text-file", "--stdin")
 			if err != nil {
@@ -64,7 +58,6 @@ func TestResolveTextInput(t *testing.T) {
 	})
 
 	t.Run("multiple_sources", func(t *testing.T) {
-		t.Parallel()
 		_, err := resolveTextInput("hello", "file.txt", false, true, "message text", "--text-file", "--stdin")
 		if err == nil {
 			t.Fatal("expected error, got nil")

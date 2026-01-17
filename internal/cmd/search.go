@@ -95,9 +95,13 @@ func (c *SearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 				title = chat.DisplayName
 			}
 			title = ui.Truncate(title, 35)
-			_, _ = w.Write([]byte(fmt.Sprintf("  %s\t%s\t%s\n", title, chat.Type, chat.ID)))
+			if _, err := fmt.Fprintf(w, "  %s\t%s\t%s\n", title, chat.Type, chat.ID); err != nil {
+				return err
+			}
 		}
-		w.Flush()
+		if err := w.Flush(); err != nil {
+			return err
+		}
 		u.Out().Println("")
 	}
 
@@ -111,9 +115,13 @@ func (c *SearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 				title = chat.DisplayName
 			}
 			title = ui.Truncate(title, 35)
-			_, _ = w.Write([]byte(fmt.Sprintf("  %s\t%s\t%s\n", title, chat.Type, chat.ID)))
+			if _, err := fmt.Fprintf(w, "  %s\t%s\t%s\n", title, chat.Type, chat.ID); err != nil {
+				return err
+			}
 		}
-		w.Flush()
+		if err := w.Flush(); err != nil {
+			return err
+		}
 		u.Out().Println("")
 	}
 
@@ -129,9 +137,13 @@ func (c *SearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 				}
 			}
 			text := ui.Truncate(msg.Text, 40)
-			_, _ = w.Write([]byte(fmt.Sprintf("  [%s]\t%s:\t%s\n", ts, msg.SenderName, text)))
+			if _, err := fmt.Fprintf(w, "  [%s]\t%s:\t%s\n", ts, msg.SenderName, text); err != nil {
+				return err
+			}
 		}
-		w.Flush()
+		if err := w.Flush(); err != nil {
+			return err
+		}
 
 		if resp.Messages.HasMore {
 			if resp.Messages.OldestCursor != "" {

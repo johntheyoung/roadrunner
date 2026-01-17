@@ -98,6 +98,10 @@ rr contacts search "<account-id>" "Alice"
 
 # Resolve a contact by exact match
 rr contacts resolve "<account-id>" "Alice"
+
+# If a name is ambiguous, resolve by ID
+rr contacts search "<account-id>" "Michael Johnson" --json
+rr contacts resolve "<account-id>" "<contact-id>" --json
 ```
 
 ## Messages

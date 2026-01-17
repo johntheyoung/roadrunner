@@ -2,12 +2,17 @@
 name: roadrunner
 description: Beeper Desktop CLI for chats, messages, search, and reminders.
 homepage: https://github.com/johntheyoung/roadrunner
-metadata: {"clawdbot":{"emoji":"🐦💨","requires":{"bins":["rr"]},"install":[{"id":"go","kind":"go","module":"github.com/johntheyoung/roadrunner/cmd/rr@latest","bins":["rr"],"label":"Install rr (go)"}]}}
+metadata: {"clawdbot":{"emoji":"🐦💨","requires":{"bins":["rr"]},"install":[{"id":"brew","kind":"brew","formula":"johntheyoung/tap/roadrunner","bins":["rr"],"label":"Install rr (brew)"},{"id":"go","kind":"go","module":"github.com/johntheyoung/roadrunner/cmd/rr@latest","bins":["rr"],"label":"Install rr (go)"}]}}
 ---
 
 # roadrunner (rr)
 
-Use `rr` when the user wants to operate Beeper Desktop (local API). Prefer `--json` for agent use.
+Use `rr` when the user explicitly wants to operate Beeper Desktop via the local API (send, search, list chats/messages, reminders, focus).
+Prefer `--json` and `--no-input` for agent use.
+
+Safety
+- Require explicit recipient (chat ID) and message text before sending.
+- Confirm or ask a clarifying question if the chat ID is ambiguous.
 
 Setup (once)
 - `rr auth set <token>`

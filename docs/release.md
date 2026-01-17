@@ -39,6 +39,14 @@ gh release view vX.Y.Z
 gh api repos/johntheyoung/homebrew-tap/contents/Formula/roadrunner.rb?ref=main --jq '.sha'
 ```
 
+5) Publish Clawdhub skill:
+
+```bash
+make skill-publish VERSION=vX.Y.Z
+```
+
+The Makefile strips the leading `v` for Clawdhub versions.
+
 ## Homebrew Install Test (optional)
 
 ```bash

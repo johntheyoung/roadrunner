@@ -72,6 +72,7 @@ Notes
 - If a DM title shows your own Matrix ID, use `--scope=participants` to find by name.
 - JSON output includes `display_name` for single chats (derived from participants).
 - Message JSON includes `is_sender`, `is_unread`, `attachments`, and `reactions`.
+- `downloaded_attachments` is only populated when `--download-media` is used.
 - `rr messages send` returns `pending_message_id` (temporary ID).
 - Prefer `--json` (and `--no-input`) for automation.
 - `BEEPER_URL` overrides API base URL; `BEEPER_TIMEOUT` sets timeout in seconds.

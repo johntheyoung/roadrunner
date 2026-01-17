@@ -280,6 +280,7 @@ $ rr chats list --json
 ```
 
 Message JSON includes `is_sender`, `is_unread`, `attachments`, and `reactions`.
+`downloaded_attachments` is only populated when `--download-media` is used.
 
 ### Plain (TSV)
 

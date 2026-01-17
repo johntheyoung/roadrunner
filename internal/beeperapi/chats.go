@@ -66,6 +66,7 @@ type ChatSearchItem struct {
 	ID          string `json:"id"`
 	Title       string `json:"title"`
 	DisplayName string `json:"display_name,omitempty"`
+	AccountID   string `json:"account_id"`
 	Type        string `json:"type"`
 	Network     string `json:"network"`
 	UnreadCount int64  `json:"unread_count"`
@@ -235,6 +236,7 @@ func (s *ChatsService) Search(ctx context.Context, params ChatSearchParams) (Cha
 			ID:          chat.ID,
 			Title:       chat.Title,
 			DisplayName: displayName,
+			AccountID:   chat.AccountID,
 			Type:        string(chat.Type),
 			//nolint:staticcheck // Network is deprecated in SDK but still returned by API for display.
 			Network:     chat.Network,

@@ -199,7 +199,7 @@ func (c *ChatsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// Plain output (TSV)
 	if outfmt.IsPlain(ctx) {
-		fields, err := resolveFields(c.Fields, []string{"id", "title", "type", "unread_count", "display_name", "network", "is_archived", "is_muted"})
+		fields, err := resolveFields(c.Fields, []string{"id", "title", "type", "unread_count", "display_name", "network", "account_id", "is_archived", "is_muted"})
 		if err != nil {
 			return err
 		}
@@ -210,6 +210,7 @@ func (c *ChatsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 				"display_name": item.DisplayName,
 				"type":         item.Type,
 				"network":      item.Network,
+				"account_id":   item.AccountID,
 				"unread_count": fmt.Sprintf("%d", item.UnreadCount),
 				"is_archived":  formatBool(item.IsArchived),
 				"is_muted":     formatBool(item.IsMuted),

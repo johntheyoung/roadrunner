@@ -4,9 +4,10 @@
 
 - **Chats** — list, search, resolve, get, create, archive conversations
 - **Contacts** — search and resolve contacts on an account
-- **Messages** — list, search, send, reply, tail (polling), and wait for messages
+- **Messages** — list, search, send, reply, tail (polling), wait, and context
 - **Search** — global search across all chats and messages
-- **Status** — unread and chat summary
+- **Unread** — roll up unread chats across accounts
+- **Status** — unread and chat summary (optional per-account)
 - **Reminders** — set and clear chat reminders
 - **Focus** — focus app window, pre-fill drafts with text or attachments
 - **Scripting** — stdin/text-file input, `--fail-if-empty`, and `--fields` for plain output
@@ -142,6 +143,12 @@ rr messages tail '!roomid:beeper.local' --contains "deploy" --sender "Alice" --f
 
 # Wait for a matching message
 rr messages wait --chat-id='!roomid:beeper.local' --contains "deploy" --wait-timeout 2m
+
+# Context around a message (by sortKey)
+rr messages context '!roomid:beeper.local' '<sortKey>' --before 5 --after 2
+
+# Download attachments from listed messages
+rr messages list '!roomid:beeper.local' --download-media --download-dir ./media
 ```
 
 ## Search
@@ -162,6 +169,16 @@ Global search returns matching chats, messages, and an "In Groups" section for p
 ```bash
 # Summary of unread, muted, and archived chats
 rr status
+
+# Per-account summary
+rr status --by-account
+```
+
+## Unread
+
+```bash
+# Roll up unread chats across all accounts
+rr unread --json
 ```
 
 ## Reminders
@@ -261,6 +278,8 @@ $ rr chats list --json
   ]
 }
 ```
+
+Message JSON includes `is_sender`, `is_unread`, `attachments`, and `reactions`.
 
 ### Plain (TSV)
 

@@ -33,6 +33,7 @@ Common commands
 - Create chat (single): `rr chats create "<account-id>" --participant "<user-id>"`
 - Create chat (group): `rr chats create "<account-id>" --participant "<user-a>" --participant "<user-b>" --type group --title "Project Chat" --message "Welcome!"`
 - List messages: `rr messages list "!chatid:beeper.com" --json`
+- List messages (download media): `rr messages list "!chatid:beeper.com" --download-media --download-dir ./media --json`
 - Search messages: `rr messages search "dinner" --json`
 - Search messages (filters): `rr messages search --sender=me --date-after="2024-07-01T00:00:00Z" --media-types=image --json`
 - Send message: `rr messages send "!chatid:beeper.com" "Hello!"`
@@ -41,6 +42,7 @@ Common commands
 - Send message from stdin: `cat message.txt | rr messages send "!chatid:beeper.com" --stdin`
 - Tail messages (polling): `rr messages tail "!chatid:beeper.com" --interval 2s --stop-after 30s --json`
 - Wait for message: `rr messages wait --chat-id="!chatid:beeper.com" --contains "deploy" --wait-timeout 2m --json`
+- Message context: `rr messages context "!chatid:beeper.com" "<sortKey>" --before 5 --after 2 --json`
 - Draft message (pre-fill without sending): `rr focus --chat-id="!chatid:beeper.com" --draft-text="Hello!"`
 - Draft message from file: `rr focus --chat-id="!chatid:beeper.com" --draft-text-file ./draft.txt`
 - Draft with attachment: `rr focus --chat-id="!chatid:beeper.com" --draft-attachment="/path/to/file.jpg"`
@@ -50,6 +52,8 @@ Common commands
 - Focus app: `rr focus`
 - Global search: `rr search "dinner" --json`
 - Status summary: `rr status --json`
+- Status by account: `rr status --by-account --json`
+- Unread rollup: `rr unread --json`
 - Global search includes `in_groups` for participant matches.
 
 Pagination
@@ -67,6 +71,7 @@ Notes
 - `rr contacts resolve` is strict and fails on ambiguous names; resolve by ID after `contacts search` when needed.
 - If a DM title shows your own Matrix ID, use `--scope=participants` to find by name.
 - JSON output includes `display_name` for single chats (derived from participants).
+- Message JSON includes `is_sender`, `is_unread`, `attachments`, and `reactions`.
 - `rr messages send` returns `pending_message_id` (temporary ID).
 - Prefer `--json` (and `--no-input`) for automation.
 - `BEEPER_URL` overrides API base URL; `BEEPER_TIMEOUT` sets timeout in seconds.

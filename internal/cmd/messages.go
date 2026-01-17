@@ -18,20 +18,23 @@ import (
 
 // MessagesCmd is the parent command for message subcommands.
 type MessagesCmd struct {
-	List   MessagesListCmd   `cmd:"" help:"List messages in a chat"`
-	Search MessagesSearchCmd `cmd:"" help:"Search messages"`
-	Send   MessagesSendCmd   `cmd:"" help:"Send a message to a chat"`
-	Tail   MessagesTailCmd   `cmd:"" help:"Follow messages in a chat"`
-	Wait   MessagesWaitCmd   `cmd:"" help:"Wait for a matching message"`
+	List    MessagesListCmd    `cmd:"" help:"List messages in a chat"`
+	Search  MessagesSearchCmd  `cmd:"" help:"Search messages"`
+	Send    MessagesSendCmd    `cmd:"" help:"Send a message to a chat"`
+	Tail    MessagesTailCmd    `cmd:"" help:"Follow messages in a chat"`
+	Wait    MessagesWaitCmd    `cmd:"" help:"Wait for a matching message"`
+	Context MessagesContextCmd `cmd:"" help:"Fetch context around a message"`
 }
 
 // MessagesListCmd lists messages in a chat.
 type MessagesListCmd struct {
-	ChatID      string   `arg:"" name:"chatID" help:"Chat ID to list messages from"`
-	Cursor      string   `help:"Pagination cursor (use sortKey from previous results)"`
-	Direction   string   `help:"Pagination direction: before|after" enum:"before,after," default:"before"`
-	Fields      []string `help:"Comma-separated list of fields for --plain output" name:"fields" sep:","`
-	FailIfEmpty bool     `help:"Exit with code 1 if no results" name:"fail-if-empty"`
+	ChatID        string   `arg:"" name:"chatID" help:"Chat ID to list messages from"`
+	Cursor        string   `help:"Pagination cursor (use sortKey from previous results)"`
+	Direction     string   `help:"Pagination direction: before|after" enum:"before,after," default:"before"`
+	DownloadMedia bool     `help:"Download attachments for listed messages" name:"download-media"`
+	DownloadDir   string   `help:"Directory to save downloaded attachments" name:"download-dir" default:"."`
+	Fields        []string `help:"Comma-separated list of fields for --plain output" name:"fields" sep:","`
+	FailIfEmpty   bool     `help:"Exit with code 1 if no results" name:"fail-if-empty"`
 }
 
 // Run executes the messages list command.
@@ -58,6 +61,12 @@ func (c *MessagesListCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
+	if c.DownloadMedia {
+		if err := downloadMessageAttachments(ctx, client, resp.Items, c.DownloadDir); err != nil {
+			return err
+		}
+	}
+
 	if err := failIfEmpty(c.FailIfEmpty, len(resp.Items), "messages"); err != nil {
 		return err
 	}
@@ -69,18 +78,24 @@ func (c *MessagesListCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// Plain output (TSV)
 	if outfmt.IsPlain(ctx) {
-		fields, err := resolveFields(c.Fields, []string{"id", "sender_name", "timestamp", "text", "chat_id", "sort_key"})
+		fields, err := resolveFields(c.Fields, []string{"id", "sender_name", "timestamp", "text", "chat_id", "sort_key", "account_id", "is_sender", "is_unread", "attachments_count", "reaction_keys", "downloaded_attachments"})
 		if err != nil {
 			return err
 		}
 		for _, item := range resp.Items {
 			writePlainFields(u, fields, map[string]string{
-				"id":          item.ID,
-				"chat_id":     item.ChatID,
-				"sender_name": item.SenderName,
-				"timestamp":   item.Timestamp,
-				"text":        ui.Truncate(item.Text, 50),
-				"sort_key":    item.SortKey,
+				"id":                     item.ID,
+				"account_id":             item.AccountID,
+				"chat_id":                item.ChatID,
+				"sender_name":            item.SenderName,
+				"timestamp":              item.Timestamp,
+				"text":                   ui.Truncate(item.Text, 50),
+				"sort_key":               item.SortKey,
+				"is_sender":              formatBool(item.IsSender),
+				"is_unread":              formatBool(item.IsUnread),
+				"attachments_count":      fmt.Sprintf("%d", len(item.Attachments)),
+				"reaction_keys":          strings.Join(item.ReactionKeys, ","),
+				"downloaded_attachments": strings.Join(item.DownloadedAttachments, ","),
 			})
 		}
 		return nil
@@ -140,6 +155,14 @@ type MessagesTailCmd struct {
 	To        string        `help:"Only include messages before time (RFC3339 or duration)" name:"to"`
 	Interval  time.Duration `help:"Polling interval" default:"2s"`
 	StopAfter time.Duration `help:"Stop after duration (0=forever)" name:"stop-after" default:"0s"`
+}
+
+// MessagesContextCmd fetches messages around a sort key.
+type MessagesContextCmd struct {
+	ChatID  string `arg:"" name:"chatID" help:"Chat ID to fetch context from"`
+	SortKey string `arg:"" name:"sortKey" help:"Sort key of the anchor message"`
+	Before  int    `help:"Number of messages before the anchor" default:"10"`
+	After   int    `help:"Number of messages after the anchor" default:"0"`
 }
 
 // MessagesWaitCmd waits for a message that matches filters.
@@ -230,18 +253,24 @@ func (c *MessagesSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// Plain output (TSV)
 	if outfmt.IsPlain(ctx) {
-		fields, err := resolveFields(c.Fields, []string{"id", "chat_id", "sender_name", "text", "timestamp", "sort_key"})
+		fields, err := resolveFields(c.Fields, []string{"id", "chat_id", "sender_name", "text", "timestamp", "sort_key", "account_id", "is_sender", "is_unread", "attachments_count", "reaction_keys", "downloaded_attachments"})
 		if err != nil {
 			return err
 		}
 		for _, item := range resp.Items {
 			writePlainFields(u, fields, map[string]string{
-				"id":          item.ID,
-				"chat_id":     item.ChatID,
-				"sender_name": item.SenderName,
-				"timestamp":   item.Timestamp,
-				"text":        ui.Truncate(item.Text, 50),
-				"sort_key":    item.SortKey,
+				"id":                     item.ID,
+				"account_id":             item.AccountID,
+				"chat_id":                item.ChatID,
+				"sender_name":            item.SenderName,
+				"timestamp":              item.Timestamp,
+				"text":                   ui.Truncate(item.Text, 50),
+				"sort_key":               item.SortKey,
+				"is_sender":              formatBool(item.IsSender),
+				"is_unread":              formatBool(item.IsUnread),
+				"attachments_count":      fmt.Sprintf("%d", len(item.Attachments)),
+				"reaction_keys":          strings.Join(item.ReactionKeys, ","),
+				"downloaded_attachments": strings.Join(item.DownloadedAttachments, ","),
 			})
 		}
 		return nil
@@ -501,6 +530,93 @@ func (c *MessagesWaitCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 }
 
+// Run executes the messages context command.
+func (c *MessagesContextCmd) Run(ctx context.Context, flags *RootFlags) error {
+	u := ui.FromContext(ctx)
+	chatID := normalizeChatID(c.ChatID)
+
+	if c.Before < 0 || c.After < 0 {
+		return errfmt.UsageError("--before/--after must be >= 0")
+	}
+
+	token, _, err := config.GetToken()
+	if err != nil {
+		return err
+	}
+
+	timeout := time.Duration(flags.Timeout) * time.Second
+	client, err := beeperapi.NewClient(token, flags.BaseURL, timeout)
+	if err != nil {
+		return err
+	}
+
+	beforeItems := []beeperapi.MessageItem{}
+	afterItems := []beeperapi.MessageItem{}
+
+	if c.Before > 0 {
+		resp, err := client.Messages().List(ctx, chatID, beeperapi.MessageListParams{
+			Cursor:    c.SortKey,
+			Direction: "before",
+		})
+		if err != nil {
+			return err
+		}
+		beforeItems = limitItems(resp.Items, c.Before)
+	}
+
+	if c.After > 0 {
+		resp, err := client.Messages().List(ctx, chatID, beeperapi.MessageListParams{
+			Cursor:    c.SortKey,
+			Direction: "after",
+		})
+		if err != nil {
+			return err
+		}
+		afterItems = limitItems(resp.Items, c.After)
+	}
+
+	result := map[string]any{
+		"chat_id":  chatID,
+		"sort_key": c.SortKey,
+		"before":   beforeItems,
+		"after":    afterItems,
+	}
+
+	if outfmt.IsJSON(ctx) {
+		return outfmt.WriteJSON(os.Stdout, result)
+	}
+
+	if outfmt.IsPlain(ctx) {
+		for _, item := range beforeItems {
+			u.Out().Printf("before\t%s\t%s\t%s\t%s", item.ID, item.SenderName, item.Timestamp, ui.Truncate(item.Text, 50))
+		}
+		for _, item := range afterItems {
+			u.Out().Printf("after\t%s\t%s\t%s\t%s", item.ID, item.SenderName, item.Timestamp, ui.Truncate(item.Text, 50))
+		}
+		return nil
+	}
+
+	u.Out().Printf("Context around %s:", c.SortKey)
+	if len(beforeItems) == 0 {
+		u.Out().Dim("No messages before")
+	} else {
+		u.Out().Printf("Before:")
+		for _, item := range beforeItems {
+			u.Out().Printf("  %s: %s", item.SenderName, ui.Truncate(item.Text, 60))
+		}
+	}
+	if len(afterItems) == 0 {
+		u.Out().Dim("No messages after")
+	} else {
+		u.Out().Printf("After:")
+		for _, item := range afterItems {
+			u.Out().Printf("  %s: %s", item.SenderName, ui.Truncate(item.Text, 60))
+		}
+	}
+
+	return nil
+}
+
 // MessagesSendCmd sends a message to a chat.
 type MessagesSendCmd struct {
 	ChatID           string `arg:"" name:"chatID" help:"Chat ID to send message to"`
@@ -574,6 +690,13 @@ func lastSortKey(items []beeperapi.MessageItem) string {
 		}
 	}
 	return ""
+}
+
+func limitItems(items []beeperapi.MessageItem, limit int) []beeperapi.MessageItem {
+	if limit <= 0 || len(items) <= limit {
+		return items
+	}
+	return items[:limit]
 }
 
 func messageMatches(item beeperapi.MessageItem, contains, sender string, from, to *time.Time) bool {
@@ -653,4 +776,52 @@ func writeWaitResult(ctx context.Context, u *ui.UI, item beeperapi.MessageItem, 
 	}
 	u.Out().Printf("[%s] %s: %s", ts, item.SenderName, text)
 	return nil
+}
+
+func downloadMessageAttachments(ctx context.Context, client *beeperapi.Client, items []beeperapi.MessageItem, destDir string) error {
+	for i := range items {
+		item := &items[i]
+		if len(item.Attachments) == 0 {
+			continue
+		}
+		paths := make([]string, 0, len(item.Attachments))
+		for _, att := range item.Attachments {
+			if att.SrcURL == "" {
+				continue
+			}
+			path, err := downloadAttachment(ctx, client, att.SrcURL, destDir)
+			if err != nil {
+				return err
+			}
+			if path != "" {
+				paths = append(paths, path)
+			}
+		}
+		if len(paths) > 0 {
+			item.DownloadedAttachments = paths
+		}
+	}
+	return nil
+}
+
+func downloadAttachment(ctx context.Context, client *beeperapi.Client, srcURL string, destDir string) (string, error) {
+	url := srcURL
+	if strings.HasPrefix(url, "mxc://") || strings.HasPrefix(url, "localmxc://") {
+		localURL, err := client.Assets().Download(ctx, url)
+		if err != nil {
+			return "", err
+		}
+		url = localURL
+	}
+	if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
+		return "", fmt.Errorf("unsupported attachment URL: %s", url)
+	}
+	dest, err := assetsDownloadDestination(url, destDir)
+	if err != nil {
+		return "", err
+	}
+	if err := copyAsset(url, dest); err != nil {
+		return "", err
+	}
+	return dest, nil
 }

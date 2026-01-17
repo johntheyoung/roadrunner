@@ -52,15 +52,45 @@ type MessageSearchResult struct {
 
 // MessageItem represents a message in list/search output.
 type MessageItem struct {
-	ID         string   `json:"id"`
-	ChatID     string   `json:"chat_id"`
-	SenderID   string   `json:"sender_id,omitempty"`
-	SenderName string   `json:"sender_name,omitempty"`
-	Text       string   `json:"text,omitempty"`
-	Timestamp  string   `json:"timestamp,omitempty"`
-	SortKey    string   `json:"sort_key,omitempty"`
-	HasMedia   bool     `json:"has_media,omitempty"`
-	Reactions  []string `json:"reactions,omitempty"`
+	ID                    string              `json:"id"`
+	AccountID             string              `json:"account_id,omitempty"`
+	ChatID                string              `json:"chat_id"`
+	SenderID              string              `json:"sender_id,omitempty"`
+	SenderName            string              `json:"sender_name,omitempty"`
+	Text                  string              `json:"text,omitempty"`
+	Timestamp             string              `json:"timestamp,omitempty"`
+	SortKey               string              `json:"sort_key,omitempty"`
+	IsSender              bool                `json:"is_sender,omitempty"`
+	IsUnread              bool                `json:"is_unread,omitempty"`
+	HasMedia              bool                `json:"has_media,omitempty"`
+	Attachments           []MessageAttachment `json:"attachments,omitempty"`
+	Reactions             []MessageReaction   `json:"reactions,omitempty"`
+	ReactionKeys          []string            `json:"reaction_keys,omitempty"`
+	DownloadedAttachments []string            `json:"downloaded_attachments,omitempty"`
+}
+
+// MessageAttachment represents a message attachment.
+type MessageAttachment struct {
+	Type        string  `json:"type,omitempty"`
+	FileName    string  `json:"file_name,omitempty"`
+	FileSize    int64   `json:"file_size,omitempty"`
+	MimeType    string  `json:"mime_type,omitempty"`
+	SrcURL      string  `json:"src_url,omitempty"`
+	Duration    float64 `json:"duration,omitempty"`
+	IsGif       bool    `json:"is_gif,omitempty"`
+	IsSticker   bool    `json:"is_sticker,omitempty"`
+	IsVoiceNote bool    `json:"is_voice_note,omitempty"`
+	PosterImg   string  `json:"poster_img,omitempty"`
+	Width       int     `json:"width,omitempty"`
+	Height      int     `json:"height,omitempty"`
+}
+
+// MessageReaction represents a reaction on a message.
+type MessageReaction struct {
+	ID            string `json:"id,omitempty"`
+	ParticipantID string `json:"participant_id,omitempty"`
+	ReactionKey   string `json:"reaction_key,omitempty"`
+	Emoji         bool   `json:"emoji,omitempty"`
 }
 
 // List retrieves messages for a chat with cursor-based pagination.
@@ -91,12 +121,15 @@ func (s *MessagesService) List(ctx context.Context, chatID string, params Messag
 
 	for _, msg := range page.Items {
 		item := MessageItem{
-			ID:       msg.ID,
-			ChatID:   msg.ChatID,
-			SenderID: msg.SenderID,
-			Text:     msg.Text,
-			SortKey:  msg.SortKey,
-			HasMedia: len(msg.Attachments) > 0,
+			ID:        msg.ID,
+			AccountID: msg.AccountID,
+			ChatID:    msg.ChatID,
+			SenderID:  msg.SenderID,
+			Text:      msg.Text,
+			SortKey:   msg.SortKey,
+			IsSender:  msg.IsSender,
+			IsUnread:  msg.IsUnread,
+			HasMedia:  len(msg.Attachments) > 0,
 		}
 		if msg.SenderName != "" {
 			item.SenderName = msg.SenderName
@@ -106,10 +139,36 @@ func (s *MessagesService) List(ctx context.Context, chatID string, params Messag
 		if !msg.Timestamp.IsZero() {
 			item.Timestamp = msg.Timestamp.Format(time.RFC3339)
 		}
+		if len(msg.Attachments) > 0 {
+			item.Attachments = make([]MessageAttachment, 0, len(msg.Attachments))
+			for _, att := range msg.Attachments {
+				item.Attachments = append(item.Attachments, MessageAttachment{
+					Type:        string(att.Type),
+					FileName:    att.FileName,
+					FileSize:    int64(att.FileSize),
+					MimeType:    att.MimeType,
+					SrcURL:      att.SrcURL,
+					Duration:    att.Duration,
+					IsGif:       att.IsGif,
+					IsSticker:   att.IsSticker,
+					IsVoiceNote: att.IsVoiceNote,
+					PosterImg:   att.PosterImg,
+					Width:       int(att.Size.Width),
+					Height:      int(att.Size.Height),
+				})
+			}
+		}
 		if len(msg.Reactions) > 0 {
-			item.Reactions = make([]string, 0, len(msg.Reactions))
+			item.Reactions = make([]MessageReaction, 0, len(msg.Reactions))
+			item.ReactionKeys = make([]string, 0, len(msg.Reactions))
 			for _, r := range msg.Reactions {
-				item.Reactions = append(item.Reactions, r.ReactionKey)
+				item.Reactions = append(item.Reactions, MessageReaction{
+					ID:            r.ID,
+					ParticipantID: r.ParticipantID,
+					ReactionKey:   r.ReactionKey,
+					Emoji:         r.Emoji,
+				})
+				item.ReactionKeys = append(item.ReactionKeys, r.ReactionKey)
 			}
 		}
 		result.Items = append(result.Items, item)
@@ -227,10 +286,13 @@ func (s *MessagesService) Search(ctx context.Context, params MessageSearchParams
 
 	for _, msg := range page.Items {
 		item := MessageItem{
-			ID:       msg.ID,
-			ChatID:   msg.ChatID,
-			SenderID: msg.SenderID,
-			Text:     msg.Text,
+			ID:        msg.ID,
+			AccountID: msg.AccountID,
+			ChatID:    msg.ChatID,
+			SenderID:  msg.SenderID,
+			Text:      msg.Text,
+			IsSender:  msg.IsSender,
+			IsUnread:  msg.IsUnread,
 		}
 		if msg.SenderName != "" {
 			item.SenderName = msg.SenderName
@@ -239,6 +301,38 @@ func (s *MessagesService) Search(ctx context.Context, params MessageSearchParams
 		}
 		if !msg.Timestamp.IsZero() {
 			item.Timestamp = msg.Timestamp.Format(time.RFC3339)
+		}
+		if len(msg.Attachments) > 0 {
+			item.Attachments = make([]MessageAttachment, 0, len(msg.Attachments))
+			for _, att := range msg.Attachments {
+				item.Attachments = append(item.Attachments, MessageAttachment{
+					Type:        string(att.Type),
+					FileName:    att.FileName,
+					FileSize:    int64(att.FileSize),
+					MimeType:    att.MimeType,
+					SrcURL:      att.SrcURL,
+					Duration:    att.Duration,
+					IsGif:       att.IsGif,
+					IsSticker:   att.IsSticker,
+					IsVoiceNote: att.IsVoiceNote,
+					PosterImg:   att.PosterImg,
+					Width:       int(att.Size.Width),
+					Height:      int(att.Size.Height),
+				})
+			}
+		}
+		if len(msg.Reactions) > 0 {
+			item.Reactions = make([]MessageReaction, 0, len(msg.Reactions))
+			item.ReactionKeys = make([]string, 0, len(msg.Reactions))
+			for _, r := range msg.Reactions {
+				item.Reactions = append(item.Reactions, MessageReaction{
+					ID:            r.ID,
+					ParticipantID: r.ParticipantID,
+					ReactionKey:   r.ReactionKey,
+					Emoji:         r.Emoji,
+				})
+				item.ReactionKeys = append(item.ReactionKeys, r.ReactionKey)
+			}
 		}
 		result.Items = append(result.Items, item)
 	}

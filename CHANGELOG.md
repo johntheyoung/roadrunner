@@ -7,6 +7,15 @@ All notable changes to this project will be documented in this file.
 ### Added
 - (none)
 
+## v0.7.0 - 2026-01-18
+
+### Added
+- `rr unread` to list unread chats across accounts.
+- `rr status --by-account` for per-account unread summaries.
+- `rr messages context` for before/after message context.
+- Attachment metadata and reactions in message list/search JSON.
+- `rr messages list --download-media` to copy attachments locally.
+
 ## v0.6.2 - 2026-01-17
 
 ### Changed

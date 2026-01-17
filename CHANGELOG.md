@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
 ### Added
+- (none)
+
+## v0.6.0 - 2026-01-17
+
+### Added
 - `rr messages wait` to block until a matching message arrives.
 - Filters for `rr messages tail` (`--contains`, `--sender`, `--from`, `--to`).
 - `rr status` summary (unread, muted, archived).

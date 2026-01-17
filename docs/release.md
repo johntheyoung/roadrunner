@@ -47,6 +47,21 @@ make skill-publish VERSION=vX.Y.Z
 
 The Makefile strips the leading `v` for Clawdhub versions.
 
+Only publish if `SKILL.md` changed since the last release.
+
+6) Sanity check a release artifact:
+
+```bash
+curl -sL https://github.com/johntheyoung/roadrunner/releases/download/vX.Y.Z/roadrunner_X.Y.Z_linux_amd64.tar.gz | tar xz
+./rr version
+```
+
+7) Verify Clawdhub shows the new version (if the CLI supports it):
+
+```bash
+clawdhub info roadrunner
+```
+
 ## Homebrew Install Test (optional)
 
 ```bash

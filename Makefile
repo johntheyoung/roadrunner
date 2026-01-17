@@ -1,4 +1,4 @@
-.PHONY: fmt fmt-check test vet lint
+.PHONY: fmt fmt-check test vet lint skill-sync skill-publish
 
 fmt:
 	gofmt -w .
@@ -19,3 +19,9 @@ vet:
 
 lint:
 	golangci-lint run ./...
+
+skill-sync:
+	cp SKILL.md skill/SKILL.md
+
+skill-publish: skill-sync
+	clawdhub publish skill

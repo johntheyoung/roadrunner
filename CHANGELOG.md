@@ -7,6 +7,11 @@ All notable changes to this project will be documented in this file.
 ### Added
 - (none)
 
+## v0.6.2 - 2026-01-17
+
+### Changed
+- Clarify strict contact resolve behavior in docs.
+
 ## v0.6.1 - 2026-01-17
 
 ### Fixed

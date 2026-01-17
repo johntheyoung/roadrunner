@@ -7,6 +7,11 @@ All notable changes to this project will be documented in this file.
 ### Added
 - (none)
 
+## v0.5.1 - 2026-01-17
+
+### Added
+- ClawdHub skill guidance updates (install options, safety notes).
+
 ## v0.5.0 - 2026-01-17
 
 ### Added

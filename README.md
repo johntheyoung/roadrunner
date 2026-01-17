@@ -3,7 +3,7 @@
 ## Features
 
 - **Chats** — list, search, get, create, archive conversations
-- **Messages** — list, search, send, reply to messages
+- **Messages** — list, search, send, reply, and tail messages
 - **Search** — global search across all chats and messages
 - **Reminders** — set and clear chat reminders
 - **Focus** — focus app window, pre-fill drafts with text or attachments
@@ -107,6 +107,15 @@ rr messages send '!roomid:beeper.local' "Hello!"
 
 # Reply to a specific message
 rr messages send '!roomid:beeper.local' "Thanks!" --reply-to "<message-id>"
+
+# Send message from a file
+rr messages send '!roomid:beeper.local' --text-file ./message.txt
+
+# Send message from stdin
+cat message.txt | rr messages send '!roomid:beeper.local' --stdin
+
+# Tail new messages (polling)
+rr messages tail '!roomid:beeper.local' --interval 2s --stop-after 30s
 ```
 
 ## Search
@@ -150,6 +159,9 @@ rr focus --chat-id='!roomid:beeper.local' --message-id="<message-id>"
 # Pre-fill a draft (message not sent)
 rr focus --chat-id='!roomid:beeper.local' --draft-text="Hello!"
 
+# Pre-fill a draft from a file
+rr focus --chat-id='!roomid:beeper.local' --draft-text-file ./draft.txt
+
 # Pre-fill a draft with attachment
 rr focus --chat-id='!roomid:beeper.local' --draft-attachment="/path/to/file.jpg"
 
@@ -190,6 +202,9 @@ $ rr chats list --json
 $ rr chats list --plain
 !abc123:beeper.local	Alice	See you tomorrow!
 !def456:beeper.local	Project Team	Meeting at 3pm
+
+# Select fields for plain output
+rr chats list --plain --fields id,title
 ```
 
 JSON and plain output go to stdout. Errors and hints go to stderr.
@@ -201,6 +216,9 @@ JSON and plain output go to stdout. Errors and hints go to stderr.
 CHAT_ID=$(rr chats search "Alice" --json | jq -r '.items[0].id')
 rr messages send "$CHAT_ID" "Hey!"
 
+# Exit with code 1 if no results
+rr chats search "Alice" --json --fail-if-empty
+
 # List unread chats
 rr chats search --inbox=primary --unread-only --json
 
@@ -209,6 +227,9 @@ rr reminders set "$CHAT_ID" "2h"
 
 # Focus a chat and pre-fill a draft
 rr focus --chat-id="$CHAT_ID" --draft-text="Hello!"
+
+# Send a multi-line draft via stdin
+cat draft.txt | rr messages send "$CHAT_ID" --stdin
 
 # Download an attachment
 rr assets download "mxc://beeper.local/abc123" --dest "./attachment.jpg"
@@ -246,7 +267,7 @@ rr completion fish > ~/.config/fish/completions/rr.fish
 
 ## Shell Notes
 
-In bash/zsh, `!` triggers history expansion. Chat IDs starting with `!` may cause issues.
+In bash/zsh, `!` triggers history expansion. If you see `\!` in text or chat IDs, it came from your shell/runner.
 
 **Solutions:**
 - Use single quotes: `rr chats get '!roomid:beeper.local'`

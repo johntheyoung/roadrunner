@@ -25,9 +25,11 @@ type ChatsCmd struct {
 
 // ChatsListCmd lists chats.
 type ChatsListCmd struct {
-	AccountIDs []string `help:"Filter by account IDs" name:"account-ids"`
-	Cursor     string   `help:"Pagination cursor"`
-	Direction  string   `help:"Pagination direction: before|after" enum:"before,after," default:""`
+	AccountIDs  []string `help:"Filter by account IDs" name:"account-ids"`
+	Cursor      string   `help:"Pagination cursor"`
+	Direction   string   `help:"Pagination direction: before|after" enum:"before,after," default:""`
+	Fields      []string `help:"Comma-separated list of fields for --plain output" name:"fields" sep:","`
+	FailIfEmpty bool     `help:"Exit with code 1 if no results" name:"fail-if-empty"`
 }
 
 // Run executes the chats list command.
@@ -54,6 +56,10 @@ func (c *ChatsListCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
+	if err := failIfEmpty(c.FailIfEmpty, len(resp.Items), "chats"); err != nil {
+		return err
+	}
+
 	// JSON output
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, resp)
@@ -61,8 +67,19 @@ func (c *ChatsListCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// Plain output (TSV)
 	if outfmt.IsPlain(ctx) {
+		fields, err := resolveFields(c.Fields, []string{"id", "title", "account_id", "display_name", "last_activity", "preview"})
+		if err != nil {
+			return err
+		}
 		for _, item := range resp.Items {
-			u.Out().Printf("%s\t%s\t%s", item.ID, item.Title, item.AccountID)
+			writePlainFields(u, fields, map[string]string{
+				"id":            item.ID,
+				"title":         item.Title,
+				"display_name":  item.DisplayName,
+				"account_id":    item.AccountID,
+				"last_activity": item.LastActivity,
+				"preview":       item.Preview,
+			})
 		}
 		return nil
 	}
@@ -106,6 +123,8 @@ type ChatsSearchCmd struct {
 	Limit              int      `help:"Max results (1-200)" default:"50"`
 	Cursor             string   `help:"Pagination cursor"`
 	Direction          string   `help:"Pagination direction: before|after" enum:"before,after," default:""`
+	Fields             []string `help:"Comma-separated list of fields for --plain output" name:"fields" sep:","`
+	FailIfEmpty        bool     `help:"Exit with code 1 if no results" name:"fail-if-empty"`
 }
 
 // Run executes the chats search command.
@@ -163,6 +182,10 @@ func (c *ChatsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
+	if err := failIfEmpty(c.FailIfEmpty, len(resp.Items), "chats"); err != nil {
+		return err
+	}
+
 	// JSON output
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, resp)
@@ -170,8 +193,21 @@ func (c *ChatsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// Plain output (TSV)
 	if outfmt.IsPlain(ctx) {
+		fields, err := resolveFields(c.Fields, []string{"id", "title", "type", "unread_count", "display_name", "network", "is_archived", "is_muted"})
+		if err != nil {
+			return err
+		}
 		for _, item := range resp.Items {
-			u.Out().Printf("%s\t%s\t%s\t%d", item.ID, item.Title, item.Type, item.UnreadCount)
+			writePlainFields(u, fields, map[string]string{
+				"id":           item.ID,
+				"title":        item.Title,
+				"display_name": item.DisplayName,
+				"type":         item.Type,
+				"network":      item.Network,
+				"unread_count": fmt.Sprintf("%d", item.UnreadCount),
+				"is_archived":  formatBool(item.IsArchived),
+				"is_muted":     formatBool(item.IsMuted),
+			})
 		}
 		return nil
 	}

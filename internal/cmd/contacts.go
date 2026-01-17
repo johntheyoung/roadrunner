@@ -21,8 +21,10 @@ type ContactsCmd struct {
 
 // ContactsSearchCmd searches contacts within an account.
 type ContactsSearchCmd struct {
-	AccountID string `arg:"" name:"accountID" help:"Account ID to search"`
-	Query     string `arg:"" help:"Search query"`
+	AccountID   string   `arg:"" name:"accountID" help:"Account ID to search"`
+	Query       string   `arg:"" help:"Search query"`
+	Fields      []string `help:"Comma-separated list of fields for --plain output" name:"fields" sep:","`
+	FailIfEmpty bool     `help:"Exit with code 1 if no results" name:"fail-if-empty"`
 }
 
 // Run executes the contacts search command.
@@ -49,6 +51,10 @@ func (c *ContactsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
+	if err := failIfEmpty(c.FailIfEmpty, len(resp), "contacts"); err != nil {
+		return err
+	}
+
 	// JSON output
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, resp)
@@ -56,8 +62,18 @@ func (c *ContactsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// Plain output (TSV)
 	if outfmt.IsPlain(ctx) {
+		fields, err := resolveFields(c.Fields, []string{"id", "full_name", "username", "phone_number", "cannot_message"})
+		if err != nil {
+			return err
+		}
 		for _, item := range resp {
-			u.Out().Printf("%s\t%s\t%s\t%s\t%t", item.ID, item.FullName, item.Username, item.PhoneNumber, item.CannotMessage)
+			writePlainFields(u, fields, map[string]string{
+				"id":             item.ID,
+				"full_name":      item.FullName,
+				"username":       item.Username,
+				"phone_number":   item.PhoneNumber,
+				"cannot_message": formatBool(item.CannotMessage),
+			})
 		}
 		return nil
 	}

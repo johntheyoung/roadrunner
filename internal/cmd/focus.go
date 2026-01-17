@@ -16,6 +16,7 @@ type FocusCmd struct {
 	ChatID              string `help:"Chat ID to focus (optional)" name:"chat-id"`
 	MessageID           string `help:"Message ID to jump to (optional)" name:"message-id"`
 	DraftText           string `help:"Pre-fill draft text (optional)" name:"draft-text"`
+	DraftTextFile       string `help:"Read draft text from file ('-' for stdin)" name:"draft-text-file"`
 	DraftAttachmentPath string `help:"Pre-fill draft attachment path (optional)" name:"draft-attachment"`
 }
 
@@ -23,6 +24,11 @@ type FocusCmd struct {
 func (c *FocusCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
 	chatID := normalizeChatID(c.ChatID)
+
+	draftText, err := resolveTextInput(c.DraftText, c.DraftTextFile, false, false, "draft text", "--draft-text-file", "")
+	if err != nil {
+		return err
+	}
 
 	token, _, err := config.GetToken()
 	if err != nil {
@@ -38,7 +44,7 @@ func (c *FocusCmd) Run(ctx context.Context, flags *RootFlags) error {
 	resp, err := client.Focus(ctx, beeperapi.FocusParams{
 		ChatID:              chatID,
 		MessageID:           c.MessageID,
-		DraftText:           c.DraftText,
+		DraftText:           draftText,
 		DraftAttachmentPath: c.DraftAttachmentPath,
 	})
 	if err != nil {

@@ -20,6 +20,7 @@ type SearchCmd struct {
 	MessagesCursor    string `help:"Cursor for message results pagination" name:"messages-cursor"`
 	MessagesDirection string `help:"Pagination direction for message results: before|after" name:"messages-direction" enum:"before,after," default:""`
 	MessagesLimit     int    `help:"Max messages per page when paging (1-20)" name:"messages-limit" default:"0"`
+	FailIfEmpty       bool   `help:"Exit with code 1 if no results" name:"fail-if-empty"`
 }
 
 // Run executes the search command.
@@ -48,6 +49,11 @@ func (c *SearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 		MessagesLimit:     c.MessagesLimit,
 	})
 	if err != nil {
+		return err
+	}
+
+	resultCount := len(resp.Chats) + len(resp.InGroups) + len(resp.Messages.Items)
+	if err := failIfEmpty(c.FailIfEmpty, resultCount, "results"); err != nil {
 		return err
 	}
 

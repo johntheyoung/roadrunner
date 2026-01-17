@@ -18,7 +18,10 @@ type AccountsCmd struct {
 }
 
 // AccountsListCmd lists all connected accounts.
-type AccountsListCmd struct{}
+type AccountsListCmd struct {
+	Fields      []string `help:"Comma-separated list of fields for --plain output" name:"fields" sep:","`
+	FailIfEmpty bool     `help:"Exit with code 1 if no results" name:"fail-if-empty"`
+}
 
 // AccountsListResponse is the JSON output structure.
 type AccountsListResponse struct {
@@ -48,6 +51,10 @@ func (c *AccountsListCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
+	if err := failIfEmpty(c.FailIfEmpty, len(accounts), "accounts"); err != nil {
+		return err
+	}
+
 	// JSON output
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, AccountsListResponse{
@@ -57,8 +64,16 @@ func (c *AccountsListCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// Plain output (TSV)
 	if outfmt.IsPlain(ctx) {
+		fields, err := resolveFields(c.Fields, []string{"id", "network", "display_name"})
+		if err != nil {
+			return err
+		}
 		for _, a := range accounts {
-			u.Out().Printf("%s\t%s\t%s", a.ID, a.Network, a.DisplayName)
+			writePlainFields(u, fields, map[string]string{
+				"id":           a.ID,
+				"network":      a.Network,
+				"display_name": a.DisplayName,
+			})
 		}
 		return nil
 	}

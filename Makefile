@@ -24,4 +24,4 @@ skill-sync:
 	cp SKILL.md skill/SKILL.md
 
 skill-publish: skill-sync
-	clawdhub publish $(CURDIR)/skill --slug roadrunner
+	clawdhub publish $(CURDIR)/skill --slug roadrunner $(if $(VERSION),--version $(VERSION),)

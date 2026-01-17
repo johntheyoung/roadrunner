@@ -3,10 +3,11 @@
 ## Features
 
 - **Chats** — list, search, get, create, archive conversations
-- **Messages** — list, search, send, reply, and tail messages
+- **Messages** — list, search, send, reply, and tail (polling) messages
 - **Search** — global search across all chats and messages
 - **Reminders** — set and clear chat reminders
 - **Focus** — focus app window, pre-fill drafts with text or attachments
+- **Scripting** — stdin/text-file input, `--fail-if-empty`, and `--fields` for plain output
 - **Output** — JSON, plain (TSV), or human-readable formats
 
 ## Install
@@ -169,6 +170,35 @@ rr focus --chat-id='!roomid:beeper.local' --draft-attachment="/path/to/file.jpg"
 rr focus --chat-id='!roomid:beeper.local' --draft-text="Check this out!" --draft-attachment="/path/to/file.jpg"
 ```
 
+## Scripting
+
+```bash
+# Find a chat and send a message
+CHAT_ID=$(rr chats search "Alice" --json | jq -r '.items[0].id')
+rr messages send "$CHAT_ID" "Hey!"
+
+# Exit with code 1 if no results
+rr chats search "Alice" --json --fail-if-empty
+
+# List unread chats
+rr chats search --inbox=primary --unread-only --json
+
+# Set a reminder for 2 hours from now
+rr reminders set "$CHAT_ID" "2h"
+
+# Focus a chat and pre-fill a draft
+rr focus --chat-id="$CHAT_ID" --draft-text="Hello!"
+
+# Send a multi-line draft via stdin
+cat draft.txt | rr messages send "$CHAT_ID" --stdin
+
+# Download an attachment
+rr assets download "mxc://beeper.local/abc123" --dest "./attachment.jpg"
+
+# Search contacts on an account
+rr contacts search "<account-id>" "Alice" --json
+```
+
 ## Output Modes
 
 ### Human-readable (default)
@@ -208,35 +238,6 @@ rr chats list --plain --fields id,title
 ```
 
 JSON and plain output go to stdout. Errors and hints go to stderr.
-
-## Scripting Examples
-
-```bash
-# Find a chat and send a message
-CHAT_ID=$(rr chats search "Alice" --json | jq -r '.items[0].id')
-rr messages send "$CHAT_ID" "Hey!"
-
-# Exit with code 1 if no results
-rr chats search "Alice" --json --fail-if-empty
-
-# List unread chats
-rr chats search --inbox=primary --unread-only --json
-
-# Set a reminder for 2 hours from now
-rr reminders set "$CHAT_ID" "2h"
-
-# Focus a chat and pre-fill a draft
-rr focus --chat-id="$CHAT_ID" --draft-text="Hello!"
-
-# Send a multi-line draft via stdin
-cat draft.txt | rr messages send "$CHAT_ID" --stdin
-
-# Download an attachment
-rr assets download "mxc://beeper.local/abc123" --dest "./attachment.jpg"
-
-# Search contacts on an account
-rr contacts search "<account-id>" "Alice" --json
-```
 
 ## Shell Completions
 

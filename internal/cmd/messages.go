@@ -249,9 +249,13 @@ func (c *MessagesSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 			}
 		}
 		text := ui.Truncate(item.Text, 50)
-		_, _ = w.Write([]byte(fmt.Sprintf("  [%s]\t%s:\t%s\n", ts, item.SenderName, text)))
+		if _, err := fmt.Fprintf(w, "  [%s]\t%s:\t%s\n", ts, item.SenderName, text); err != nil {
+			return err
+		}
 	}
-	w.Flush()
+	if err := w.Flush(); err != nil {
+		return err
+	}
 
 	if resp.HasMore && resp.OldestCursor != "" {
 		u.Out().Dim(fmt.Sprintf("\nMore results available. Use --cursor=%q --direction=before", resp.OldestCursor))

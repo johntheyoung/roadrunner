@@ -98,9 +98,13 @@ func (c *ChatsListCmd) Run(ctx context.Context, flags *RootFlags) error {
 			title = item.DisplayName
 		}
 		title = ui.Truncate(title, 40)
-		_, _ = w.Write([]byte(fmt.Sprintf("  %s\t%s\n", title, item.ID)))
+		if _, err := fmt.Fprintf(w, "  %s\t%s\n", title, item.ID); err != nil {
+			return err
+		}
 	}
-	w.Flush()
+	if err := w.Flush(); err != nil {
+		return err
+	}
 
 	if resp.HasMore && resp.OldestCursor != "" {
 		u.Out().Dim(fmt.Sprintf("\nMore chats available. Use --cursor=%q --direction=before", resp.OldestCursor))
@@ -230,9 +234,13 @@ func (c *ChatsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 		if item.UnreadCount > 0 {
 			unread = fmt.Sprintf("(%d)", item.UnreadCount)
 		}
-		_, _ = w.Write([]byte(fmt.Sprintf("  %s\t%s\t%s\t%s\n", title, item.Type, unread, item.ID)))
+		if _, err := fmt.Fprintf(w, "  %s\t%s\t%s\t%s\n", title, item.Type, unread, item.ID); err != nil {
+			return err
+		}
 	}
-	w.Flush()
+	if err := w.Flush(); err != nil {
+		return err
+	}
 
 	if resp.HasMore && resp.OldestCursor != "" {
 		u.Out().Dim(fmt.Sprintf("\nMore chats available. Use --cursor=%q --direction=before", resp.OldestCursor))

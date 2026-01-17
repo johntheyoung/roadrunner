@@ -7,6 +7,14 @@ All notable changes to this project will be documented in this file.
 ### Added
 - (none)
 
+## v0.5.0 - 2026-01-17
+
+### Added
+- Message input from file/stdin (`--text-file`, `--stdin`) and draft text file support.
+- `rr messages tail` with polling and `--stop-after`.
+- `--fail-if-empty` for list/search commands.
+- `--fields` for `--plain` output column selection.
+
 ## v0.4.1 - 2026-01-17
 
 ### Fixed

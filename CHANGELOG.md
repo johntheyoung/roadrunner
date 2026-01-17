@@ -7,6 +7,11 @@ All notable changes to this project will be documented in this file.
 ### Added
 - (none)
 
+## v0.6.1 - 2026-01-17
+
+### Fixed
+- Deduplicate contact resolve matches to avoid false "multiple matches" errors.
+
 ## v0.6.0 - 2026-01-17
 
 ### Added

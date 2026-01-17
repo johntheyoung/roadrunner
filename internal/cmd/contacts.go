@@ -143,8 +143,17 @@ func (c *ContactsResolveCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 
 	matches := make([]beeperapi.Contact, 0, 1)
-	for _, item := range resp {
+	seen := make(map[string]struct{})
+	for i, item := range resp {
 		if contactExactMatch(item, c.Query) {
+			key := contactKey(item)
+			if key == "" {
+				key = fmt.Sprintf("idx:%d", i)
+			}
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
 			matches = append(matches, item)
 		}
 	}
@@ -223,4 +232,17 @@ func contactExactMatch(contact beeperapi.Contact, query string) bool {
 		return true
 	}
 	return false
+}
+
+func contactKey(contact beeperapi.Contact) string {
+	if contact.ID != "" {
+		return "id:" + strings.ToLower(contact.ID)
+	}
+	parts := []string{
+		strings.ToLower(strings.TrimSpace(contact.FullName)),
+		strings.ToLower(strings.TrimSpace(contact.Username)),
+		strings.ToLower(strings.TrimSpace(contact.Email)),
+		strings.ToLower(strings.TrimSpace(contact.PhoneNumber)),
+	}
+	return strings.Join(parts, "|")
 }

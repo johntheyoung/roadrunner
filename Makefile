@@ -23,5 +23,7 @@ lint:
 skill-sync:
 	cp SKILL.md skill/SKILL.md
 
+VERSION_STRIPPED := $(patsubst v%,%,$(VERSION))
+
 skill-publish: skill-sync
-	clawdhub publish $(CURDIR)/skill --slug roadrunner $(if $(VERSION),--version $(VERSION),)
+	clawdhub publish $(CURDIR)/skill --slug roadrunner $(if $(VERSION),--version $(VERSION_STRIPPED),)

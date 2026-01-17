@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 type ChatsCmd struct {
 	List    ChatsListCmd    `cmd:"" help:"List chats"`
 	Search  ChatsSearchCmd  `cmd:"" help:"Search chats"`
+	Resolve ChatsResolveCmd `cmd:"" help:"Resolve a chat by exact match"`
 	Get     ChatsGetCmd     `cmd:"" help:"Get chat details"`
 	Create  ChatsCreateCmd  `cmd:"" help:"Create a new chat"`
 	Archive ChatsArchiveCmd `cmd:"" help:"Archive or unarchive a chat"`
@@ -254,6 +256,13 @@ type ChatsGetCmd struct {
 	ChatID string `arg:"" name:"chatID" help:"Chat ID to retrieve"`
 }
 
+// ChatsResolveCmd resolves a chat by exact match.
+type ChatsResolveCmd struct {
+	Query      string   `arg:"" help:"Exact chat title, display name, or ID"`
+	AccountIDs []string `help:"Filter by account IDs" name:"account-ids"`
+	Fields     []string `help:"Comma-separated list of fields for --plain output" name:"fields" sep:","`
+}
+
 // ChatsCreateCmd creates a new chat.
 type ChatsCreateCmd struct {
 	AccountID    string   `arg:"" name:"accountID" help:"Account ID to create the chat on"`
@@ -318,6 +327,66 @@ func (c *ChatsGetCmd) Run(ctx context.Context, flags *RootFlags) error {
 	return nil
 }
 
+// Run executes the chats resolve command.
+func (c *ChatsResolveCmd) Run(ctx context.Context, flags *RootFlags) error {
+	u := ui.FromContext(ctx)
+
+	if strings.TrimSpace(c.Query) == "" {
+		return errfmt.UsageError("query is required")
+	}
+
+	token, _, err := config.GetToken()
+	if err != nil {
+		return err
+	}
+
+	timeout := time.Duration(flags.Timeout) * time.Second
+	client, err := beeperapi.NewClient(token, flags.BaseURL, timeout)
+	if err != nil {
+		return err
+	}
+
+	query := strings.TrimSpace(c.Query)
+	if looksLikeChatID(query) {
+		return writeResolvedChat(ctx, u, client, normalizeChatID(query), c.Fields)
+	}
+
+	cursor := ""
+	var matchID string
+	for {
+		resp, err := client.Chats().Search(ctx, beeperapi.ChatSearchParams{
+			Query:      query,
+			AccountIDs: c.AccountIDs,
+			Limit:      200,
+			Cursor:     cursor,
+			Direction:  "before",
+		})
+		if err != nil {
+			return err
+		}
+
+		for _, item := range resp.Items {
+			if chatExactMatch(item, query) {
+				if matchID != "" && matchID != item.ID {
+					return errfmt.WithCode(fmt.Errorf("multiple chats matched %q", query), errfmt.ExitFailure)
+				}
+				matchID = item.ID
+			}
+		}
+
+		if !resp.HasMore || resp.OldestCursor == "" {
+			break
+		}
+		cursor = resp.OldestCursor
+	}
+
+	if matchID == "" {
+		return errfmt.WithCode(fmt.Errorf("no chat matched %q", query), errfmt.ExitFailure)
+	}
+
+	return writeResolvedChat(ctx, u, client, matchID, c.Fields)
+}
+
 // Run executes the chats create command.
 func (c *ChatsCreateCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
@@ -379,6 +448,71 @@ func (c *ChatsCreateCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	u.Out().Success("Chat created")
 	u.Out().Printf("Chat ID: %s", resp.ChatID)
+	return nil
+}
+
+func chatExactMatch(chat beeperapi.ChatSearchItem, query string) bool {
+	q := strings.TrimSpace(query)
+	if q == "" {
+		return false
+	}
+	if strings.EqualFold(chat.ID, q) {
+		return true
+	}
+	if strings.EqualFold(chat.Title, q) {
+		return true
+	}
+	if strings.EqualFold(chat.DisplayName, q) {
+		return true
+	}
+	return false
+}
+
+func looksLikeChatID(value string) bool {
+	return strings.HasPrefix(value, "!") && strings.Contains(value, ":")
+}
+
+func writeResolvedChat(ctx context.Context, u *ui.UI, client *beeperapi.Client, chatID string, fields []string) error {
+	chat, err := client.Chats().Get(ctx, chatID)
+	if err != nil {
+		return err
+	}
+
+	if outfmt.IsJSON(ctx) {
+		return outfmt.WriteJSON(os.Stdout, chat)
+	}
+
+	if outfmt.IsPlain(ctx) {
+		cols, err := resolveFields(fields, []string{"id", "title", "display_name", "account_id", "type", "network", "unread_count", "is_archived", "is_muted"})
+		if err != nil {
+			return err
+		}
+		writePlainFields(u, cols, map[string]string{
+			"id":           chat.ID,
+			"title":        chat.Title,
+			"display_name": chat.DisplayName,
+			"account_id":   chat.AccountID,
+			"type":         chat.Type,
+			"network":      chat.Network,
+			"unread_count": fmt.Sprintf("%d", chat.UnreadCount),
+			"is_archived":  formatBool(chat.IsArchived),
+			"is_muted":     formatBool(chat.IsMuted),
+		})
+		return nil
+	}
+
+	displayTitle := chat.Title
+	if chat.DisplayName != "" {
+		displayTitle = chat.DisplayName
+	}
+	u.Out().Printf("Chat: %s", displayTitle)
+	u.Out().Printf("ID:    %s", chat.ID)
+	u.Out().Printf("Type:  %s", chat.Type)
+	u.Out().Printf("Account: %s", chat.AccountID)
+	if chat.UnreadCount > 0 {
+		u.Out().Printf("Unread: %d", chat.UnreadCount)
+	}
+
 	return nil
 }
 

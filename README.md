@@ -2,9 +2,11 @@
 
 ## Features
 
-- **Chats** — list, search, get, create, archive conversations
-- **Messages** — list, search, send, reply, and tail (polling) messages
+- **Chats** — list, search, resolve, get, create, archive conversations
+- **Contacts** — search and resolve contacts on an account
+- **Messages** — list, search, send, reply, tail (polling), and wait for messages
 - **Search** — global search across all chats and messages
+- **Status** — unread and chat summary
 - **Reminders** — set and clear chat reminders
 - **Focus** — focus app window, pre-fill drafts with text or attachments
 - **Scripting** — stdin/text-file input, `--fail-if-empty`, and `--fields` for plain output
@@ -55,6 +57,9 @@ rr chats list
 # Search chats by name
 rr chats search "Alice"
 
+# Resolve a chat by exact title or ID
+rr chats resolve "Alice"
+
 # Search by participant name (useful when chat title shows Matrix ID)
 rr chats search "Alice" --scope=participants
 
@@ -83,6 +88,16 @@ rr chats archive '!roomid:beeper.local'
 
 # Unarchive
 rr chats archive '!roomid:beeper.local' --unarchive
+```
+
+## Contacts
+
+```bash
+# Search contacts on an account
+rr contacts search "<account-id>" "Alice"
+
+# Resolve a contact by exact match
+rr contacts resolve "<account-id>" "Alice"
 ```
 
 ## Messages
@@ -117,6 +132,12 @@ cat message.txt | rr messages send '!roomid:beeper.local' --stdin
 
 # Tail new messages (polling)
 rr messages tail '!roomid:beeper.local' --interval 2s --stop-after 30s
+
+# Tail with filters
+rr messages tail '!roomid:beeper.local' --contains "deploy" --sender "Alice" --from "2024-07-01" --interval 5s
+
+# Wait for a matching message
+rr messages wait --chat-id='!roomid:beeper.local' --contains "deploy" --wait-timeout 2m
 ```
 
 ## Search
@@ -131,6 +152,13 @@ rr search "project" --messages-cursor="<cursor>" --messages-direction=before
 ```
 
 Global search returns matching chats, messages, and an "In Groups" section for participant name matches.
+
+## Status
+
+```bash
+# Summary of unread, muted, and archived chats
+rr status
+```
 
 ## Reminders
 
@@ -176,6 +204,10 @@ rr focus --chat-id='!roomid:beeper.local' --draft-text="Check this out!" --draft
 # Find a chat and send a message
 CHAT_ID=$(rr chats search "Alice" --json | jq -r '.items[0].id')
 rr messages send "$CHAT_ID" "Hey!"
+
+# Resolve a chat by exact match
+CHAT_ID=$(rr chats resolve "Alice" --json | jq -r '.id')
+rr messages send "$CHAT_ID" "Hello!"
 
 # Exit with code 1 if no results
 rr chats search "Alice" --json --fail-if-empty
@@ -285,6 +317,10 @@ Destructive commands require confirmation. In non-interactive environments (no T
 | 0 | Success |
 | 1 | General error |
 | 2 | Usage error |
+
+## AI Agent Skill
+
+The ClawdHub skill definition lives in `./skill/SKILL.md`. This is the single source published to ClawdHub.
 
 ## Links
 

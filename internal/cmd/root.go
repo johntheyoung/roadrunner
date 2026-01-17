@@ -56,6 +56,7 @@ type CLI struct {
 	Messages   MessagesCmd   `cmd:"" help:"Manage messages"`
 	Reminders  RemindersCmd  `cmd:"" help:"Manage chat reminders"`
 	Search     SearchCmd     `cmd:"" help:"Global search across chats and messages"`
+	Status     StatusCmd     `cmd:"" help:"Show chat and unread summary"`
 	Focus      FocusCmd      `cmd:"" help:"Focus Beeper Desktop app"`
 	Doctor     DoctorCmd     `cmd:"" help:"Diagnose configuration and connectivity"`
 	Version    VersionCmd    `cmd:"" help:"Show version information"`

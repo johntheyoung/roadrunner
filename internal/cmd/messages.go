@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -21,6 +22,7 @@ type MessagesCmd struct {
 	Search MessagesSearchCmd `cmd:"" help:"Search messages"`
 	Send   MessagesSendCmd   `cmd:"" help:"Send a message to a chat"`
 	Tail   MessagesTailCmd   `cmd:"" help:"Follow messages in a chat"`
+	Wait   MessagesWaitCmd   `cmd:"" help:"Wait for a matching message"`
 }
 
 // MessagesListCmd lists messages in a chat.
@@ -132,8 +134,21 @@ type MessagesSearchCmd struct {
 type MessagesTailCmd struct {
 	ChatID    string        `arg:"" name:"chatID" help:"Chat ID to follow"`
 	Cursor    string        `help:"Start cursor (sortKey)"`
+	Contains  string        `help:"Only include messages containing text (case-insensitive)"`
+	Sender    string        `help:"Only include messages from sender ID or name"`
+	From      string        `help:"Only include messages after time (RFC3339 or duration)" name:"from"`
+	To        string        `help:"Only include messages before time (RFC3339 or duration)" name:"to"`
 	Interval  time.Duration `help:"Polling interval" default:"2s"`
 	StopAfter time.Duration `help:"Stop after duration (0=forever)" name:"stop-after" default:"0s"`
+}
+
+// MessagesWaitCmd waits for a message that matches filters.
+type MessagesWaitCmd struct {
+	ChatID      string        `help:"Limit to a chat ID" name:"chat-id"`
+	Contains    string        `help:"Only match messages containing text (case-insensitive)"`
+	Sender      string        `help:"Only match messages from sender ID or name"`
+	Interval    time.Duration `help:"Polling interval" default:"2s"`
+	WaitTimeout time.Duration `help:"Stop waiting after duration (0=forever)" name:"wait-timeout" default:"0s"`
 }
 
 // Run executes the messages search command.
@@ -272,6 +287,27 @@ func (c *MessagesTailCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if c.Interval <= 0 {
 		return errfmt.UsageError("invalid --interval %s (must be > 0)", c.Interval)
 	}
+	if isSpecialSender(c.Sender) {
+		return errfmt.UsageError("--sender=%s is only supported by messages search and global waits", c.Sender)
+	}
+
+	var fromTime *time.Time
+	if c.From != "" {
+		t, err := parseTime(c.From)
+		if err != nil {
+			return errfmt.UsageError("invalid --from %q (expected RFC3339 or duration)", c.From)
+		}
+		fromTime = &t
+	}
+
+	var toTime *time.Time
+	if c.To != "" {
+		t, err := parseTime(c.To)
+		if err != nil {
+			return errfmt.UsageError("invalid --to %q (expected RFC3339 or duration)", c.To)
+		}
+		toTime = &t
+	}
 
 	token, _, err := config.GetToken()
 	if err != nil {
@@ -321,6 +357,9 @@ func (c *MessagesTailCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 		if len(resp.Items) > 0 {
 			for _, item := range resp.Items {
+				if !messageMatches(item, c.Contains, c.Sender, fromTime, toTime) {
+					continue
+				}
 				switch {
 				case outfmt.IsJSON(ctx):
 					if err := encoder.Encode(item); err != nil {
@@ -342,6 +381,119 @@ func (c *MessagesTailCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 			if next := lastSortKey(resp.Items); next != "" {
 				cursor = next
+			}
+		}
+
+		<-ticker.C
+	}
+}
+
+// Run executes the messages wait command.
+func (c *MessagesWaitCmd) Run(ctx context.Context, flags *RootFlags) error {
+	u := ui.FromContext(ctx)
+
+	if c.Interval <= 0 {
+		return errfmt.UsageError("invalid --interval %s (must be > 0)", c.Interval)
+	}
+	if c.ChatID != "" && isSpecialSender(c.Sender) {
+		return errfmt.UsageError("--sender=%s is only supported by messages search and global waits", c.Sender)
+	}
+
+	token, _, err := config.GetToken()
+	if err != nil {
+		return err
+	}
+
+	timeout := time.Duration(flags.Timeout) * time.Second
+	client, err := beeperapi.NewClient(token, flags.BaseURL, timeout)
+	if err != nil {
+		return err
+	}
+
+	deadline := time.Time{}
+	if c.WaitTimeout > 0 {
+		deadline = time.Now().Add(c.WaitTimeout)
+	}
+
+	ticker := time.NewTicker(c.Interval)
+	defer ticker.Stop()
+
+	if c.ChatID != "" {
+		chatID := normalizeChatID(c.ChatID)
+		cursor := ""
+		seed, err := client.Messages().List(ctx, chatID, beeperapi.MessageListParams{
+			Direction: "before",
+		})
+		if err != nil {
+			return err
+		}
+		cursor = firstSortKey(seed.Items)
+
+		for {
+			if !deadline.IsZero() && time.Now().After(deadline) {
+				return errfmt.WithCode(fmt.Errorf("timed out waiting for message"), errfmt.ExitFailure)
+			}
+
+			resp, err := client.Messages().List(ctx, chatID, beeperapi.MessageListParams{
+				Cursor:    cursor,
+				Direction: "after",
+			})
+			if err != nil {
+				return err
+			}
+
+			if len(resp.Items) > 0 {
+				for _, item := range resp.Items {
+					if !messageMatches(item, c.Contains, c.Sender, nil, nil) {
+						continue
+					}
+					return writeWaitResult(ctx, u, item, c.ChatID == "")
+				}
+
+				if next := lastSortKey(resp.Items); next != "" {
+					cursor = next
+				}
+			}
+
+			<-ticker.C
+		}
+	}
+
+	since := time.Now()
+	cursor := ""
+	for {
+		if !deadline.IsZero() && time.Now().After(deadline) {
+			return errfmt.WithCode(fmt.Errorf("timed out waiting for message"), errfmt.ExitFailure)
+		}
+
+		params := beeperapi.MessageSearchParams{
+			Sender: c.Sender,
+			Limit:  20,
+		}
+		if cursor != "" {
+			params.Cursor = cursor
+			params.Direction = "after"
+		} else {
+			params.DateAfter = &since
+		}
+
+		resp, err := client.Messages().Search(ctx, params)
+		if err != nil {
+			return err
+		}
+
+		for _, item := range resp.Items {
+			if !messageMatches(item, c.Contains, c.Sender, nil, nil) {
+				continue
+			}
+			return writeWaitResult(ctx, u, item, true)
+		}
+
+		if cursor != "" && resp.NewestCursor != "" {
+			cursor = resp.NewestCursor
+		} else if cursor == "" {
+			if t := maxTimestamp(resp.Items); !t.IsZero() && t.After(since) {
+				since = t.Add(time.Nanosecond)
 			}
 		}
 
@@ -422,4 +574,83 @@ func lastSortKey(items []beeperapi.MessageItem) string {
 		}
 	}
 	return ""
+}
+
+func messageMatches(item beeperapi.MessageItem, contains, sender string, from, to *time.Time) bool {
+	if contains != "" {
+		if !strings.Contains(strings.ToLower(item.Text), strings.ToLower(contains)) {
+			return false
+		}
+	}
+	if sender != "" && !isSpecialSender(sender) {
+		if !strings.EqualFold(item.SenderID, sender) && !strings.EqualFold(item.SenderName, sender) {
+			return false
+		}
+	}
+	if from == nil && to == nil {
+		return true
+	}
+	if item.Timestamp == "" {
+		return false
+	}
+	ts, err := time.Parse(time.RFC3339, item.Timestamp)
+	if err != nil {
+		return false
+	}
+	if from != nil && ts.Before(*from) {
+		return false
+	}
+	if to != nil && ts.After(*to) {
+		return false
+	}
+	return true
+}
+
+func isSpecialSender(sender string) bool {
+	return strings.EqualFold(sender, "me") || strings.EqualFold(sender, "others")
+}
+
+func maxTimestamp(items []beeperapi.MessageItem) time.Time {
+	var max time.Time
+	for _, item := range items {
+		if item.Timestamp == "" {
+			continue
+		}
+		t, err := time.Parse(time.RFC3339, item.Timestamp)
+		if err != nil {
+			continue
+		}
+		if t.After(max) {
+			max = t
+		}
+	}
+	return max
+}
+
+func writeWaitResult(ctx context.Context, u *ui.UI, item beeperapi.MessageItem, includeChatID bool) error {
+	if outfmt.IsJSON(ctx) {
+		return outfmt.WriteJSON(os.Stdout, item)
+	}
+	if outfmt.IsPlain(ctx) {
+		if includeChatID {
+			u.Out().Printf("%s\t%s\t%s\t%s\t%s", item.ID, item.ChatID, item.SenderName, item.Timestamp, ui.Truncate(item.Text, 50))
+			return nil
+		}
+		u.Out().Printf("%s\t%s\t%s\t%s", item.ID, item.SenderName, item.Timestamp, ui.Truncate(item.Text, 50))
+		return nil
+	}
+
+	ts := ""
+	if item.Timestamp != "" {
+		if t, err := time.Parse(time.RFC3339, item.Timestamp); err == nil {
+			ts = t.Format("Jan 2 15:04")
+		}
+	}
+	text := ui.Truncate(item.Text, 60)
+	if includeChatID {
+		u.Out().Printf("[%s] %s: %s (%s)", ts, item.SenderName, text, item.ChatID)
+		return nil
+	}
+	u.Out().Printf("[%s] %s: %s", ts, item.SenderName, text)
+	return nil
 }

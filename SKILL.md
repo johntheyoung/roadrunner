@@ -22,11 +22,13 @@ Setup (once)
 Common commands
 - List accounts: `rr accounts list --json`
 - Search contacts: `rr contacts search "<account-id>" "Alice" --json`
+- Resolve contact: `rr contacts resolve "<account-id>" "Alice" --json`
 - List chats: `rr chats list --json`
 - Search chats: `rr chats search "John" --json`
 - Search chats (filters): `rr chats search --inbox=primary --unread-only --json`
 - Search chats (activity): `rr chats search --last-activity-after="2024-07-01T00:00:00Z" --json`
 - Search by participant name: `rr chats search "Jamie" --scope=participants --json`
+- Resolve chat: `rr chats resolve "Jamie" --json`
 - Get chat: `rr chats get "!chatid:beeper.com" --json`
 - Create chat (single): `rr chats create "<account-id>" --participant "<user-id>"`
 - Create chat (group): `rr chats create "<account-id>" --participant "<user-a>" --participant "<user-b>" --type group --title "Project Chat" --message "Welcome!"`
@@ -38,6 +40,7 @@ Common commands
 - Send message from file: `rr messages send "!chatid:beeper.com" --text-file ./message.txt`
 - Send message from stdin: `cat message.txt | rr messages send "!chatid:beeper.com" --stdin`
 - Tail messages (polling): `rr messages tail "!chatid:beeper.com" --interval 2s --stop-after 30s --json`
+- Wait for message: `rr messages wait --chat-id="!chatid:beeper.com" --contains "deploy" --wait-timeout 2m --json`
 - Draft message (pre-fill without sending): `rr focus --chat-id="!chatid:beeper.com" --draft-text="Hello!"`
 - Draft message from file: `rr focus --chat-id="!chatid:beeper.com" --draft-text-file ./draft.txt`
 - Draft with attachment: `rr focus --chat-id="!chatid:beeper.com" --draft-attachment="/path/to/file.jpg"`
@@ -46,6 +49,7 @@ Common commands
 - Archive chat: `rr chats archive "!chatid:beeper.com"` / `rr chats archive "!chatid:beeper.com" --unarchive`
 - Focus app: `rr focus`
 - Global search: `rr search "dinner" --json`
+- Status summary: `rr status --json`
 - Global search includes `in_groups` for participant matches.
 
 Pagination

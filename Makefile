@@ -26,4 +26,4 @@ skill-sync:
 VERSION_STRIPPED := $(patsubst v%,%,$(VERSION))
 
 skill-publish: skill-sync
-	clawdhub publish $(CURDIR)/skill --slug roadrunner $(if $(VERSION),--version $(VERSION_STRIPPED),)
+	clawdhub publish $(CURDIR)/skill --slug roadrunner --name "Roadrunner" $(if $(VERSION),--version $(VERSION_STRIPPED),)

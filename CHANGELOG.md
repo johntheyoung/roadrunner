@@ -7,6 +7,11 @@ All notable changes to this project will be documented in this file.
 ### Added
 - (none)
 
+## v0.7.3 - 2026-01-18
+
+### Fixed
+- Add display name to ClawdHub skill publish.
+
 ## v0.7.0 - 2026-01-18
 
 ### Added

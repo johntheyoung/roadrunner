@@ -63,7 +63,7 @@ func (c *UnreadCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, resp)
+		return writeJSON(ctx, resp, "unread")
 	}
 
 	if outfmt.IsPlain(ctx) {

@@ -33,15 +33,18 @@ func init() {
 
 // RootFlags contains global flags available to all commands.
 type RootFlags struct {
-	Color   string           `help:"Color output: auto|always|never" default:"auto" env:"BEEPER_COLOR"`
-	JSON    bool             `help:"Output JSON to stdout (best for scripting)" env:"BEEPER_JSON"`
-	Plain   bool             `help:"Output stable TSV to stdout (no colors)" env:"BEEPER_PLAIN"`
-	Verbose bool             `help:"Enable debug logging" short:"v"`
-	NoInput bool             `help:"Never prompt; fail instead (useful for CI)" env:"BEEPER_NO_INPUT"`
-	Force   bool             `help:"Skip confirmations for destructive commands" short:"f"`
-	Timeout int              `help:"Timeout for API calls in seconds (0=none)" default:"30" env:"BEEPER_TIMEOUT"`
-	BaseURL string           `help:"API base URL" default:"http://localhost:23373" env:"BEEPER_URL"`
-	Version kong.VersionFlag `help:"Show version and exit"`
+	Color          string           `help:"Color output: auto|always|never" default:"auto" env:"BEEPER_COLOR"`
+	JSON           bool             `help:"Output JSON to stdout (best for scripting)" env:"BEEPER_JSON"`
+	Plain          bool             `help:"Output stable TSV to stdout (no colors)" env:"BEEPER_PLAIN"`
+	Verbose        bool             `help:"Enable debug logging" short:"v"`
+	NoInput        bool             `help:"Never prompt; fail instead (useful for CI)" env:"BEEPER_NO_INPUT"`
+	Force          bool             `help:"Skip confirmations for destructive commands" short:"f"`
+	Timeout        int              `help:"Timeout for API calls in seconds (0=none)" default:"30" env:"BEEPER_TIMEOUT"`
+	BaseURL        string           `help:"API base URL" default:"http://localhost:23373" env:"BEEPER_URL"`
+	Version        kong.VersionFlag `help:"Show version and exit"`
+	EnableCommands []string         `help:"Comma-separated allowlist of top-level commands" env:"BEEPER_ENABLE_COMMANDS" sep:","`
+	Readonly       bool             `help:"Block data write operations" env:"BEEPER_READONLY"`
+	Envelope       bool             `help:"Wrap JSON output in {success,data,error,metadata} envelope" env:"BEEPER_ENVELOPE"`
 }
 
 // CLI is the root command structure.
@@ -96,6 +99,7 @@ func Execute() int {
 	// Validate flag combinations
 	mode, err := outfmt.FromFlags(cli.JSON, cli.Plain)
 	if err != nil {
+		// Can't use envelope here - conflicting flags mean envelope state is ambiguous
 		_, _ = os.Stderr.WriteString("error: " + errfmt.Format(err) + "\n")
 		return errfmt.ExitUsageError
 	}
@@ -122,12 +126,45 @@ func Execute() int {
 	ctx = ui.WithUI(ctx, u)
 	ctx = outfmt.WithMode(ctx, mode)
 
+	// Validate command allowlist and readonly mode
+	command := normalizeCommand(kongCtx.Command())
+	if err := checkEnableCommands(&cli.RootFlags, command); err != nil {
+		if cli.JSON && cli.Envelope {
+			_ = outfmt.WriteEnvelopeError(os.Stdout, errfmt.ErrCodeValidation, errfmt.Format(err), Version, command)
+		} else {
+			_, _ = os.Stderr.WriteString("error: " + errfmt.Format(err) + "\n")
+		}
+		return errfmt.ExitUsageError
+	}
+	if err := checkReadonly(&cli.RootFlags, command); err != nil {
+		if cli.JSON && cli.Envelope {
+			_ = outfmt.WriteEnvelopeError(os.Stdout, errfmt.ErrCodeValidation, errfmt.Format(err), Version, command)
+		} else {
+			_, _ = os.Stderr.WriteString("error: " + errfmt.Format(err) + "\n")
+		}
+		return errfmt.ExitUsageError
+	}
+
+	// Add envelope context if enabled
+	ctx = outfmt.WithEnvelope(ctx, cli.Envelope && cli.JSON)
+
 	// Bind context and flags for command execution
 	kongCtx.BindTo(ctx, (*context.Context)(nil))
 	kongCtx.Bind(&cli.RootFlags)
 
 	// Run the command
 	if err := kongCtx.Run(); err != nil {
+		// Handle envelope mode errors to stdout
+		if cli.Envelope && cli.JSON {
+			code := errfmt.ErrorCode(err)
+			_ = outfmt.WriteEnvelopeError(os.Stdout, code, errfmt.Format(err), Version, command)
+			var exitErr *errfmt.ExitError
+			if errors.As(err, &exitErr) {
+				return exitErr.Code
+			}
+			return errfmt.ExitFailure
+		}
+
 		// Check for ExitError with specific code
 		var exitErr *errfmt.ExitError
 		if errors.As(err, &exitErr) {

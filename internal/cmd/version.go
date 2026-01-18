@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/johntheyoung/roadrunner/internal/outfmt"
@@ -39,11 +38,12 @@ func (c *VersionCmd) Run(ctx context.Context) error {
 	u := ui.FromContext(ctx)
 
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, map[string]string{
-			"version": strings.TrimSpace(Version),
-			"commit":  strings.TrimSpace(Commit),
-			"date":    strings.TrimSpace(Date),
-		})
+		return writeJSON(ctx, map[string]any{
+			"version":  strings.TrimSpace(Version),
+			"commit":   strings.TrimSpace(Commit),
+			"date":     strings.TrimSpace(Date),
+			"features": []string{"enable-commands", "readonly", "envelope"},
+		}, "version")
 	}
 
 	u.Out().Println(VersionString())

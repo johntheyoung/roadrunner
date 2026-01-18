@@ -7,6 +7,18 @@ All notable changes to this project will be documented in this file.
 ### Added
 - (none)
 
+## v0.8.0 - 2026-01-18
+
+### Added
+- `--enable-commands` flag to allowlist specific commands (agent safety).
+- `--readonly` flag to block data write operations (agent safety).
+- `--envelope` flag to wrap JSON output in `{success, data, error, metadata}` structure.
+- `rr version --json` now includes `features` array for capability discovery.
+- Envelope error output for `--enable-commands` and `--readonly` violations when `--json --envelope` is set.
+
+### Changed
+- All JSON outputs now route through envelope-aware helper for consistent wrapping.
+
 ## v0.7.3 - 2026-01-18
 
 ### Fixed

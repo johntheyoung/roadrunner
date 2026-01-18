@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"os"
 
 	"github.com/johntheyoung/roadrunner/internal/config"
 	"github.com/johntheyoung/roadrunner/internal/outfmt"
@@ -30,10 +29,10 @@ func (c *AuthSetCmd) Run(ctx context.Context) error {
 	}
 
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, map[string]any{
+		return writeJSON(ctx, map[string]any{
 			"success": true,
 			"message": "Token saved",
-		})
+		}, "auth set")
 	}
 
 	u.Out().Success("Token saved to config file")
@@ -52,11 +51,11 @@ func (c *AuthStatusCmd) Run(ctx context.Context, flags *RootFlags) error {
 	token, source, err := config.GetToken()
 	if err != nil {
 		if outfmt.IsJSON(ctx) {
-			return outfmt.WriteJSON(os.Stdout, map[string]any{
+			return writeJSON(ctx, map[string]any{
 				"authenticated": false,
 				"source":        "none",
 				"error":         err.Error(),
-			})
+			}, "auth status")
 		}
 		u.Out().Warn("Not authenticated")
 		u.Out().Dim("Run: rr auth set <token>")
@@ -94,7 +93,7 @@ func (c *AuthStatusCmd) Run(ctx context.Context, flags *RootFlags) error {
 			}
 		}
 
-		return outfmt.WriteJSON(os.Stdout, result)
+		return writeJSON(ctx, result, "auth status")
 	}
 
 	u.Out().Printf("Authenticated: yes")
@@ -136,10 +135,10 @@ func (c *AuthClearCmd) Run(ctx context.Context) error {
 	}
 
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, map[string]any{
+		return writeJSON(ctx, map[string]any{
 			"success": true,
 			"message": "Token cleared",
-		})
+		}, "auth clear")
 	}
 
 	u.Out().Success("Token cleared from config file")

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"os"
 	"time"
 
 	"github.com/johntheyoung/roadrunner/internal/beeperapi"
@@ -53,7 +52,7 @@ func (c *FocusCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// JSON output
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, resp)
+		return writeJSON(ctx, resp, "focus")
 	}
 
 	// Plain output

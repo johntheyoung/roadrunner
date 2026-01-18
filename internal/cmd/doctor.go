@@ -83,7 +83,7 @@ func (c *DoctorCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// Output
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, result)
+		return writeJSON(ctx, result, "doctor")
 	}
 
 	// Human-readable output

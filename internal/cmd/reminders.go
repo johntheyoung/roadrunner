@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"os"
 	"strings"
 	"time"
 
@@ -66,7 +65,7 @@ func (c *RemindersSetCmd) Run(ctx context.Context, flags *RootFlags) error {
 			"chat_id":   chatID,
 			"remind_at": remindAt.Format(time.RFC3339),
 		}
-		return outfmt.WriteJSON(os.Stdout, result)
+		return writeJSON(ctx, result, "reminders set")
 	}
 
 	// Plain output
@@ -118,7 +117,7 @@ func (c *RemindersClearCmd) Run(ctx context.Context, flags *RootFlags) error {
 			"chat_id": chatID,
 			"cleared": true,
 		}
-		return outfmt.WriteJSON(os.Stdout, result)
+		return writeJSON(ctx, result, "reminders clear")
 	}
 
 	// Plain output

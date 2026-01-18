@@ -64,7 +64,7 @@ func (c *ChatsListCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// JSON output
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, resp)
+		return writeJSON(ctx, resp, "chats list")
 	}
 
 	// Plain output (TSV)
@@ -194,7 +194,7 @@ func (c *ChatsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// JSON output
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, resp)
+		return writeJSON(ctx, resp, "chats search")
 	}
 
 	// Plain output (TSV)
@@ -296,7 +296,7 @@ func (c *ChatsGetCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// JSON output
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, chat)
+		return writeJSON(ctx, chat, "chats get")
 	}
 
 	// Plain output
@@ -438,7 +438,7 @@ func (c *ChatsCreateCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// JSON output
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, resp)
+		return writeJSON(ctx, resp, "chats create")
 	}
 
 	// Plain output
@@ -480,7 +480,7 @@ func writeResolvedChat(ctx context.Context, u *ui.UI, client *beeperapi.Client, 
 	}
 
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, chat)
+		return writeJSON(ctx, chat, "chats resolve")
 	}
 
 	if outfmt.IsPlain(ctx) {
@@ -557,7 +557,7 @@ func (c *ChatsArchiveCmd) Run(ctx context.Context, flags *RootFlags) error {
 			"chat_id":  chatID,
 			"archived": archived,
 		}
-		return outfmt.WriteJSON(os.Stdout, result)
+		return writeJSON(ctx, result, "chats archive")
 	}
 
 	// Plain output

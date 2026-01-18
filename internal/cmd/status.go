@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"os"
 	"time"
 
 	"github.com/johntheyoung/roadrunner/internal/beeperapi"
@@ -122,7 +121,7 @@ func (c *StatusCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, summary)
+		return writeJSON(ctx, summary, "status")
 	}
 
 	if outfmt.IsPlain(ctx) {

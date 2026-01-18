@@ -57,9 +57,9 @@ func (c *AccountsListCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// JSON output
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, AccountsListResponse{
+		return writeJSON(ctx, AccountsListResponse{
 			Accounts: accounts,
-		})
+		}, "accounts list")
 	}
 
 	// Plain output (TSV)

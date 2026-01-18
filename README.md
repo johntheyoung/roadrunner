@@ -295,6 +295,66 @@ rr chats list --plain --fields id,title
 
 JSON and plain output go to stdout. Errors and hints go to stderr.
 
+### Envelope Mode
+
+Wrap JSON output in a consistent structure for easier error handling:
+
+```bash
+$ rr chats list --json --envelope
+{
+  "success": true,
+  "data": { "items": [...] },
+  "metadata": {
+    "timestamp": "2026-01-18T12:00:00Z",
+    "version": "0.8.0",
+    "command": "chats list"
+  }
+}
+
+$ rr chats get "invalid" --json --envelope
+{
+  "success": false,
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "API error (404): Chat not found"
+  },
+  "metadata": { ... }
+}
+```
+
+Error codes: `AUTH_ERROR`, `NOT_FOUND`, `VALIDATION_ERROR`, `CONNECTION_ERROR`, `INTERNAL_ERROR`.
+
+## Agent Safety
+
+Restrict CLI capabilities when used by AI agents or in sandboxed environments:
+
+```bash
+# Only allow specific commands
+rr --enable-commands=chats,messages,status chats list
+
+# Block data writes (send, create, archive, reminders)
+rr --readonly messages list '!roomid:beeper.local'
+
+# Combine for read-only access to specific commands
+rr --enable-commands=chats,messages --readonly chats search "Alice"
+```
+
+Write commands blocked by `--readonly`: `messages send`, `chats create`, `chats archive`, `reminders set`, `reminders clear`.
+
+Exemptions: `auth set`, `auth clear`, and `focus` are always allowed (local-only operations).
+
+### Capability Discovery
+
+```bash
+$ rr version --json
+{
+  "version": "0.8.0",
+  "features": ["enable-commands", "readonly", "envelope"]
+}
+```
+
+Agents can check `features` to detect supported safety flags before use.
+
 ## Shell Completions
 
 ```bash
@@ -320,6 +380,9 @@ rr completion fish > ~/.config/fish/completions/rr.fish
 | `BEEPER_PLAIN` | Default to plain output |
 | `BEEPER_NO_INPUT` | Never prompt, fail instead |
 | `BEEPER_HELP` | Set to `full` for expanded help |
+| `BEEPER_ENABLE_COMMANDS` | Comma-separated allowlist of commands |
+| `BEEPER_READONLY` | Block data write operations |
+| `BEEPER_ENVELOPE` | Wrap JSON in envelope structure |
 | `NO_COLOR` | Disable colored output |
 
 ## Shell Notes

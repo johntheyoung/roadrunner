@@ -108,3 +108,64 @@ func UsageError(format string, args ...any) *ExitError {
 		Code: ExitUsageError,
 	}
 }
+
+// Error codes for envelope responses
+const (
+	ErrCodeAuth       = "AUTH_ERROR"
+	ErrCodeNotFound   = "NOT_FOUND"
+	ErrCodeValidation = "VALIDATION_ERROR"
+	ErrCodeConnection = "CONNECTION_ERROR"
+	ErrCodeInternal   = "INTERNAL_ERROR"
+)
+
+// ErrorCode maps an error to an error code string.
+func ErrorCode(err error) string {
+	if err == nil {
+		return ""
+	}
+
+	// Check for no token error
+	if errors.Is(err, config.ErrNoToken) {
+		return ErrCodeAuth
+	}
+
+	// Check for API errors
+	if beeperapi.IsUnauthorized(err) {
+		return ErrCodeAuth
+	}
+	if beeperapi.IsNotFound(err) {
+		return ErrCodeNotFound
+	}
+	if beeperapi.IsAPIError(err) {
+		// Could check for rate limiting, but SDK doesn't expose status code directly
+		// For now, map unknown API errors to internal error
+		return ErrCodeInternal
+	}
+
+	// Check for usage/validation errors
+	var exitErr *ExitError
+	if errors.As(err, &exitErr) && exitErr.Code == ExitUsageError {
+		return ErrCodeValidation
+	}
+
+	// Check for Kong parse errors
+	var parseErr *kong.ParseError
+	if errors.As(err, &parseErr) {
+		return ErrCodeValidation
+	}
+
+	// Check for outfmt parse errors
+	var outfmtErr *outfmt.ParseError
+	if errors.As(err, &outfmtErr) {
+		return ErrCodeValidation
+	}
+
+	// Check for connection errors
+	if strings.Contains(err.Error(), "connection refused") ||
+		strings.Contains(err.Error(), "no such host") ||
+		strings.Contains(err.Error(), "network is unreachable") {
+		return ErrCodeConnection
+	}
+
+	return ErrCodeInternal
+}

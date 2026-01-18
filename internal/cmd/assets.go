@@ -65,11 +65,11 @@ func (c *AssetsDownloadCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// JSON output
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, map[string]any{
+		return writeJSON(ctx, map[string]any{
 			"src_url": srcURL,
 			"dest":    destPath,
 			"copied":  destPath != "",
-		})
+		}, "assets download")
 	}
 
 	// Plain output

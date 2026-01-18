@@ -59,7 +59,7 @@ func (c *SearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// JSON output
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, resp)
+		return writeJSON(ctx, resp, "search")
 	}
 
 	// Plain output (TSV)

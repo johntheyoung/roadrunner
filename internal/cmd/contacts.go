@@ -66,7 +66,7 @@ func (c *ContactsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// JSON output
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, resp)
+		return writeJSON(ctx, resp, "contacts search")
 	}
 
 	// Plain output (TSV)
@@ -167,7 +167,7 @@ func (c *ContactsResolveCmd) Run(ctx context.Context, flags *RootFlags) error {
 	contact := matches[0]
 
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, contact)
+		return writeJSON(ctx, contact, "contacts resolve")
 	}
 
 	if outfmt.IsPlain(ctx) {

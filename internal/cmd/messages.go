@@ -73,7 +73,7 @@ func (c *MessagesListCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// JSON output
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, resp)
+		return writeJSON(ctx, resp, "messages list")
 	}
 
 	// Plain output (TSV)
@@ -248,7 +248,7 @@ func (c *MessagesSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// JSON output
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, resp)
+		return writeJSON(ctx, resp, "messages search")
 	}
 
 	// Plain output (TSV)
@@ -583,7 +583,7 @@ func (c *MessagesContextCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, result)
+		return writeJSON(ctx, result, "messages context")
 	}
 
 	if outfmt.IsPlain(ctx) {
@@ -657,7 +657,7 @@ func (c *MessagesSendCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// JSON output
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, resp)
+		return writeJSON(ctx, resp, "messages send")
 	}
 
 	// Plain output
@@ -752,7 +752,7 @@ func maxTimestamp(items []beeperapi.MessageItem) time.Time {
 
 func writeWaitResult(ctx context.Context, u *ui.UI, item beeperapi.MessageItem, includeChatID bool) error {
 	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, item)
+		return writeJSON(ctx, item, "messages wait")
 	}
 	if outfmt.IsPlain(ctx) {
 		if includeChatID {

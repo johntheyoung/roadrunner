@@ -36,6 +36,9 @@
 ## Release Notes
 - Release flow documented in `docs/release.md`.
 - Update `CHANGELOG.md` before tagging releases.
+- Tag and push: `git commit -am "release: vX.Y.Z"`, `git tag vX.Y.Z`, `git push origin main --tags`.
+- Verify GitHub release artifacts and Homebrew tap updates (see `docs/release.md`).
+- Publish Clawdhub skill: `make skill-publish VERSION=vX.Y.Z` (only if `SKILL.md` changed).
 
 ## Security & Configuration Tips
 - Requires Beeper Desktop running locally; token stored in `~/.config/beeper/config.json`.

@@ -7,6 +7,25 @@ All notable changes to this project will be documented in this file.
 ### Added
 - (none)
 
+## v0.9.0 - 2026-01-19
+
+### Added
+- `--agent` flag for hardened agent profile (forces JSON, envelope, no-input, readonly; requires `--enable-commands`).
+- `rr capabilities` command for full CLI capability discovery (JSON and human output).
+- `--account` flag and `BEEPER_ACCOUNT` env var for default account ID.
+- Account aliases: `rr accounts alias set/list/unset` to create shortcuts for account IDs.
+- `--plain --fields` support for `status`, `search`, `doctor`, `auth status`, and `version` commands.
+
+### Changed
+- `contacts search` and `contacts resolve` now support both positional (`<account> <query>`) and flag (`<query> --account-id=<account>`) syntax.
+- Account aliases are resolved transparently in all commands accepting account IDs.
+- `accounts alias set/unset` blocked by `--readonly` mode.
+- Command lists in capabilities are sorted alphabetically.
+- Capabilities defaults now reflect current flag/env values.
+
+### Fixed
+- `auth status --plain` now outputs correctly when unauthenticated.
+
 ## v0.8.0 - 2026-01-18
 
 ### Added

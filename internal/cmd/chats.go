@@ -49,8 +49,9 @@ func (c *ChatsListCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
+	accountIDs := applyAccountDefault(c.AccountIDs, flags.Account)
 	resp, err := client.Chats().List(ctx, beeperapi.ChatListParams{
-		AccountIDs: c.AccountIDs,
+		AccountIDs: accountIDs,
 		Cursor:     c.Cursor,
 		Direction:  c.Direction,
 	})
@@ -170,9 +171,10 @@ func (c *ChatsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
+	accountIDs := applyAccountDefault(c.AccountIDs, flags.Account)
 	resp, err := client.Chats().Search(ctx, beeperapi.ChatSearchParams{
 		Query:              c.Query,
-		AccountIDs:         c.AccountIDs,
+		AccountIDs:         accountIDs,
 		Inbox:              c.Inbox,
 		UnreadOnly:         c.UnreadOnly,
 		IncludeMuted:       c.IncludeMuted,
@@ -266,7 +268,7 @@ type ChatsResolveCmd struct {
 
 // ChatsCreateCmd creates a new chat.
 type ChatsCreateCmd struct {
-	AccountID    string   `arg:"" name:"accountID" help:"Account ID to create the chat on"`
+	AccountID    string   `arg:"" name:"accountID" optional:"" help:"Account ID to create the chat on (uses --account default if omitted)"`
 	Participants []string `help:"Participant IDs (repeatable)" name:"participant"`
 	Type         string   `help:"Chat type: single|group" enum:"single,group," default:""`
 	Title        string   `help:"Title for group chats"`
@@ -354,10 +356,11 @@ func (c *ChatsResolveCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	cursor := ""
 	var matchID string
+	accountIDs := applyAccountDefault(c.AccountIDs, flags.Account)
 	for {
 		resp, err := client.Chats().Search(ctx, beeperapi.ChatSearchParams{
 			Query:      query,
-			AccountIDs: c.AccountIDs,
+			AccountIDs: accountIDs,
 			Limit:      200,
 			Cursor:     cursor,
 			Direction:  "before",
@@ -392,7 +395,8 @@ func (c *ChatsResolveCmd) Run(ctx context.Context, flags *RootFlags) error {
 func (c *ChatsCreateCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
 
-	if c.AccountID == "" {
+	accountID := resolveAccount(c.AccountID, flags.Account)
+	if accountID == "" {
 		return errfmt.UsageError("account ID is required")
 	}
 	if len(c.Participants) == 0 {
@@ -426,7 +430,7 @@ func (c *ChatsCreateCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 
 	resp, err := client.Chats().Create(ctx, beeperapi.ChatCreateParams{
-		AccountID:      c.AccountID,
+		AccountID:      accountID,
 		ParticipantIDs: c.Participants,
 		Type:           chatType,
 		Title:          c.Title,

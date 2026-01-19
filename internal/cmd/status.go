@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/johntheyoung/roadrunner/internal/beeperapi"
@@ -12,7 +13,8 @@ import (
 
 // StatusCmd summarizes unread counts and chat state.
 type StatusCmd struct {
-	ByAccount bool `help:"Group unread counts by account" name:"by-account"`
+	ByAccount bool     `help:"Group unread counts by account" name:"by-account"`
+	Fields    []string `help:"Comma-separated list of fields for --plain output" name:"fields" sep:","`
 }
 
 type statusSummary struct {
@@ -126,28 +128,38 @@ func (c *StatusCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	if outfmt.IsPlain(ctx) {
 		if c.ByAccount {
-			u.Out().Printf("account_id\tdisplay_name\tnetwork\tchats\tunread_chats\tunread_messages\tmuted_chats\tarchived_chats")
+			fields, err := resolveFields(c.Fields, []string{"account_id", "display_name", "network", "chats", "unread_chats", "unread_messages", "muted_chats", "archived_chats"})
+			if err != nil {
+				return err
+			}
 			for _, acct := range summary.AccountsSummary {
-				u.Out().Printf("%s\t%s\t%s\t%d\t%d\t%d\t%d\t%d",
-					acct.AccountID,
-					acct.DisplayName,
-					acct.Network,
-					acct.Chats,
-					acct.UnreadChats,
-					acct.UnreadMessages,
-					acct.MutedChats,
-					acct.ArchivedChats,
-				)
+				writePlainFields(u, fields, map[string]string{
+					"account_id":      acct.AccountID,
+					"display_name":    acct.DisplayName,
+					"network":         acct.Network,
+					"chats":           fmt.Sprintf("%d", acct.Chats),
+					"unread_chats":    fmt.Sprintf("%d", acct.UnreadChats),
+					"unread_messages": fmt.Sprintf("%d", acct.UnreadMessages),
+					"muted_chats":     fmt.Sprintf("%d", acct.MutedChats),
+					"archived_chats":  fmt.Sprintf("%d", acct.ArchivedChats),
+				})
 			}
 			return nil
 		}
-		u.Out().Printf("accounts\t%d", summary.Accounts)
-		u.Out().Printf("chats\t%d", summary.Chats)
-		u.Out().Printf("unread_chats\t%d", summary.UnreadChats)
-		u.Out().Printf("unread_messages\t%d", summary.UnreadMessages)
-		u.Out().Printf("muted_chats\t%d", summary.MutedChats)
-		u.Out().Printf("archived_chats\t%d", summary.ArchivedChats)
-		u.Out().Printf("reminders_supported\t%v", summary.RemindersSupported)
+		fields, err := resolveFields(c.Fields, []string{"accounts", "chats", "unread_chats", "unread_messages", "muted_chats", "archived_chats", "reminders_supported"})
+		if err != nil {
+			return err
+		}
+		values := map[string]string{
+			"accounts":            fmt.Sprintf("%d", summary.Accounts),
+			"chats":               fmt.Sprintf("%d", summary.Chats),
+			"unread_chats":        fmt.Sprintf("%d", summary.UnreadChats),
+			"unread_messages":     fmt.Sprintf("%d", summary.UnreadMessages),
+			"muted_chats":         fmt.Sprintf("%d", summary.MutedChats),
+			"archived_chats":      fmt.Sprintf("%d", summary.ArchivedChats),
+			"reminders_supported": formatBool(summary.RemindersSupported),
+		}
+		writePlainFields(u, fields, values)
 		return nil
 	}
 

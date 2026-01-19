@@ -14,7 +14,8 @@ import (
 
 // AccountsCmd is the parent command for account subcommands.
 type AccountsCmd struct {
-	List AccountsListCmd `cmd:"" help:"List connected messaging accounts"`
+	List  AccountsListCmd  `cmd:"" help:"List connected messaging accounts"`
+	Alias AccountsAliasCmd `cmd:"" help:"Manage account aliases"`
 }
 
 // AccountsListCmd lists all connected accounts.
@@ -93,5 +94,101 @@ func (c *AccountsListCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
+	return nil
+}
+
+// AccountsAliasCmd is the parent command for alias subcommands.
+type AccountsAliasCmd struct {
+	Set   AccountsAliasSetCmd   `cmd:"" help:"Create or update an account alias"`
+	List  AccountsAliasListCmd  `cmd:"" help:"List account aliases"`
+	Unset AccountsAliasUnsetCmd `cmd:"" help:"Remove an account alias"`
+}
+
+// AccountsAliasSetCmd creates or updates an account alias.
+type AccountsAliasSetCmd struct {
+	Alias     string `arg:"" help:"Alias name (e.g., 'work', 'personal')"`
+	AccountID string `arg:"" help:"Account ID to map the alias to"`
+}
+
+// Run executes the accounts alias set command.
+func (c *AccountsAliasSetCmd) Run(ctx context.Context) error {
+	u := ui.FromContext(ctx)
+
+	if err := config.SetAccountAlias(c.Alias, c.AccountID); err != nil {
+		return err
+	}
+
+	if outfmt.IsJSON(ctx) {
+		return writeJSON(ctx, map[string]any{
+			"success":    true,
+			"alias":      c.Alias,
+			"account_id": c.AccountID,
+		}, "accounts alias set")
+	}
+
+	u.Out().Success("Alias saved: " + c.Alias + " -> " + c.AccountID)
+	return nil
+}
+
+// AccountsAliasListCmd lists all account aliases.
+type AccountsAliasListCmd struct{}
+
+// Run executes the accounts alias list command.
+func (c *AccountsAliasListCmd) Run(ctx context.Context) error {
+	u := ui.FromContext(ctx)
+
+	aliases, err := config.GetAccountAliases()
+	if err != nil {
+		return err
+	}
+
+	if outfmt.IsJSON(ctx) {
+		return writeJSON(ctx, map[string]any{
+			"aliases": aliases,
+		}, "accounts alias list")
+	}
+
+	if outfmt.IsPlain(ctx) {
+		for alias, accountID := range aliases {
+			u.Out().Printf("%s\t%s", alias, accountID)
+		}
+		return nil
+	}
+
+	if len(aliases) == 0 {
+		u.Out().Warn("No account aliases configured")
+		u.Out().Dim("Use: rr accounts alias set <alias> <account-id>")
+		return nil
+	}
+
+	u.Out().Printf("Account aliases:")
+	for alias, accountID := range aliases {
+		u.Out().Printf("  %s -> %s", alias, accountID)
+	}
+
+	return nil
+}
+
+// AccountsAliasUnsetCmd removes an account alias.
+type AccountsAliasUnsetCmd struct {
+	Alias string `arg:"" help:"Alias name to remove"`
+}
+
+// Run executes the accounts alias unset command.
+func (c *AccountsAliasUnsetCmd) Run(ctx context.Context) error {
+	u := ui.FromContext(ctx)
+
+	if err := config.UnsetAccountAlias(c.Alias); err != nil {
+		return err
+	}
+
+	if outfmt.IsJSON(ctx) {
+		return writeJSON(ctx, map[string]any{
+			"success": true,
+			"alias":   c.Alias,
+		}, "accounts alias unset")
+	}
+
+	u.Out().Success("Alias removed: " + c.Alias)
 	return nil
 }

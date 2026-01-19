@@ -2,16 +2,46 @@ package cmd
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
 // dataWriteCommands are commands that modify data and should be blocked in --readonly mode.
 var dataWriteCommands = map[string]bool{
-	"messages send":   true,
-	"chats create":    true,
-	"chats archive":   true,
-	"reminders set":   true,
-	"reminders clear": true,
+	"messages send":        true,
+	"chats create":         true,
+	"chats archive":        true,
+	"reminders set":        true,
+	"reminders clear":      true,
+	"accounts alias set":   true,
+	"accounts alias unset": true,
+}
+
+// exemptCommands are commands that bypass --readonly restrictions (local-only operations).
+var exemptCommands = map[string]bool{
+	"auth set":   true,
+	"auth clear": true,
+	"focus":      true,
+}
+
+// DataWriteCommandsList returns a sorted list of data write commands.
+func DataWriteCommandsList() []string {
+	list := make([]string, 0, len(dataWriteCommands))
+	for cmd := range dataWriteCommands {
+		list = append(list, cmd)
+	}
+	sort.Strings(list)
+	return list
+}
+
+// ExemptCommandsList returns a sorted list of exempt commands.
+func ExemptCommandsList() []string {
+	list := make([]string, 0, len(exemptCommands))
+	for cmd := range exemptCommands {
+		list = append(list, cmd)
+	}
+	sort.Strings(list)
+	return list
 }
 
 // checkEnableCommands validates that the command is in the allowlist.
@@ -58,8 +88,8 @@ func checkReadonly(flags *RootFlags, command string) error {
 		return nil
 	}
 
-	// Exempt auth and focus commands
-	if strings.HasPrefix(command, "auth ") || command == "focus" {
+	// Exempt local-only commands
+	if exemptCommands[command] {
 		return nil
 	}
 

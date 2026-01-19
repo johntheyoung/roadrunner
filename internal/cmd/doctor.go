@@ -14,7 +14,9 @@ import (
 )
 
 // DoctorCmd validates configuration and connectivity.
-type DoctorCmd struct{}
+type DoctorCmd struct {
+	Fields []string `help:"Comma-separated list of fields for --plain output" name:"fields" sep:","`
+}
 
 // DoctorResult holds the results of all checks.
 type DoctorResult struct {
@@ -84,6 +86,25 @@ func (c *DoctorCmd) Run(ctx context.Context, flags *RootFlags) error {
 	// Output
 	if outfmt.IsJSON(ctx) {
 		return writeJSON(ctx, result, "doctor")
+	}
+
+	// Plain output (TSV)
+	if outfmt.IsPlain(ctx) {
+		fields, err := resolveFields(c.Fields, []string{"config_path", "config_exists", "token_source", "has_token", "api_reachable", "api_url", "token_valid", "all_passed"})
+		if err != nil {
+			return err
+		}
+		writePlainFields(u, fields, map[string]string{
+			"config_path":   result.ConfigPath,
+			"config_exists": formatBool(result.ConfigExists),
+			"token_source":  result.TokenSource,
+			"has_token":     formatBool(result.HasToken),
+			"api_reachable": formatBool(result.APIReachable),
+			"api_url":       result.APIURL,
+			"token_valid":   formatBool(result.TokenValid),
+			"all_passed":    formatBool(result.AllPassed),
+		})
+		return nil
 	}
 
 	// Human-readable output

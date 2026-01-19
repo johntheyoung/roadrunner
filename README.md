@@ -94,15 +94,20 @@ rr chats archive '!roomid:beeper.local' --unarchive
 ## Contacts
 
 ```bash
-# Search contacts on an account
+# Search contacts on an account (positional or flag)
 rr contacts search "<account-id>" "Alice"
+rr contacts search "Alice" --account-id="<account-id>"
+
+# Using default account (from --account or BEEPER_ACCOUNT)
+rr contacts search "Alice"
 
 # Resolve a contact by exact match
 rr contacts resolve "<account-id>" "Alice"
+rr contacts resolve "Alice" --account-id="<account-id>"
 
 # If a name is ambiguous, resolve by ID
-rr contacts search "<account-id>" "Michael Johnson" --json
-rr contacts resolve "<account-id>" "<contact-id>" --json
+rr contacts search "Michael Johnson" --account-id="<account-id>" --json
+rr contacts resolve "<contact-id>" --account-id="<account-id>" --json
 ```
 
 ## Messages
@@ -249,7 +254,7 @@ cat draft.txt | rr messages send "$CHAT_ID" --stdin
 rr assets download "mxc://beeper.local/abc123" --dest "./attachment.jpg"
 
 # Search contacts on an account
-rr contacts search "<account-id>" "Alice" --json
+rr contacts search "Alice" --account-id="<account-id>" --json
 ```
 
 ## Output Modes
@@ -294,6 +299,11 @@ rr chats list --plain --fields id,title
 ```
 
 JSON and plain output go to stdout. Errors and hints go to stderr.
+
+Commands supporting `--plain --fields`:
+- `accounts list`, `chats list/search/resolve`, `messages list/search`
+- `contacts search/resolve`, `search`, `unread`
+- `status`, `doctor`, `auth status`, `version`
 
 ### Envelope Mode
 
@@ -343,17 +353,96 @@ Write commands blocked by `--readonly`: `messages send`, `chats create`, `chats 
 
 Exemptions: `auth set`, `auth clear`, and `focus` are always allowed (local-only operations).
 
+### Agent Profile Mode
+
+For AI agent integrations, use `--agent` to enable a hardened profile:
+
+```bash
+# Agent mode forces JSON+envelope, no-input, readonly
+# and requires --enable-commands for safety
+rr --agent --enable-commands=chats,messages,status chats list
+```
+
+Agent mode automatically sets: `--json`, `--envelope`, `--no-input`, `--readonly`.
+
+The `--enable-commands` flag is **required** in agent mode to ensure agents only access explicitly allowed commands.
+
 ### Capability Discovery
 
 ```bash
 $ rr version --json
 {
-  "version": "0.8.0",
-  "features": ["enable-commands", "readonly", "envelope"]
+  "version": "0.9.0",
+  "features": ["enable-commands", "readonly", "envelope", "agent-mode"]
+}
+```
+
+For detailed capability discovery:
+
+```bash
+$ rr capabilities --json
+{
+  "version": "0.9.0",
+  "features": ["enable-commands", "readonly", "envelope", "agent-mode"],
+  "defaults": { "timeout": 30, "base_url": "http://localhost:23373" },
+  "output_modes": ["human", "json", "plain"],
+  "safety": {
+    "enable_commands_desc": "Comma-separated allowlist of top-level commands",
+    "readonly_desc": "Block data write operations",
+    "agent_desc": "Agent profile: forces JSON, envelope, no-input, readonly; requires --enable-commands"
+  },
+  "commands": {
+    "read": ["accounts list", "chats list", "messages list", ...],
+    "write": ["messages send", "chats create", "chats archive", ...],
+    "exempt": ["auth set", "auth clear", "focus"]
+  },
+  "flags": { ... }
 }
 ```
 
 Agents can check `features` to detect supported safety flags before use.
+
+## Multi-Account Usage
+
+### Default Account
+
+Set a default account for commands that filter by account:
+
+```bash
+# Set default account via flag
+rr --account="imessage:+1234567890" chats list
+
+# Or via environment variable
+export BEEPER_ACCOUNT="imessage:+1234567890"
+rr chats list  # uses default account
+
+# Contacts commands can omit --account-id when default is set
+rr contacts search "Alice"  # uses default account
+```
+
+### Account Aliases
+
+Create short aliases for frequently used accounts:
+
+```bash
+# Set an alias
+rr accounts alias set work "slack:T12345678"
+rr accounts alias set personal "imessage:+1234567890"
+
+# List aliases
+rr accounts alias list
+
+# Remove an alias
+rr accounts alias unset work
+```
+
+Aliases can be used anywhere an account ID is expected:
+
+```bash
+rr --account=work chats list
+rr contacts search "Alice" --account-id=work
+rr chats create work --participant "<user-id>"
+```
 
 ## Shell Completions
 
@@ -383,6 +472,8 @@ rr completion fish > ~/.config/fish/completions/rr.fish
 | `BEEPER_ENABLE_COMMANDS` | Comma-separated allowlist of commands |
 | `BEEPER_READONLY` | Block data write operations |
 | `BEEPER_ENVELOPE` | Wrap JSON in envelope structure |
+| `BEEPER_AGENT` | Enable agent profile mode |
+| `BEEPER_ACCOUNT` | Default account ID for commands |
 | `NO_COLOR` | Disable colored output |
 
 ## Shell Notes

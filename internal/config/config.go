@@ -10,7 +10,8 @@ import (
 
 // Config represents the stored configuration.
 type Config struct {
-	Token string `json:"token,omitempty"`
+	Token          string            `json:"token,omitempty"`
+	AccountAliases map[string]string `json:"account_aliases,omitempty"`
 }
 
 // ErrNoToken is returned when no token is configured.
@@ -135,4 +136,56 @@ func ClearToken() error {
 
 	cfg.Token = ""
 	return Save(cfg)
+}
+
+// GetAccountAliases returns all account aliases.
+func GetAccountAliases() (map[string]string, error) {
+	cfg, err := Load()
+	if err != nil {
+		return nil, err
+	}
+	if cfg.AccountAliases == nil {
+		return map[string]string{}, nil
+	}
+	return cfg.AccountAliases, nil
+}
+
+// SetAccountAlias saves an account alias.
+func SetAccountAlias(alias, accountID string) error {
+	cfg, err := Load()
+	if err != nil {
+		return err
+	}
+	if cfg.AccountAliases == nil {
+		cfg.AccountAliases = make(map[string]string)
+	}
+	cfg.AccountAliases[alias] = accountID
+	return Save(cfg)
+}
+
+// UnsetAccountAlias removes an account alias.
+func UnsetAccountAlias(alias string) error {
+	cfg, err := Load()
+	if err != nil {
+		return err
+	}
+	if cfg.AccountAliases != nil {
+		delete(cfg.AccountAliases, alias)
+	}
+	return Save(cfg)
+}
+
+// ResolveAccountAlias resolves an alias to an account ID.
+// Returns the input unchanged if not found in aliases.
+func ResolveAccountAlias(aliasOrID string) string {
+	cfg, err := Load()
+	if err != nil {
+		return aliasOrID
+	}
+	if cfg.AccountAliases != nil {
+		if resolved, ok := cfg.AccountAliases[aliasOrID]; ok {
+			return resolved
+		}
+	}
+	return aliasOrID
 }

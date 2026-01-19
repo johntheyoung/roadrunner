@@ -33,9 +33,10 @@ _rr_completions() {
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    commands="auth accounts chats messages reminders search focus doctor version completion"
+    commands="auth accounts chats messages reminders search focus doctor version capabilities completion"
     auth_cmds="set status clear"
-    accounts_cmds="list"
+    accounts_cmds="list alias"
+    accounts_alias_cmds="set list unset"
     chats_cmds="list search get archive"
     messages_cmds="list search send"
     reminders_cmds="set clear"
@@ -51,6 +52,10 @@ _rr_completions() {
             ;;
         accounts)
             COMPREPLY=( $(compgen -W "${accounts_cmds}" -- "${cur}") )
+            return 0
+            ;;
+        alias)
+            COMPREPLY=( $(compgen -W "${accounts_alias_cmds}" -- "${cur}") )
             return 0
             ;;
         chats)
@@ -90,6 +95,7 @@ _rr() {
         'focus:Focus Beeper Desktop app'
         'doctor:Diagnose configuration and connectivity'
         'version:Show version information'
+        'capabilities:Show CLI capabilities for agent discovery'
         'completion:Generate shell completions'
     )
 
@@ -103,6 +109,14 @@ _rr() {
     local -a accounts_cmds
     accounts_cmds=(
         'list:List connected messaging accounts'
+        'alias:Manage account aliases'
+    )
+
+    local -a accounts_alias_cmds
+    accounts_alias_cmds=(
+        'set:Create or update an account alias'
+        'list:List account aliases'
+        'unset:Remove an account alias'
     )
 
     local -a chats_cmds
@@ -164,6 +178,13 @@ _rr() {
                     ;;
             esac
             ;;
+        args)
+            case "$words[2]" in
+                alias)
+                    _describe -t commands 'accounts alias commands' accounts_alias_cmds
+                    ;;
+            esac
+            ;;
     esac
 }
 
@@ -185,6 +206,7 @@ complete -c rr -n '__fish_use_subcommand' -a 'search' -d 'Global search across c
 complete -c rr -n '__fish_use_subcommand' -a 'focus' -d 'Focus Beeper Desktop app'
 complete -c rr -n '__fish_use_subcommand' -a 'doctor' -d 'Diagnose configuration and connectivity'
 complete -c rr -n '__fish_use_subcommand' -a 'version' -d 'Show version information'
+complete -c rr -n '__fish_use_subcommand' -a 'capabilities' -d 'Show CLI capabilities for agent discovery'
 complete -c rr -n '__fish_use_subcommand' -a 'completion' -d 'Generate shell completions'
 
 # auth subcommands
@@ -194,6 +216,12 @@ complete -c rr -n '__fish_seen_subcommand_from auth' -a 'clear' -d 'Remove store
 
 # accounts subcommands
 complete -c rr -n '__fish_seen_subcommand_from accounts' -a 'list' -d 'List connected messaging accounts'
+complete -c rr -n '__fish_seen_subcommand_from accounts' -a 'alias' -d 'Manage account aliases'
+
+# accounts alias subcommands
+complete -c rr -n '__fish_seen_subcommand_from accounts; and __fish_seen_subcommand_from alias' -a 'set' -d 'Create or update an account alias'
+complete -c rr -n '__fish_seen_subcommand_from accounts; and __fish_seen_subcommand_from alias' -a 'list' -d 'List account aliases'
+complete -c rr -n '__fish_seen_subcommand_from accounts; and __fish_seen_subcommand_from alias' -a 'unset' -d 'Remove an account alias'
 
 # chats subcommands
 complete -c rr -n '__fish_seen_subcommand_from chats' -a 'list' -d 'List chats'
@@ -223,5 +251,7 @@ complete -c rr -l verbose -s v -d 'Enable debug logging'
 complete -c rr -l force -s f -d 'Skip confirmations'
 complete -c rr -l timeout -d 'Timeout for API calls in seconds'
 complete -c rr -l base-url -d 'API base URL'
+complete -c rr -l agent -d 'Agent profile mode'
+complete -c rr -l account -d 'Default account ID'
 complete -c rr -l version -d 'Show version and exit'
 `

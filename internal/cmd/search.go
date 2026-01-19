@@ -16,11 +16,12 @@ import (
 
 // SearchCmd performs a global search.
 type SearchCmd struct {
-	Query             string `arg:"" help:"Search query (literal word match)"`
-	MessagesCursor    string `help:"Cursor for message results pagination" name:"messages-cursor"`
-	MessagesDirection string `help:"Pagination direction for message results: before|after" name:"messages-direction" enum:"before,after," default:""`
-	MessagesLimit     int    `help:"Max messages per page when paging (1-20)" name:"messages-limit" default:"0"`
-	FailIfEmpty       bool   `help:"Exit with code 1 if no results" name:"fail-if-empty"`
+	Query             string   `arg:"" help:"Search query (literal word match)"`
+	MessagesCursor    string   `help:"Cursor for message results pagination" name:"messages-cursor"`
+	MessagesDirection string   `help:"Pagination direction for message results: before|after" name:"messages-direction" enum:"before,after," default:""`
+	MessagesLimit     int      `help:"Max messages per page when paging (1-20)" name:"messages-limit" default:"0"`
+	FailIfEmpty       bool     `help:"Exit with code 1 if no results" name:"fail-if-empty"`
+	Fields            []string `help:"Comma-separated list of fields for --plain output" name:"fields" sep:","`
 }
 
 // Run executes the search command.
@@ -64,14 +65,36 @@ func (c *SearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// Plain output (TSV)
 	if outfmt.IsPlain(ctx) {
+		fields, err := resolveFields(c.Fields, []string{"type", "id", "chat_id", "title", "text"})
+		if err != nil {
+			return err
+		}
 		for _, chat := range resp.Chats {
-			u.Out().Printf("chat\t%s\t%s\t%s", chat.ID, chat.Title, chat.Type)
+			writePlainFields(u, fields, map[string]string{
+				"type":    "chat",
+				"id":      chat.ID,
+				"chat_id": chat.ID,
+				"title":   chat.Title,
+				"text":    "",
+			})
 		}
 		for _, chat := range resp.InGroups {
-			u.Out().Printf("group\t%s\t%s\t%s", chat.ID, chat.Title, chat.Type)
+			writePlainFields(u, fields, map[string]string{
+				"type":    "group",
+				"id":      chat.ID,
+				"chat_id": chat.ID,
+				"title":   chat.Title,
+				"text":    "",
+			})
 		}
 		for _, msg := range resp.Messages.Items {
-			u.Out().Printf("message\t%s\t%s\t%s", msg.ID, msg.ChatID, ui.Truncate(msg.Text, 50))
+			writePlainFields(u, fields, map[string]string{
+				"type":    "message",
+				"id":      msg.ID,
+				"chat_id": msg.ChatID,
+				"title":   "",
+				"text":    ui.Truncate(msg.Text, 50),
+			})
 		}
 		return nil
 	}

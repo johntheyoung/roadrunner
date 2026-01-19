@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"sort"
 	"testing"
 )
 
@@ -165,6 +166,18 @@ func TestCheckReadonly(t *testing.T) {
 			wantErr:  true,
 		},
 		{
+			name:     "readonly blocks accounts alias set",
+			readonly: true,
+			command:  "accounts alias set",
+			wantErr:  true,
+		},
+		{
+			name:     "readonly blocks accounts alias unset",
+			readonly: true,
+			command:  "accounts alias unset",
+			wantErr:  true,
+		},
+		{
 			name:     "readonly allows read commands",
 			readonly: true,
 			command:  "messages list",
@@ -210,5 +223,100 @@ func TestCheckReadonly(t *testing.T) {
 				t.Errorf("checkReadonly() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestDataWriteCommandsList(t *testing.T) {
+	list := DataWriteCommandsList()
+	if len(list) == 0 {
+		t.Error("DataWriteCommandsList() returned empty list")
+	}
+
+	// Check that it contains expected commands
+	expected := map[string]bool{
+		"messages send":        false,
+		"chats create":         false,
+		"chats archive":        false,
+		"reminders set":        false,
+		"reminders clear":      false,
+		"accounts alias set":   false,
+		"accounts alias unset": false,
+	}
+
+	for _, cmd := range list {
+		if _, ok := expected[cmd]; ok {
+			expected[cmd] = true
+		}
+	}
+
+	for cmd, found := range expected {
+		if !found {
+			t.Errorf("DataWriteCommandsList() missing expected command: %s", cmd)
+		}
+	}
+}
+
+func TestExemptCommandsList(t *testing.T) {
+	list := ExemptCommandsList()
+	if len(list) == 0 {
+		t.Error("ExemptCommandsList() returned empty list")
+	}
+
+	// Check that it contains expected commands
+	expected := map[string]bool{
+		"auth set":   false,
+		"auth clear": false,
+		"focus":      false,
+	}
+
+	for _, cmd := range list {
+		if _, ok := expected[cmd]; ok {
+			expected[cmd] = true
+		}
+	}
+
+	for cmd, found := range expected {
+		if !found {
+			t.Errorf("ExemptCommandsList() missing expected command: %s", cmd)
+		}
+	}
+}
+
+func TestExemptCommandsUsedByCheckReadonly(t *testing.T) {
+	// Verify that exemptCommands map is actually used by checkReadonly
+	flags := &RootFlags{Readonly: true}
+
+	exemptList := ExemptCommandsList()
+	for _, cmd := range exemptList {
+		err := checkReadonly(flags, cmd)
+		if err != nil {
+			t.Errorf("checkReadonly() should allow exempt command %q but got error: %v", cmd, err)
+		}
+	}
+}
+
+func TestReadCommandsList(t *testing.T) {
+	list := readCommands()
+	if len(list) == 0 {
+		t.Error("readCommands() returned empty list")
+	}
+
+	// Should be sorted
+	sorted := make([]string, len(list))
+	copy(sorted, list)
+	sort.Strings(sorted)
+
+	// The function doesn't return sorted, but the caller should sort
+	// Just verify it returns a reasonable list
+	expectedCommands := []string{"chats list", "messages list", "status", "version"}
+	found := make(map[string]bool)
+	for _, cmd := range list {
+		found[cmd] = true
+	}
+
+	for _, expected := range expectedCommands {
+		if !found[expected] {
+			t.Errorf("readCommands() missing expected command: %s", expected)
+		}
 	}
 }

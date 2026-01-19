@@ -45,26 +45,29 @@ type RootFlags struct {
 	EnableCommands []string         `help:"Comma-separated allowlist of top-level commands" env:"BEEPER_ENABLE_COMMANDS" sep:","`
 	Readonly       bool             `help:"Block data write operations" env:"BEEPER_READONLY"`
 	Envelope       bool             `help:"Wrap JSON output in {success,data,error,metadata} envelope" env:"BEEPER_ENVELOPE"`
+	Agent          bool             `help:"Agent profile: forces JSON, envelope, no-input, readonly" env:"BEEPER_AGENT"`
+	Account        string           `help:"Default account ID for commands" env:"BEEPER_ACCOUNT"`
 }
 
 // CLI is the root command structure.
 type CLI struct {
 	RootFlags
 
-	Auth       AuthCmd       `cmd:"" help:"Manage authentication"`
-	Accounts   AccountsCmd   `cmd:"" help:"Manage messaging accounts"`
-	Contacts   ContactsCmd   `cmd:"" help:"Search contacts"`
-	Assets     AssetsCmd     `cmd:"" help:"Download assets"`
-	Chats      ChatsCmd      `cmd:"" help:"Manage chats"`
-	Messages   MessagesCmd   `cmd:"" help:"Manage messages"`
-	Reminders  RemindersCmd  `cmd:"" help:"Manage chat reminders"`
-	Search     SearchCmd     `cmd:"" help:"Global search across chats and messages"`
-	Status     StatusCmd     `cmd:"" help:"Show chat and unread summary"`
-	Unread     UnreadCmd     `cmd:"" help:"List unread chats"`
-	Focus      FocusCmd      `cmd:"" help:"Focus Beeper Desktop app"`
-	Doctor     DoctorCmd     `cmd:"" help:"Diagnose configuration and connectivity"`
-	Version    VersionCmd    `cmd:"" help:"Show version information"`
-	Completion CompletionCmd `cmd:"" help:"Generate shell completions"`
+	Auth         AuthCmd         `cmd:"" help:"Manage authentication"`
+	Accounts     AccountsCmd     `cmd:"" help:"Manage messaging accounts"`
+	Contacts     ContactsCmd     `cmd:"" help:"Search contacts"`
+	Assets       AssetsCmd       `cmd:"" help:"Download assets"`
+	Chats        ChatsCmd        `cmd:"" help:"Manage chats"`
+	Messages     MessagesCmd     `cmd:"" help:"Manage messages"`
+	Reminders    RemindersCmd    `cmd:"" help:"Manage chat reminders"`
+	Search       SearchCmd       `cmd:"" help:"Global search across chats and messages"`
+	Status       StatusCmd       `cmd:"" help:"Show chat and unread summary"`
+	Unread       UnreadCmd       `cmd:"" help:"List unread chats"`
+	Focus        FocusCmd        `cmd:"" help:"Focus Beeper Desktop app"`
+	Doctor       DoctorCmd       `cmd:"" help:"Diagnose configuration and connectivity"`
+	Version      VersionCmd      `cmd:"" help:"Show version information"`
+	Capabilities CapabilitiesCmd `cmd:"" help:"Show CLI capabilities for agent discovery"`
+	Completion   CompletionCmd   `cmd:"" help:"Generate shell completions"`
 }
 
 // Execute runs the CLI and returns an exit code.
@@ -94,6 +97,23 @@ func Execute() int {
 		_, _ = os.Stderr.WriteString("error: " + err.Error() + "\n")
 		_, _ = os.Stderr.WriteString("Run with --help to see available commands and flags\n")
 		return errfmt.ExitUsageError
+	}
+
+	// Apply agent mode: force JSON, Envelope, NoInput, Readonly
+	if cli.Agent {
+		cli.JSON = true
+		cli.Envelope = true
+		cli.NoInput = true
+		cli.Readonly = true
+		cli.Plain = false // JSON takes precedence
+
+		// Agent mode requires --enable-commands for safety
+		if len(cli.EnableCommands) == 0 {
+			command := normalizeCommand(kongCtx.Command())
+			_ = outfmt.WriteEnvelopeError(os.Stdout, errfmt.ErrCodeValidation,
+				"agent mode requires --enable-commands to specify allowed commands", Version, command)
+			return errfmt.ExitUsageError
+		}
 	}
 
 	// Validate flag combinations

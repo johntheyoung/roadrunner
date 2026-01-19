@@ -23,24 +23,37 @@ type ContactsCmd struct {
 
 // ContactsSearchCmd searches contacts within an account.
 type ContactsSearchCmd struct {
-	AccountID   string   `arg:"" name:"accountID" help:"Account ID to search"`
-	Query       string   `arg:"" help:"Search query"`
-	Fields      []string `help:"Comma-separated list of fields for --plain output" name:"fields" sep:","`
-	FailIfEmpty bool     `help:"Exit with code 1 if no results" name:"fail-if-empty"`
+	AccountID     string   `arg:"" optional:"" name:"accountID" help:"Account ID or alias"`
+	Query         string   `arg:"" optional:"" help:"Search query"`
+	AccountIDFlag string   `help:"Account ID to search (uses --account default if omitted)" name:"account-id"`
+	Fields        []string `help:"Comma-separated list of fields for --plain output" name:"fields" sep:","`
+	FailIfEmpty   bool     `help:"Exit with code 1 if no results" name:"fail-if-empty"`
 }
 
 // ContactsResolveCmd resolves a contact by exact match.
 type ContactsResolveCmd struct {
-	AccountID string   `arg:"" name:"accountID" help:"Account ID to search"`
-	Query     string   `arg:"" help:"Exact contact name, username, email, phone, or ID"`
-	Fields    []string `help:"Comma-separated list of fields for --plain output" name:"fields" sep:","`
+	AccountID     string   `arg:"" optional:"" name:"accountID" help:"Account ID or alias"`
+	Query         string   `arg:"" optional:"" help:"Exact contact name, username, email, phone, or ID"`
+	AccountIDFlag string   `help:"Account ID to search (uses --account default if omitted)" name:"account-id"`
+	Fields        []string `help:"Comma-separated list of fields for --plain output" name:"fields" sep:","`
 }
 
 // Run executes the contacts search command.
 func (c *ContactsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
 
-	if c.AccountID == "" || c.Query == "" {
+	query := c.Query
+	accountIDInput := c.AccountIDFlag
+	positionalAccount := c.AccountID
+	if query == "" && positionalAccount != "" {
+		query = positionalAccount
+		positionalAccount = ""
+	}
+	if accountIDInput == "" {
+		accountIDInput = positionalAccount
+	}
+	accountID := resolveAccount(accountIDInput, flags.Account)
+	if accountID == "" || query == "" {
 		return errfmt.UsageError("account ID and query are required")
 	}
 
@@ -55,7 +68,7 @@ func (c *ContactsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
-	resp, err := client.Accounts().SearchContacts(ctx, c.AccountID, c.Query)
+	resp, err := client.Accounts().SearchContacts(ctx, accountID, query)
 	if err != nil {
 		return err
 	}
@@ -122,7 +135,18 @@ func (c *ContactsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 func (c *ContactsResolveCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
 
-	if c.AccountID == "" || c.Query == "" {
+	query := c.Query
+	accountIDInput := c.AccountIDFlag
+	positionalAccount := c.AccountID
+	if query == "" && positionalAccount != "" {
+		query = positionalAccount
+		positionalAccount = ""
+	}
+	if accountIDInput == "" {
+		accountIDInput = positionalAccount
+	}
+	accountID := resolveAccount(accountIDInput, flags.Account)
+	if accountID == "" || query == "" {
 		return errfmt.UsageError("account ID and query are required")
 	}
 
@@ -137,7 +161,7 @@ func (c *ContactsResolveCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
-	resp, err := client.Accounts().SearchContacts(ctx, c.AccountID, c.Query)
+	resp, err := client.Accounts().SearchContacts(ctx, accountID, query)
 	if err != nil {
 		return err
 	}
@@ -145,7 +169,7 @@ func (c *ContactsResolveCmd) Run(ctx context.Context, flags *RootFlags) error {
 	matches := make([]beeperapi.Contact, 0, 1)
 	seen := make(map[string]struct{})
 	for i, item := range resp {
-		if contactExactMatch(item, c.Query) {
+		if contactExactMatch(item, query) {
 			key := contactKey(item)
 			if key == "" {
 				key = fmt.Sprintf("idx:%d", i)
@@ -159,10 +183,10 @@ func (c *ContactsResolveCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 
 	if len(matches) == 0 {
-		return errfmt.WithCode(fmt.Errorf("no contact matched %q", c.Query), errfmt.ExitFailure)
+		return errfmt.WithCode(fmt.Errorf("no contact matched %q", query), errfmt.ExitFailure)
 	}
 	if len(matches) > 1 {
-		return errfmt.WithCode(fmt.Errorf("multiple contacts matched %q", c.Query), errfmt.ExitFailure)
+		return errfmt.WithCode(fmt.Errorf("multiple contacts matched %q", query), errfmt.ExitFailure)
 	}
 	contact := matches[0]
 

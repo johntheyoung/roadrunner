@@ -10,7 +10,9 @@ import (
 )
 
 // VersionCmd shows version information.
-type VersionCmd struct{}
+type VersionCmd struct {
+	Fields []string `help:"Comma-separated list of fields for --plain output" name:"fields" sep:","`
+}
 
 // VersionString returns a human-readable version string.
 func VersionString() string {
@@ -42,8 +44,22 @@ func (c *VersionCmd) Run(ctx context.Context) error {
 			"version":  strings.TrimSpace(Version),
 			"commit":   strings.TrimSpace(Commit),
 			"date":     strings.TrimSpace(Date),
-			"features": []string{"enable-commands", "readonly", "envelope"},
+			"features": []string{"enable-commands", "readonly", "envelope", "agent-mode"},
 		}, "version")
+	}
+
+	// Plain output (TSV)
+	if outfmt.IsPlain(ctx) {
+		fields, err := resolveFields(c.Fields, []string{"version", "commit", "date"})
+		if err != nil {
+			return err
+		}
+		writePlainFields(u, fields, map[string]string{
+			"version": strings.TrimSpace(Version),
+			"commit":  strings.TrimSpace(Commit),
+			"date":    strings.TrimSpace(Date),
+		})
+		return nil
 	}
 
 	u.Out().Println(VersionString())

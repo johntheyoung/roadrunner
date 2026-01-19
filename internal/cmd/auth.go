@@ -41,7 +41,8 @@ func (c *AuthSetCmd) Run(ctx context.Context) error {
 
 // AuthStatusCmd shows authentication status.
 type AuthStatusCmd struct {
-	Check bool `help:"Validate token by making API call" short:"c"`
+	Check  bool     `help:"Validate token by making API call" short:"c"`
+	Fields []string `help:"Comma-separated list of fields for --plain output" name:"fields" sep:","`
 }
 
 // Run executes the auth status command.
@@ -56,6 +57,19 @@ func (c *AuthStatusCmd) Run(ctx context.Context, flags *RootFlags) error {
 				"source":        "none",
 				"error":         err.Error(),
 			}, "auth status")
+		}
+		if outfmt.IsPlain(ctx) {
+			fields, err := resolveFields(c.Fields, []string{"authenticated", "source", "config_path", "valid"})
+			if err != nil {
+				return err
+			}
+			writePlainFields(u, fields, map[string]string{
+				"authenticated": "false",
+				"source":        "none",
+				"config_path":   "",
+				"valid":         "",
+			})
+			return nil
 		}
 		u.Out().Warn("Not authenticated")
 		u.Out().Dim("Run: rr auth set <token>")
@@ -94,6 +108,25 @@ func (c *AuthStatusCmd) Run(ctx context.Context, flags *RootFlags) error {
 		}
 
 		return writeJSON(ctx, result, "auth status")
+	}
+
+	// Plain output (TSV)
+	if outfmt.IsPlain(ctx) {
+		fields, err := resolveFields(c.Fields, []string{"authenticated", "source", "config_path", "valid"})
+		if err != nil {
+			return err
+		}
+		valid := ""
+		if validation != nil {
+			valid = formatBool(validation.Valid)
+		}
+		writePlainFields(u, fields, map[string]string{
+			"authenticated": "true",
+			"source":        source.String(),
+			"config_path":   configPath,
+			"valid":         valid,
+		})
+		return nil
 	}
 
 	u.Out().Printf("Authenticated: yes")

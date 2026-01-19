@@ -404,20 +404,27 @@ Agents can check `features` to detect supported safety flags before use.
 
 ## Multi-Account Usage
 
-### Default Account
-
-Set a default account for commands that filter by account:
+By default, commands search **all accounts**. Use `--account` to focus on one.
 
 ```bash
-# Set default account via flag
+# All accounts (default behavior)
+rr chats list
+rr messages search "dinner"
+
+# Single account (optional)
 rr --account="imessage:+1234567890" chats list
 
 # Or via environment variable
 export BEEPER_ACCOUNT="imessage:+1234567890"
-rr chats list  # uses default account
+rr chats list            # now defaults to imessage
+rr chats list --account-ids=telegram,whatsapp  # explicit overrides default
+```
 
-# Contacts commands can omit --account-id when default is set
-rr contacts search "Alice"  # uses default account
+For `contacts` commands (which require an account), `--account` provides a default:
+
+```bash
+rr contacts search "Alice"                      # uses BEEPER_ACCOUNT
+rr contacts search "Alice" --account-id=slack   # explicit override
 ```
 
 ### Account Aliases

@@ -11,10 +11,14 @@ All notable changes to this project will be documented in this file.
 - Normalized envelope pagination metadata (`metadata.pagination`) for cursor-based
   commands (`chats list/search`, `messages list/search`, `search`, `unread`) to
   provide a stable machine contract in `--json --envelope` mode.
+- Optional `error.hint` in envelope errors for actionable next steps on common
+  validation/safety/connectivity failures.
 
 ### Changed
 - Shared exact chat resolution logic across `chats resolve` and action commands to
   keep ambiguity handling consistent for agent flows.
+- `version --json` and `capabilities --json` now advertise `error-hints` in
+  the feature list.
 
 ## v0.12.0 - 2026-02-11
 

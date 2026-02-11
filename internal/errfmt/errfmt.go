@@ -3,6 +3,7 @@ package errfmt
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/alecthomas/kong"
@@ -109,6 +110,52 @@ func UsageError(format string, args ...any) *ExitError {
 	}
 }
 
+// RestrictionKind identifies command safety restriction types.
+type RestrictionKind string
+
+const (
+	// RestrictionEnableCommands indicates command allowlist blocking.
+	RestrictionEnableCommands RestrictionKind = "enable_commands"
+	// RestrictionReadonly indicates readonly mode blocking.
+	RestrictionReadonly RestrictionKind = "readonly"
+)
+
+// RestrictionError reports command safety restriction violations.
+type RestrictionError struct {
+	Kind      RestrictionKind
+	Command   string
+	Allowlist []string
+}
+
+func (e *RestrictionError) Error() string {
+	switch e.Kind {
+	case RestrictionEnableCommands:
+		return fmt.Sprintf("command %q not in --enable-commands allowlist: %v", e.Command, e.Allowlist)
+	case RestrictionReadonly:
+		return fmt.Sprintf("command %q blocked by --readonly mode", e.Command)
+	default:
+		return "command restricted"
+	}
+}
+
+// NewEnableCommandsError creates an allowlist restriction error.
+func NewEnableCommandsError(command string, allowlist []string) error {
+	copied := slices.Clone(allowlist)
+	return &RestrictionError{
+		Kind:      RestrictionEnableCommands,
+		Command:   command,
+		Allowlist: copied,
+	}
+}
+
+// NewReadonlyError creates a readonly restriction error.
+func NewReadonlyError(command string) error {
+	return &RestrictionError{
+		Kind:    RestrictionReadonly,
+		Command: command,
+	}
+}
+
 // Error codes for envelope responses
 const (
 	ErrCodeAuth       = "AUTH_ERROR"
@@ -168,4 +215,47 @@ func ErrorCode(err error) string {
 	}
 
 	return ErrCodeInternal
+}
+
+// Hint returns an optional actionable hint for known error patterns.
+func Hint(err error) string {
+	if err == nil {
+		return ""
+	}
+
+	if errors.Is(err, config.ErrNoToken) {
+		return "Set a token with `rr auth set <token>` or export `BEEPER_TOKEN`."
+	}
+
+	var restrictionErr *RestrictionError
+	if errors.As(err, &restrictionErr) {
+		switch restrictionErr.Kind {
+		case RestrictionEnableCommands:
+			return "Include this command in `--enable-commands` (or use top-level allowlisting like `--enable-commands=messages,chats`)."
+		case RestrictionReadonly:
+			return "Remove `--readonly` (or `--agent`) for write operations, or use a read-only command."
+		}
+	}
+
+	msg := strings.ToLower(err.Error())
+	switch {
+	case strings.Contains(msg, "agent mode requires --enable-commands"):
+		return "Pass `--enable-commands` with an explicit allowlist, e.g. `--enable-commands=chats,messages,status`."
+	case strings.Contains(msg, "multiple chats matched"):
+		return "Use `rr chats resolve <query> --json` or pass an explicit chat ID to disambiguate."
+	case strings.Contains(msg, "no chat matched"):
+		return "Try `rr chats search <query> --scope=participants --json` to discover the chat ID."
+	case strings.Contains(msg, "attachment overrides require --attachment-upload-id"):
+		return "Upload first via `rr assets upload <path> --json`, then pass `--attachment-upload-id`."
+	case strings.Contains(msg, "message text or --attachment-upload-id is required"):
+		return "Provide message text or an uploaded attachment ID."
+	case strings.Contains(msg, "requires --all"):
+		return "Add `--all` when using this max-items flag."
+	case strings.Contains(msg, "connection refused"),
+		strings.Contains(msg, "no such host"),
+		strings.Contains(msg, "network is unreachable"):
+		return "Run `rr doctor` to verify Desktop API connectivity and token validity."
+	}
+
+	return ""
 }

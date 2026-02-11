@@ -46,6 +46,7 @@ Safety
 - Use `--readonly` to block writes: `rr --readonly chats list --json`
 - Use `--enable-commands` to allowlist: `rr --enable-commands=chats,messages chats list --json`
 - Use `--envelope` for structured errors: `rr --json --envelope chats get "!chatid"`
+- Envelope errors may include `error.hint` with next-step guidance for safe retries.
 
 Setup (once)
 - `rr auth set <token>`

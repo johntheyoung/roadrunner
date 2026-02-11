@@ -110,8 +110,9 @@ func Execute() int {
 		// Agent mode requires --enable-commands for safety
 		if len(cli.EnableCommands) == 0 {
 			command := normalizeCommand(kongCtx.Command())
-			_ = outfmt.WriteEnvelopeError(os.Stdout, errfmt.ErrCodeValidation,
-				"agent mode requires --enable-commands to specify allowed commands", Version, command)
+			msg := "agent mode requires --enable-commands to specify allowed commands"
+			_ = outfmt.WriteEnvelopeErrorWithHint(os.Stdout, errfmt.ErrCodeValidation,
+				msg, errfmt.Hint(errfmt.UsageError("%s", msg)), Version, command)
 			return errfmt.ExitUsageError
 		}
 	}
@@ -150,7 +151,7 @@ func Execute() int {
 	command := normalizeCommand(kongCtx.Command())
 	if err := checkEnableCommands(&cli.RootFlags, command); err != nil {
 		if cli.JSON && cli.Envelope {
-			_ = outfmt.WriteEnvelopeError(os.Stdout, errfmt.ErrCodeValidation, errfmt.Format(err), Version, command)
+			_ = outfmt.WriteEnvelopeErrorWithHint(os.Stdout, errfmt.ErrCodeValidation, errfmt.Format(err), errfmt.Hint(err), Version, command)
 		} else {
 			_, _ = os.Stderr.WriteString("error: " + errfmt.Format(err) + "\n")
 		}
@@ -158,7 +159,7 @@ func Execute() int {
 	}
 	if err := checkReadonly(&cli.RootFlags, command); err != nil {
 		if cli.JSON && cli.Envelope {
-			_ = outfmt.WriteEnvelopeError(os.Stdout, errfmt.ErrCodeValidation, errfmt.Format(err), Version, command)
+			_ = outfmt.WriteEnvelopeErrorWithHint(os.Stdout, errfmt.ErrCodeValidation, errfmt.Format(err), errfmt.Hint(err), Version, command)
 		} else {
 			_, _ = os.Stderr.WriteString("error: " + errfmt.Format(err) + "\n")
 		}
@@ -177,7 +178,7 @@ func Execute() int {
 		// Handle envelope mode errors to stdout
 		if cli.Envelope && cli.JSON {
 			code := errfmt.ErrorCode(err)
-			_ = outfmt.WriteEnvelopeError(os.Stdout, code, errfmt.Format(err), Version, command)
+			_ = outfmt.WriteEnvelopeErrorWithHint(os.Stdout, code, errfmt.Format(err), errfmt.Hint(err), Version, command)
 			var exitErr *errfmt.ExitError
 			if errors.As(err, &exitErr) {
 				return exitErr.Code

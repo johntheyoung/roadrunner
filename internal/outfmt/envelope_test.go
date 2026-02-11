@@ -148,6 +148,9 @@ func TestWriteEnvelopeError(t *testing.T) {
 	if env.Error.Message != "chat not found" {
 		t.Errorf("expected message='chat not found', got %s", env.Error.Message)
 	}
+	if env.Error.Hint != "" {
+		t.Errorf("expected hint empty, got %q", env.Error.Hint)
+	}
 	if env.Metadata == nil {
 		t.Fatal("expected metadata to be set")
 	}
@@ -156,6 +159,27 @@ func TestWriteEnvelopeError(t *testing.T) {
 	}
 	if env.Metadata.Command != "chats get" {
 		t.Errorf("expected command='chats get', got %s", env.Metadata.Command)
+	}
+}
+
+func TestWriteEnvelopeErrorWithHint(t *testing.T) {
+	var buf bytes.Buffer
+
+	err := WriteEnvelopeErrorWithHint(&buf, ErrCodeValidation, "bad input", "use --help", "1.0.0", "messages send")
+	if err != nil {
+		t.Fatalf("WriteEnvelopeErrorWithHint() error = %v", err)
+	}
+
+	var env Envelope
+	if err := json.Unmarshal(buf.Bytes(), &env); err != nil {
+		t.Fatalf("failed to unmarshal envelope: %v", err)
+	}
+
+	if env.Error == nil {
+		t.Fatal("expected error to be set")
+	}
+	if env.Error.Hint != "use --help" {
+		t.Fatalf("hint = %q, want %q", env.Error.Hint, "use --help")
 	}
 }
 

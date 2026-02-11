@@ -18,6 +18,7 @@ type Envelope struct {
 type EnvelopeError struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
+	Hint    string `json:"hint,omitempty"`
 }
 
 // EnvelopeMeta contains metadata about the response.
@@ -89,11 +90,17 @@ func WriteEnvelopeWithPagination(w io.Writer, data any, version, command string,
 
 // WriteEnvelopeError writes an error envelope to w.
 func WriteEnvelopeError(w io.Writer, code, message, version, command string) error {
+	return WriteEnvelopeErrorWithHint(w, code, message, "", version, command)
+}
+
+// WriteEnvelopeErrorWithHint writes an error envelope with an optional hint.
+func WriteEnvelopeErrorWithHint(w io.Writer, code, message, hint, version, command string) error {
 	env := Envelope{
 		Success: false,
 		Error: &EnvelopeError{
 			Code:    code,
 			Message: message,
+			Hint:    hint,
 		},
 		Metadata: &EnvelopeMeta{
 			Timestamp: time.Now().UTC().Format(time.RFC3339),

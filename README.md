@@ -415,13 +415,15 @@ $ rr chats get "invalid" --json --envelope
   "success": false,
   "error": {
     "code": "NOT_FOUND",
-    "message": "API error (404): Chat not found"
+    "message": "API error (404): Chat not found",
+    "hint": "Verify the chat ID or resolve by name with rr chats resolve \"<name>\" --json"
   },
   "metadata": { ... }
 }
 ```
 
 Error codes: `AUTH_ERROR`, `NOT_FOUND`, `VALIDATION_ERROR`, `CONNECTION_ERROR`, `INTERNAL_ERROR`.
+`error.hint` is included when the CLI can provide a deterministic next step.
 
 For cursor-based commands, `metadata.pagination` is normalized across endpoints:
 `has_more`, `direction`, `next_cursor`, `oldest_cursor`, `newest_cursor`,
@@ -466,7 +468,7 @@ The `--enable-commands` flag is **required** in agent mode to ensure agents only
 $ rr version --json
 {
   "version": "0.11.0",
-  "features": ["enable-commands", "readonly", "envelope", "agent-mode"]
+  "features": ["enable-commands", "readonly", "envelope", "agent-mode", "error-hints"]
 }
 ```
 
@@ -476,7 +478,7 @@ For detailed capability discovery:
 $ rr capabilities --json
 {
   "version": "0.11.0",
-  "features": ["enable-commands", "readonly", "envelope", "agent-mode"],
+  "features": ["enable-commands", "readonly", "envelope", "agent-mode", "error-hints"],
   "defaults": { "timeout": 30, "base_url": "http://localhost:23373" },
   "output_modes": ["human", "json", "plain"],
   "safety": {

@@ -85,7 +85,7 @@ func (c *CapabilitiesCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	resp := CapabilitiesResponse{
 		Version:  Version,
-		Features: []string{"enable-commands", "readonly", "envelope", "agent-mode"},
+		Features: []string{"enable-commands", "readonly", "envelope", "agent-mode", "error-hints"},
 		Defaults: CapDefaults{
 			Timeout: flags.Timeout,
 			BaseURL: flags.BaseURL,

@@ -41,10 +41,10 @@ func TestCapabilitiesResponse(t *testing.T) {
 }
 
 func TestCapabilitiesFeatures(t *testing.T) {
-	expectedFeatures := []string{"enable-commands", "readonly", "envelope", "agent-mode"}
+	expectedFeatures := []string{"enable-commands", "readonly", "envelope", "agent-mode", "error-hints"}
 
 	// Verify that the features we document are what we expect
-	features := []string{"enable-commands", "readonly", "envelope", "agent-mode"}
+	features := []string{"enable-commands", "readonly", "envelope", "agent-mode", "error-hints"}
 
 	if len(features) != len(expectedFeatures) {
 		t.Errorf("features count mismatch: got %d, want %d", len(features), len(expectedFeatures))

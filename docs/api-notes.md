@@ -24,6 +24,11 @@
 - Attachment override fields (`file_name`, `mime_type`, `type`, `duration`, `size`) are sent only when an `upload_id` is provided.
 - `rr assets serve` streams `/v1/assets/serve` bytes for `mxc://`, `localmxc://`, or `file://` URLs.
 
+## Envelope errors
+
+- In `--json --envelope` mode, error responses may include `error.hint` for actionable remediation.
+- Hints are deterministic guidance for common failure modes (allowlist/readonly restrictions, missing chat disambiguation, missing upload ID, connectivity checks).
+
 ## Pagination
 
 - Chats list returns `newestCursor` and `oldestCursor`.

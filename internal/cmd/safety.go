@@ -1,9 +1,10 @@
 package cmd
 
 import (
-	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/johntheyoung/roadrunner/internal/errfmt"
 )
 
 // dataWriteCommands are commands that modify data and should be blocked in --readonly mode.
@@ -82,7 +83,7 @@ func checkEnableCommands(flags *RootFlags, command string) error {
 		}
 	}
 
-	return fmt.Errorf("command %q not in --enable-commands allowlist: %v", command, flags.EnableCommands)
+	return errfmt.NewEnableCommandsError(command, flags.EnableCommands)
 }
 
 // checkReadonly blocks data write operations when --readonly is set.
@@ -99,7 +100,7 @@ func checkReadonly(flags *RootFlags, command string) error {
 
 	// Block data write commands
 	if dataWriteCommands[command] {
-		return fmt.Errorf("command %q blocked by --readonly mode", command)
+		return errfmt.NewReadonlyError(command)
 	}
 
 	return nil

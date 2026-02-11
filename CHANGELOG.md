@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## v0.12.0 - 2026-02-11
+
 ### Added
 - `rr search --messages-all --messages-max-items` to auto-page global search
   message results with a safety cap.

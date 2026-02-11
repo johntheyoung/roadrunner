@@ -4,15 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## v0.10.0 - 2026-02-11
+
 ### Added
 - `rr messages edit` to update the text of existing messages.
 - `rr assets upload` and `rr assets upload-base64` to create upload IDs for attachment workflows.
 - `rr messages send --attachment-upload-id <upload-id>` to send attachments using uploaded assets.
+- `rr messages send-file` to upload and send an attachment in one command.
+- Shell completion updates for `assets`, `contacts`, `status`, `unread`, and new message/asset flags.
 - Endpoint compatibility hints for newly added commands when Desktop API routes are unavailable.
 
 ### Changed
 - Upgraded SDK dependency to `github.com/beeper/desktop-api-go v0.2.0`.
-- Chat-level `network` fields in chat/search output are now blank when unavailable from the API.
+- Chat/search `network` fields are populated best-effort via account lookup.
+- Account-to-network lookups are cached per client instance after first successful fetch.
+
+### Fixed
+- Added regression tests for attachment send payloads and upload-then-send flow.
 
 ## v0.9.0 - 2026-01-19
 

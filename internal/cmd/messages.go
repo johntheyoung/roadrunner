@@ -680,11 +680,12 @@ func (c *MessagesContextCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 // MessagesSendCmd sends a message to a chat.
 type MessagesSendCmd struct {
-	ChatID           string `arg:"" name:"chatID" help:"Chat ID to send message to"`
-	Text             string `arg:"" optional:"" help:"Message text to send"`
-	ReplyToMessageID string `help:"Message ID to reply to" name:"reply-to"`
-	TextFile         string `help:"Read message text from file ('-' for stdin)" name:"text-file"`
-	Stdin            bool   `help:"Read message text from stdin" name:"stdin"`
+	ChatID             string `arg:"" name:"chatID" help:"Chat ID to send message to"`
+	Text               string `arg:"" optional:"" help:"Message text to send"`
+	ReplyToMessageID   string `help:"Message ID to reply to" name:"reply-to"`
+	TextFile           string `help:"Read message text from file ('-' for stdin)" name:"text-file"`
+	Stdin              bool   `help:"Read message text from stdin" name:"stdin"`
+	AttachmentUploadID string `help:"Upload ID from 'rr assets upload' to send as attachment" name:"attachment-upload-id"`
 }
 
 // Run executes the messages send command.
@@ -692,9 +693,13 @@ func (c *MessagesSendCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
 	chatID := normalizeChatID(c.ChatID)
 
-	text, err := resolveTextInput(c.Text, c.TextFile, c.Stdin, true, "message text", "--text-file", "--stdin")
+	text, err := resolveTextInput(c.Text, c.TextFile, c.Stdin, false, "message text", "--text-file", "--stdin")
 	if err != nil {
 		return err
+	}
+	attachmentUploadID := strings.TrimSpace(c.AttachmentUploadID)
+	if strings.TrimSpace(text) == "" && attachmentUploadID == "" {
+		return errfmt.UsageError("message text or --attachment-upload-id is required")
 	}
 
 	token, _, err := config.GetToken()
@@ -708,10 +713,17 @@ func (c *MessagesSendCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
-	resp, err := client.Messages().Send(ctx, chatID, beeperapi.SendParams{
+	params := beeperapi.SendParams{
 		Text:             text,
 		ReplyToMessageID: c.ReplyToMessageID,
-	})
+	}
+	if attachmentUploadID != "" {
+		params.Attachment = &beeperapi.SendAttachmentParams{
+			UploadID: attachmentUploadID,
+		}
+	}
+
+	resp, err := client.Messages().Send(ctx, chatID, params)
 	if err != nil {
 		return err
 	}

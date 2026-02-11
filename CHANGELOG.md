@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 - `rr messages edit` to update the text of existing messages.
 - `rr assets upload` and `rr assets upload-base64` to create upload IDs for attachment workflows.
+- `rr messages send --attachment-upload-id <upload-id>` to send attachments using uploaded assets.
 - Endpoint compatibility hints for newly added commands when Desktop API routes are unavailable.
 
 ### Changed

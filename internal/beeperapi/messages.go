@@ -188,6 +188,12 @@ func (s *MessagesService) List(ctx context.Context, chatID string, params Messag
 type SendParams struct {
 	Text             string
 	ReplyToMessageID string
+	Attachment       *SendAttachmentParams
+}
+
+// SendAttachmentParams configures attachment payload values for message send.
+type SendAttachmentParams struct {
+	UploadID string
 }
 
 // EditParams configures message edit requests.
@@ -219,6 +225,11 @@ func (s *MessagesService) Send(ctx context.Context, chatID string, params SendPa
 	}
 	if params.ReplyToMessageID != "" {
 		sdkParams.ReplyToMessageID = beeperdesktopapi.String(params.ReplyToMessageID)
+	}
+	if params.Attachment != nil {
+		sdkParams.Attachment = beeperdesktopapi.MessageSendParamsAttachment{
+			UploadID: params.Attachment.UploadID,
+		}
 	}
 
 	resp, err := s.client.SDK.Messages.Send(ctx, chatID, sdkParams)

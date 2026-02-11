@@ -132,6 +132,13 @@ rr messages search --media-types=image
 # Send a message
 rr messages send '!roomid:beeper.local' "Hello!"
 
+# Send an attachment using upload ID
+UPLOAD_ID=$(rr assets upload ./photo.jpg --json | jq -r '.upload_id')
+rr messages send '!roomid:beeper.local' --attachment-upload-id "$UPLOAD_ID"
+
+# Send text + attachment
+rr messages send '!roomid:beeper.local' "See attached" --attachment-upload-id "$UPLOAD_ID"
+
 # Edit a message
 rr messages edit '!roomid:beeper.local' "<message-id>" "Updated text"
 
@@ -277,6 +284,9 @@ rr assets download "mxc://beeper.local/abc123" --dest "./attachment.jpg"
 
 # Upload and inspect upload_id
 UPLOAD_ID=$(rr assets upload ./photo.jpg --json | jq -r '.upload_id')
+
+# Send attachment using upload_id
+rr messages send "$CHAT_ID" --attachment-upload-id "$UPLOAD_ID"
 
 # Edit a message
 rr messages edit "$CHAT_ID" "<message-id>" "Updated text"

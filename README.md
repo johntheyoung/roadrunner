@@ -497,6 +497,32 @@ $ rr capabilities --json
 
 Agents can check `features` to detect supported safety flags before use.
 
+## Idempotency & Retries
+
+Use these rules for agent retry behavior:
+
+- Retry with backoff on `CONNECTION_ERROR`.
+- Do not blind-retry `VALIDATION_ERROR` or `AUTH_ERROR`; change inputs/config first.
+- For `NOT_FOUND`, refresh/resolve IDs and retry once with corrected IDs.
+- For `INTERNAL_ERROR`, retry a limited number of times with jitter.
+
+Write command retry safety:
+
+| Command pattern | Retry safety | Why |
+|---|---|---|
+| `messages send`, `messages send-file` | Not idempotent | Replays can create duplicate messages. |
+| `chats create` | Not idempotent | Replays can create duplicate chats. |
+| `assets upload`, `assets upload-base64` | Not idempotent | Each upload returns a new upload ID. |
+| `messages edit` | Usually safe | Reapplying same text to same message is stable. |
+| `chats archive`/`chats archive --unarchive` | Idempotent by state | Reapplying same archive state is a no-op in intent. |
+| `reminders set`, `reminders clear` | Usually safe | Setting same reminder/clearing again converges state. |
+| `accounts alias set`, `accounts alias unset` | Idempotent by key | Reapplying alias mapping/removal converges state. |
+
+Agent strategy for non-idempotent writes:
+1. Resolve IDs first (`chats resolve`, `contacts resolve`) and cache locally for the turn.
+2. Prefer explicit user confirmation before replaying failed sends/creates.
+3. Log command + arguments + timestamps so duplicates are detectable.
+
 ## Multi-Account Usage
 
 By default, commands search **all accounts**. Use `--account` to focus on one.
@@ -558,6 +584,20 @@ rr completion zsh >> ~/.zshrc
 # Fish
 rr completion fish > ~/.config/fish/completions/rr.fish
 ```
+
+## Agent Smoke Test
+
+Run a local end-to-end safety/contract smoke check:
+
+```bash
+make test-agent-smoke
+```
+
+This validates:
+- Agent mode success envelope shape.
+- `--agent` missing allowlist failure contract.
+- `--enable-commands` and `--readonly` restriction errors with `error.hint`.
+- Connectivity failures returning `CONNECTION_ERROR` + actionable hint.
 
 ## Environment Variables
 

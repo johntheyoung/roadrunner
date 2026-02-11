@@ -13,12 +13,15 @@ All notable changes to this project will be documented in this file.
   provide a stable machine contract in `--json --envelope` mode.
 - Optional `error.hint` in envelope errors for actionable next steps on common
   validation/safety/connectivity failures.
+- `make test-agent-smoke` and `scripts/agent-smoke.sh` for end-to-end agent-mode
+  contract checks (envelope success/error shape, safety restrictions, connectivity hints).
 
 ### Changed
 - Shared exact chat resolution logic across `chats resolve` and action commands to
   keep ambiguity handling consistent for agent flows.
 - `version --json` and `capabilities --json` now advertise `error-hints` in
   the feature list.
+- Documented idempotency/retry guidance for agent retries across write commands.
 
 ## v0.12.0 - 2026-02-11
 

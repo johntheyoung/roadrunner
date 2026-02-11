@@ -1,4 +1,4 @@
-.PHONY: fmt fmt-check test vet lint skill-sync skill-publish
+.PHONY: fmt fmt-check test test-agent-smoke vet lint skill-sync skill-publish
 
 fmt:
 	gofmt -w .
@@ -13,6 +13,9 @@ fmt-check:
 
 test:
 	go test ./...
+
+test-agent-smoke:
+	./scripts/agent-smoke.sh
 
 vet:
 	go vet ./...

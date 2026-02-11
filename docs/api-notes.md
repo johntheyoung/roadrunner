@@ -29,6 +29,16 @@
 - In `--json --envelope` mode, error responses may include `error.hint` for actionable remediation.
 - Hints are deterministic guidance for common failure modes (allowlist/readonly restrictions, missing chat disambiguation, missing upload ID, connectivity checks).
 
+## Idempotency and retries
+
+- Read/list/search/get/resolve commands are safe to retry.
+- `messages send`, `messages send-file`, `chats create`, and asset uploads are non-idempotent and may duplicate side effects on replay.
+- `messages edit`, `chats archive`/`--unarchive`, reminders set/clear, and account alias set/unset are state-convergent for identical inputs.
+- For machine clients:
+  - retry `CONNECTION_ERROR` with backoff,
+  - fix inputs/config before retrying `VALIDATION_ERROR`/`AUTH_ERROR`,
+  - refresh IDs before retrying `NOT_FOUND`.
+
 ## Pagination
 
 - Chats list returns `newestCursor` and `oldestCursor`.

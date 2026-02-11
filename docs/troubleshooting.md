@@ -42,3 +42,8 @@
 - `--chat` is exact match only (chat title/display name/ID).
 - If multiple chats match the same text, the command fails with `multiple chats matched`.
 - Narrow with an exact chat ID or set `--account`/`BEEPER_ACCOUNT` to reduce ambiguity.
+
+## Agent integration checks
+
+- Run `make test-agent-smoke` to validate agent-mode safety and envelope contracts locally.
+- In envelope mode, inspect `error.hint` for deterministic next-step remediation.

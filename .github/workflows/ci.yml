@@ -32,3 +32,6 @@ jobs:
 
       - name: Test
         run: make test
+
+      - name: Agent Smoke
+        run: make test-agent-smoke

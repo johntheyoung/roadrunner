@@ -227,6 +227,10 @@ func Hint(err error) string {
 		return "Set a token with `rr auth set <token>` or export `BEEPER_TOKEN`."
 	}
 
+	if beeperapi.IsNotFound(err) {
+		return "Verify the ID and resolve it first via `rr chats resolve`, `rr contacts resolve`, or list/search commands."
+	}
+
 	var restrictionErr *RestrictionError
 	if errors.As(err, &restrictionErr) {
 		switch restrictionErr.Kind {

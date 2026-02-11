@@ -301,6 +301,7 @@ complete -c rr -n '__fish_seen_subcommand_from messages' -a 'wait' -d 'Wait for 
 complete -c rr -n '__fish_seen_subcommand_from messages' -a 'context' -d 'Fetch context around a message'
 
 # messages send flags
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send' -l chat -d 'Exact chat title/display name or ID (alternative to chatID arg)'
 complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send' -l reply-to -d 'Message ID to reply to'
 complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send' -l text-file -d 'Read message text from file'
 complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send' -l stdin -d 'Read message text from stdin'
@@ -313,6 +314,7 @@ complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcomm
 complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send' -l attachment-height -d 'Attachment height override in pixels'
 
 # messages send-file flags
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send-file' -l chat -d 'Exact chat title/display name or ID (alternative to chatID arg)'
 complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send-file' -l reply-to -d 'Message ID to reply to'
 complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send-file' -l text-file -d 'Read message text from file'
 complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send-file' -l stdin -d 'Read message text from stdin'
@@ -324,6 +326,11 @@ complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcomm
 complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send-file' -l attachment-duration -d 'Attachment duration override in seconds'
 complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send-file' -l attachment-width -d 'Attachment width override in pixels'
 complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send-file' -l attachment-height -d 'Attachment height override in pixels'
+
+# messages edit flags
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from edit' -l chat -d 'Exact chat title/display name or ID (alternative to chatID arg)'
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from edit' -l text-file -d 'Read replacement text from file'
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from edit' -l stdin -d 'Read replacement text from stdin'
 
 # assets upload flags
 complete -c rr -n '__fish_seen_subcommand_from assets; and __fish_seen_subcommand_from upload' -l file-name -d 'Filename override for upload metadata'
@@ -360,6 +367,10 @@ complete -c rr -n '__fish_seen_subcommand_from search' -l messages-max-items -d 
 # reminders subcommands
 complete -c rr -n '__fish_seen_subcommand_from reminders' -a 'set' -d 'Set a reminder for a chat'
 complete -c rr -n '__fish_seen_subcommand_from reminders' -a 'clear' -d 'Clear a reminder from a chat'
+
+# reminders flags
+complete -c rr -n '__fish_seen_subcommand_from reminders; and __fish_seen_subcommand_from set' -l chat -d 'Exact chat title/display name or ID (alternative to chatID arg)'
+complete -c rr -n '__fish_seen_subcommand_from reminders; and __fish_seen_subcommand_from clear' -l chat -d 'Exact chat title/display name or ID (alternative to chatID arg)'
 
 # completion subcommands
 complete -c rr -n '__fish_seen_subcommand_from completion' -a 'bash' -d 'Generate bash completions'

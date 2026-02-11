@@ -38,6 +38,25 @@ func TestMessagesSendFileInputSourceConflict(t *testing.T) {
 	}
 }
 
+func TestMessagesSendFileChatTargetConflict(t *testing.T) {
+	cmd := MessagesSendFileCmd{
+		ChatID:   "!room:beeper.local",
+		Chat:     "Alice",
+		FilePath: "photo.jpg",
+	}
+	err := cmd.Run(context.Background(), &RootFlags{})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	var exitErr *errfmt.ExitError
+	if !errors.As(err, &exitErr) {
+		t.Fatalf("error = %T, want *errfmt.ExitError", err)
+	}
+	if exitErr.Code != errfmt.ExitUsageError {
+		t.Fatalf("exit code = %d, want %d", exitErr.Code, errfmt.ExitUsageError)
+	}
+}
+
 func TestMessagesSendFileAttachmentSizeRequiresBothDimensions(t *testing.T) {
 	cmd := MessagesSendFileCmd{
 		ChatID:          "!room:beeper.local",

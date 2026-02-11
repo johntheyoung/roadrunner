@@ -231,8 +231,9 @@ type MessagesWaitCmd struct {
 
 // MessagesEditCmd edits an existing message.
 type MessagesEditCmd struct {
-	ChatID    string `arg:"" name:"chatID" help:"Chat ID containing the message"`
-	MessageID string `arg:"" name:"messageID" help:"Message ID to edit"`
+	ChatID    string `arg:"" optional:"" name:"chatID" help:"Chat ID containing the message"`
+	MessageID string `arg:"" optional:"" name:"messageID" help:"Message ID to edit"`
+	Chat      string `help:"Exact chat title/display name or ID (alternative to chatID arg)" name:"chat"`
 	Text      string `arg:"" optional:"" help:"Replacement message text"`
 	TextFile  string `help:"Read replacement text from file ('-' for stdin)" name:"text-file"`
 	Stdin     bool   `help:"Read replacement text from stdin" name:"stdin"`
@@ -656,9 +657,32 @@ func (c *MessagesWaitCmd) Run(ctx context.Context, flags *RootFlags) error {
 // Run executes the messages edit command.
 func (c *MessagesEditCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
-	chatID := normalizeChatID(c.ChatID)
+	chatIDInput := c.ChatID
+	messageID := c.MessageID
+	textInput := c.Text
+	if c.Chat != "" {
+		switch {
+		case strings.TrimSpace(messageID) == "" && strings.TrimSpace(chatIDInput) != "":
+			messageID = chatIDInput
+			chatIDInput = ""
+		case strings.TrimSpace(messageID) != "" && strings.TrimSpace(chatIDInput) != "" && strings.TrimSpace(textInput) == "":
+			textInput = messageID
+			messageID = chatIDInput
+			chatIDInput = ""
+		case strings.TrimSpace(messageID) != "" && strings.TrimSpace(chatIDInput) != "" && strings.TrimSpace(textInput) != "":
+			return errfmt.UsageError("too many positional arguments with --chat (expected <messageID> [text])")
+		}
+	}
 
-	text, err := resolveTextInput(c.Text, c.TextFile, c.Stdin, true, "message text", "--text-file", "--stdin")
+	chatID, chatQuery, err := resolveChatTargetInput(chatIDInput, c.Chat)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(messageID) == "" {
+		return errfmt.UsageError("messageID is required")
+	}
+
+	text, err := resolveTextInput(textInput, c.TextFile, c.Stdin, true, "message text", "--text-file", "--stdin")
 	if err != nil {
 		return err
 	}
@@ -673,8 +697,14 @@ func (c *MessagesEditCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if err != nil {
 		return err
 	}
+	if chatQuery != "" {
+		chatID, err = resolveChatIDByQuery(ctx, client, chatQuery, applyAccountDefault(nil, flags.Account))
+		if err != nil {
+			return err
+		}
+	}
 
-	resp, err := client.Messages().Edit(ctx, chatID, c.MessageID, beeperapi.EditParams{
+	resp, err := client.Messages().Edit(ctx, chatID, messageID, beeperapi.EditParams{
 		Text: text,
 	})
 	if err != nil {
@@ -793,7 +823,8 @@ func (c *MessagesContextCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 // MessagesSendCmd sends a message to a chat.
 type MessagesSendCmd struct {
-	ChatID             string `arg:"" name:"chatID" help:"Chat ID to send message to"`
+	ChatID             string `arg:"" optional:"" name:"chatID" help:"Chat ID to send message to"`
+	Chat               string `help:"Exact chat title/display name or ID (alternative to chatID arg)" name:"chat"`
 	Text               string `arg:"" optional:"" help:"Message text to send"`
 	ReplyToMessageID   string `help:"Message ID to reply to" name:"reply-to"`
 	TextFile           string `help:"Read message text from file ('-' for stdin)" name:"text-file"`
@@ -809,8 +840,9 @@ type MessagesSendCmd struct {
 
 // MessagesSendFileCmd uploads a file and sends it as an attachment.
 type MessagesSendFileCmd struct {
-	ChatID             string `arg:"" name:"chatID" help:"Chat ID to send message to"`
-	FilePath           string `arg:"" name:"path" help:"Path to the file to upload and send"`
+	ChatID             string `arg:"" optional:"" name:"chatID" help:"Chat ID to send message to"`
+	Chat               string `help:"Exact chat title/display name or ID (alternative to chatID arg)" name:"chat"`
+	FilePath           string `arg:"" optional:"" name:"path" help:"Path to the file to upload and send"`
 	Text               string `arg:"" optional:"" help:"Optional message text"`
 	ReplyToMessageID   string `help:"Message ID to reply to" name:"reply-to"`
 	TextFile           string `help:"Read message text from file ('-' for stdin)" name:"text-file"`
@@ -828,7 +860,10 @@ type MessagesSendFileCmd struct {
 // Run executes the messages send command.
 func (c *MessagesSendCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
-	chatID := normalizeChatID(c.ChatID)
+	chatID, chatQuery, err := resolveChatTargetInput(c.ChatID, c.Chat)
+	if err != nil {
+		return err
+	}
 
 	text, err := resolveTextInput(c.Text, c.TextFile, c.Stdin, false, "message text", "--text-file", "--stdin")
 	if err != nil {
@@ -877,6 +912,12 @@ func (c *MessagesSendCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if err != nil {
 		return err
 	}
+	if chatQuery != "" {
+		chatID, err = resolveChatIDByQuery(ctx, client, chatQuery, applyAccountDefault(nil, flags.Account))
+		if err != nil {
+			return err
+		}
+	}
 
 	params := beeperapi.SendParams{
 		Text:             text,
@@ -921,7 +962,20 @@ func (c *MessagesSendCmd) Run(ctx context.Context, flags *RootFlags) error {
 // Run executes the messages send-file command.
 func (c *MessagesSendFileCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
-	chatID := normalizeChatID(c.ChatID)
+	chatIDInput := c.ChatID
+	filePath := c.FilePath
+	if c.Chat != "" && strings.TrimSpace(filePath) == "" && strings.TrimSpace(chatIDInput) != "" {
+		filePath = chatIDInput
+		chatIDInput = ""
+	}
+
+	chatID, chatQuery, err := resolveChatTargetInput(chatIDInput, c.Chat)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(filePath) == "" {
+		return errfmt.UsageError("path is required")
+	}
 
 	text, err := resolveTextInput(c.Text, c.TextFile, c.Stdin, false, "message text", "--text-file", "--stdin")
 	if err != nil {
@@ -953,9 +1007,15 @@ func (c *MessagesSendFileCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if err != nil {
 		return err
 	}
+	if chatQuery != "" {
+		chatID, err = resolveChatIDByQuery(ctx, client, chatQuery, applyAccountDefault(nil, flags.Account))
+		if err != nil {
+			return err
+		}
+	}
 
 	upload, err := client.Assets().Upload(ctx, beeperapi.AssetUploadParams{
-		FilePath: c.FilePath,
+		FilePath: filePath,
 		FileName: c.FileName,
 		MimeType: c.MimeType,
 	})

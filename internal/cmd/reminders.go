@@ -20,20 +20,34 @@ type RemindersCmd struct {
 
 // RemindersSetCmd sets a reminder for a chat.
 type RemindersSetCmd struct {
-	ChatID                   string `arg:"" name:"chatID" help:"Chat ID to set reminder for"`
-	At                       string `arg:"" help:"When to remind (RFC3339 or relative like '1h', '30m', '2h30m')"`
+	ChatID                   string `arg:"" optional:"" name:"chatID" help:"Chat ID to set reminder for"`
+	Chat                     string `help:"Exact chat title/display name or ID (alternative to chatID arg)" name:"chat"`
+	At                       string `arg:"" optional:"" help:"When to remind (RFC3339 or relative like '1h', '30m', '2h30m')"`
 	DismissOnIncomingMessage bool   `help:"Cancel reminder if someone messages" name:"dismiss-on-message"`
 }
 
 // Run executes the reminders set command.
 func (c *RemindersSetCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
-	chatID := normalizeChatID(c.ChatID)
+	chatIDInput := c.ChatID
+	atInput := c.At
+	if c.Chat != "" && strings.TrimSpace(atInput) == "" && strings.TrimSpace(chatIDInput) != "" {
+		atInput = chatIDInput
+		chatIDInput = ""
+	}
+
+	chatID, chatQuery, err := resolveChatTargetInput(chatIDInput, c.Chat)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(atInput) == "" {
+		return errfmt.UsageError("time is required")
+	}
 
 	// Parse the time
-	remindAt, err := parseTime(c.At)
+	remindAt, err := parseTime(atInput)
 	if err != nil {
-		return errfmt.UsageError("invalid time %q: %v", c.At, err)
+		return errfmt.UsageError("invalid time %q: %v", atInput, err)
 	}
 
 	// Don't allow reminders in the past
@@ -50,6 +64,12 @@ func (c *RemindersSetCmd) Run(ctx context.Context, flags *RootFlags) error {
 	client, err := beeperapi.NewClient(token, flags.BaseURL, timeout)
 	if err != nil {
 		return err
+	}
+	if chatQuery != "" {
+		chatID, err = resolveChatIDByQuery(ctx, client, chatQuery, applyAccountDefault(nil, flags.Account))
+		if err != nil {
+			return err
+		}
 	}
 
 	if err := client.Reminders().Set(ctx, chatID, beeperapi.SetParams{
@@ -84,16 +104,21 @@ func (c *RemindersSetCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 // RemindersClearCmd clears a reminder from a chat.
 type RemindersClearCmd struct {
-	ChatID string `arg:"" name:"chatID" help:"Chat ID to clear reminder from"`
+	ChatID string `arg:"" optional:"" name:"chatID" help:"Chat ID to clear reminder from"`
+	Chat   string `help:"Exact chat title/display name or ID (alternative to chatID arg)" name:"chat"`
 }
 
 // Run executes the reminders clear command.
 func (c *RemindersClearCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
-	chatID := normalizeChatID(c.ChatID)
-
-	if err := confirmDestructive(flags, "clear reminder for "+chatID); err != nil {
+	chatID, chatQuery, err := resolveChatTargetInput(c.ChatID, c.Chat)
+	if err != nil {
 		return err
+	}
+	if chatQuery == "" {
+		if err := confirmDestructive(flags, "clear reminder for "+chatID); err != nil {
+			return err
+		}
 	}
 
 	token, _, err := config.GetToken()
@@ -105,6 +130,15 @@ func (c *RemindersClearCmd) Run(ctx context.Context, flags *RootFlags) error {
 	client, err := beeperapi.NewClient(token, flags.BaseURL, timeout)
 	if err != nil {
 		return err
+	}
+	if chatQuery != "" {
+		chatID, err = resolveChatIDByQuery(ctx, client, chatQuery, applyAccountDefault(nil, flags.Account))
+		if err != nil {
+			return err
+		}
+		if err := confirmDestructive(flags, "clear reminder for "+chatID); err != nil {
+			return err
+		}
 	}
 
 	if err := client.Reminders().Clear(ctx, chatID); err != nil {

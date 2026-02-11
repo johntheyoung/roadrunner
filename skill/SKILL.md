@@ -78,14 +78,17 @@ Common commands
 - Search messages (all pages): `rr messages search "dinner" --all --max-items=1000 --json`
 - Search messages (filters): `rr messages search --sender=me --date-after="2024-07-01T00:00:00Z" --media-types=image --json`
 - Send message: `rr messages send "!chatid:beeper.com" "Hello!"`
+- Send by exact chat name: `rr messages send --chat "Alice" "Hello!"`
 - Reply to message: `rr messages send "!chatid:beeper.com" "Thanks!" --reply-to "<message-id>"`
 - Send message from file: `rr messages send "!chatid:beeper.com" --text-file ./message.txt`
 - Send message from stdin: `cat message.txt | rr messages send "!chatid:beeper.com" --stdin`
 - Send attachment by upload ID: `rr messages send "!chatid:beeper.com" --attachment-upload-id "<upload-id>"`
 - Send attachment with metadata overrides: `rr messages send "!chatid:beeper.com" --attachment-upload-id "<upload-id>" --attachment-file-name photo.jpg --attachment-mime-type image/jpeg --attachment-type gif --attachment-width 1200 --attachment-height 900`
 - Upload and send file in one step: `rr messages send-file "!chatid:beeper.com" ./photo.jpg "See attached"`
+- Upload and send file by exact chat name: `rr messages send-file --chat "Alice" ./photo.jpg "See attached"`
 - Upload+send with reply/metadata overrides: `rr messages send-file "!chatid:beeper.com" ./clip.mp4 "see this" --reply-to "<message-id>" --attachment-type gif --attachment-duration 1.5 --attachment-width 1200 --attachment-height 900`
 - Edit message text: `rr messages edit "!chatid:beeper.com" "<message-id>" "Updated text"`
+- Edit by exact chat name: `rr messages edit --chat "Alice" "<message-id>" "Updated text"`
 - Edit from stdin: `cat edit.txt | rr messages edit "!chatid:beeper.com" "<message-id>" --stdin`
 - Tail messages (polling): `rr messages tail "!chatid:beeper.com" --interval 2s --stop-after 30s --json`
 - Wait for message: `rr messages wait --chat-id="!chatid:beeper.com" --contains "deploy" --wait-timeout 2m --json`
@@ -98,6 +101,7 @@ Common commands
 - Upload attachment file: `rr assets upload ./photo.jpg`
 - Upload base64 attachment: `rr assets upload-base64 --content-file ./photo.b64 --file-name photo.jpg --mime-type image/jpeg`
 - Reminders: `rr reminders set "!chatid:beeper.com" "2h"` / `rr reminders clear "!chatid:beeper.com"`
+- Reminders by exact chat name: `rr reminders set --chat "Alice" "2h"` / `rr reminders clear --chat "Alice"`
 - Archive chat: `rr chats archive "!chatid:beeper.com"` / `rr chats archive "!chatid:beeper.com" --unarchive`
 - Focus app: `rr focus`
 - Global search: `rr search "dinner" --json`
@@ -129,6 +133,7 @@ Notes
 - `downloaded_attachments` is only populated when `--download-media` is used.
 - `rr messages send` returns `pending_message_id` (temporary ID).
 - `rr assets serve` writes raw bytes to stdout unless `--dest` is provided.
+- `--chat` does exact matching and fails on ambiguous matches.
 - Attachment overrides require `--attachment-upload-id`; set `--attachment-width` and `--attachment-height` together.
 - `--all` has a safety cap (default 500 items, max 5000); use `--max-items` to tune it.
 - Prefer `--json` (and `--no-input`) for automation.

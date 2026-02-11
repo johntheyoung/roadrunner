@@ -140,6 +140,7 @@ rr messages search --media-types=image
 
 # Send a message
 rr messages send '!roomid:beeper.local' "Hello!"
+rr messages send --chat "Alice" "Hello!"
 
 # Send an attachment using upload ID
 UPLOAD_ID=$(rr assets upload ./photo.jpg --json | jq -r '.upload_id')
@@ -158,6 +159,7 @@ rr messages send '!roomid:beeper.local' --attachment-upload-id "$UPLOAD_ID" \
 
 # Upload and send in one command
 rr messages send-file '!roomid:beeper.local' ./photo.jpg "See attached"
+rr messages send-file --chat "Alice" ./photo.jpg "See attached"
 
 # Upload + send with reply target and attachment overrides
 rr messages send-file '!roomid:beeper.local' ./clip.mp4 "see this" \
@@ -169,6 +171,7 @@ rr messages send-file '!roomid:beeper.local' ./clip.mp4 "see this" \
 
 # Edit a message
 rr messages edit '!roomid:beeper.local' "<message-id>" "Updated text"
+rr messages edit --chat "Alice" "<message-id>" "Updated text"
 
 # Edit from file/stdin
 rr messages edit '!roomid:beeper.local' "<message-id>" --text-file ./edit.txt
@@ -257,13 +260,17 @@ rr unread --json
 ```bash
 # Set a reminder (relative time)
 rr reminders set '!roomid:beeper.local' "2h"
+rr reminders set --chat "Alice" "2h"
 
 # Set a reminder (absolute time)
 rr reminders set '!roomid:beeper.local' "2024-12-25T09:00:00Z"
 
 # Clear a reminder
 rr reminders clear '!roomid:beeper.local'
+rr reminders clear --chat "Alice"
 ```
+
+`--chat` matching is exact (title/display name/ID). Ambiguous names fail so agents can retry deterministically.
 
 ## Focus & Drafts
 

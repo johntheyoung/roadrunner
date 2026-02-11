@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Added
+- `--chat` exact-name targeting for action commands:
+  `messages send`, `messages send-file`, `messages edit`,
+  `reminders set`, and `reminders clear`.
+
+### Changed
+- Shared exact chat resolution logic across `chats resolve` and action commands to
+  keep ambiguity handling consistent for agent flows.
+
 ## v0.12.0 - 2026-02-11
 
 ### Added

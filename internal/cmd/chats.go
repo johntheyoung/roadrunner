@@ -470,42 +470,10 @@ func (c *ChatsResolveCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 
 	query := strings.TrimSpace(c.Query)
-	if looksLikeChatID(query) {
-		return writeResolvedChat(ctx, u, client, normalizeChatID(query), c.Fields)
-	}
-
-	cursor := ""
-	var matchID string
 	accountIDs := applyAccountDefault(c.AccountIDs, flags.Account)
-	for {
-		resp, err := client.Chats().Search(ctx, beeperapi.ChatSearchParams{
-			Query:      query,
-			AccountIDs: accountIDs,
-			Limit:      200,
-			Cursor:     cursor,
-			Direction:  "before",
-		})
-		if err != nil {
-			return err
-		}
-
-		for _, item := range resp.Items {
-			if chatExactMatch(item, query) {
-				if matchID != "" && matchID != item.ID {
-					return errfmt.WithCode(fmt.Errorf("multiple chats matched %q", query), errfmt.ExitFailure)
-				}
-				matchID = item.ID
-			}
-		}
-
-		if !resp.HasMore || resp.OldestCursor == "" {
-			break
-		}
-		cursor = resp.OldestCursor
-	}
-
-	if matchID == "" {
-		return errfmt.WithCode(fmt.Errorf("no chat matched %q", query), errfmt.ExitFailure)
+	matchID, err := resolveChatIDByQuery(ctx, client, query, accountIDs)
+	if err != nil {
+		return err
 	}
 
 	return writeResolvedChat(ctx, u, client, matchID, c.Fields)

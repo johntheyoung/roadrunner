@@ -9,6 +9,7 @@
 - Global search uses `/v1/search` for chats/groups.
 - Message pagination for global search uses `/v1/messages/search` when `--messages-*` flags are set.
 - `rr chats search` supports `--scope=participants` to search by participant names.
+- Action commands using `--chat` resolve by exact title/display-name/ID via chat search, then perform the mutation by chat ID.
 - CLI derives `display_name` for single chats from participants (fullName → username → id).
 - Contacts search uses the account-specific contacts endpoint; use results to create new chats.
 - Asset downloads use `mxc://` or `localmxc://` URLs and return a local `file://` URL.

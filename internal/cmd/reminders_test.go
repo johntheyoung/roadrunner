@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -79,5 +80,42 @@ func TestConfirmDestructiveNonInteractive(t *testing.T) {
 func TestConfirmDestructiveForce(t *testing.T) {
 	if err := confirmDestructive(&RootFlags{Force: true}, "archive chat"); err != nil {
 		t.Fatalf("confirmDestructive(force) error: %v", err)
+	}
+}
+
+func TestRemindersSetChatTargetConflict(t *testing.T) {
+	cmd := RemindersSetCmd{
+		ChatID: "!room:beeper.local",
+		Chat:   "Alice",
+		At:     "2h",
+	}
+	err := cmd.Run(context.Background(), &RootFlags{})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	var exitErr *errfmt.ExitError
+	if !errors.As(err, &exitErr) {
+		t.Fatalf("error = %T, want *errfmt.ExitError", err)
+	}
+	if exitErr.Code != errfmt.ExitUsageError {
+		t.Fatalf("exit code = %d, want %d", exitErr.Code, errfmt.ExitUsageError)
+	}
+}
+
+func TestRemindersClearChatTargetConflict(t *testing.T) {
+	cmd := RemindersClearCmd{
+		ChatID: "!room:beeper.local",
+		Chat:   "Alice",
+	}
+	err := cmd.Run(context.Background(), &RootFlags{})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	var exitErr *errfmt.ExitError
+	if !errors.As(err, &exitErr) {
+		t.Fatalf("error = %T, want *errfmt.ExitError", err)
+	}
+	if exitErr.Code != errfmt.ExitUsageError {
+		t.Fatalf("exit code = %d, want %d", exitErr.Code, errfmt.ExitUsageError)
 	}
 }

@@ -36,3 +36,9 @@
 - `rr assets serve --json` and `rr assets serve --plain` require `--dest`.
 - Without `--dest`, `assets serve` streams raw bytes to stdout.
 - To intentionally stream to an interactive terminal, pass `--stdout`.
+
+## Name-based chat targeting issues
+
+- `--chat` is exact match only (chat title/display name/ID).
+- If multiple chats match the same text, the command fails with `multiple chats matched`.
+- Narrow with an exact chat ID or set `--account`/`BEEPER_ACCOUNT` to reduce ambiguity.

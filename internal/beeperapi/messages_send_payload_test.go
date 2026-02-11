@@ -68,3 +68,79 @@ func TestMessagesSendAttachmentPayload(t *testing.T) {
 		t.Fatalf("attachment.uploadID payload = %#v, want %q", attachment["uploadID"], "upload-123")
 	}
 }
+
+func TestMessagesSendAttachmentOverridePayload(t *testing.T) {
+	t.Parallel()
+
+	var captured map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "bad method", http.StatusMethodNotAllowed)
+			return
+		}
+		if r.URL.Path != "/v1/chats/chat-2/messages" {
+			http.NotFound(w, r)
+			return
+		}
+		if err := json.NewDecoder(r.Body).Decode(&captured); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"chatID":"chat-2","pendingMessageID":"pending-2"}`))
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", server.URL, 0)
+	if err != nil {
+		t.Fatalf("NewClient() error = %v", err)
+	}
+
+	duration := 4.2
+	width := 1280.0
+	height := 720.0
+	_, err = client.Messages().Send(context.Background(), "chat-2", SendParams{
+		Attachment: &SendAttachmentParams{
+			UploadID: "upload-999",
+			FileName: "clip.mp4",
+			MimeType: "video/mp4",
+			Type:     "gif",
+			Duration: &duration,
+			Width:    &width,
+			Height:   &height,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Send() error = %v", err)
+	}
+
+	attachment, ok := captured["attachment"].(map[string]any)
+	if !ok {
+		t.Fatalf("attachment payload type = %T, want object", captured["attachment"])
+	}
+	if attachment["uploadID"] != "upload-999" {
+		t.Fatalf("attachment.uploadID payload = %#v, want %q", attachment["uploadID"], "upload-999")
+	}
+	if attachment["fileName"] != "clip.mp4" {
+		t.Fatalf("attachment.fileName payload = %#v, want %q", attachment["fileName"], "clip.mp4")
+	}
+	if attachment["mimeType"] != "video/mp4" {
+		t.Fatalf("attachment.mimeType payload = %#v, want %q", attachment["mimeType"], "video/mp4")
+	}
+	if attachment["type"] != "gif" {
+		t.Fatalf("attachment.type payload = %#v, want %q", attachment["type"], "gif")
+	}
+	if attachment["duration"] != duration {
+		t.Fatalf("attachment.duration payload = %#v, want %v", attachment["duration"], duration)
+	}
+	size, ok := attachment["size"].(map[string]any)
+	if !ok {
+		t.Fatalf("attachment.size payload type = %T, want object", attachment["size"])
+	}
+	if size["width"] != width {
+		t.Fatalf("attachment.size.width payload = %#v, want %v", size["width"], width)
+	}
+	if size["height"] != height {
+		t.Fatalf("attachment.size.height payload = %#v, want %v", size["height"], height)
+	}
+}

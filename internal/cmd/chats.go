@@ -30,6 +30,8 @@ type ChatsListCmd struct {
 	AccountIDs  []string `help:"Filter by account IDs" name:"account-ids"`
 	Cursor      string   `help:"Pagination cursor"`
 	Direction   string   `help:"Pagination direction: before|after" enum:"before,after," default:""`
+	All         bool     `help:"Fetch all pages automatically" name:"all"`
+	MaxItems    int      `help:"Maximum items to collect with --all (default 500, max 5000)" name:"max-items" default:"0"`
 	Fields      []string `help:"Comma-separated list of fields for --plain output" name:"fields" sep:","`
 	FailIfEmpty bool     `help:"Exit with code 1 if no results" name:"fail-if-empty"`
 }
@@ -37,6 +39,11 @@ type ChatsListCmd struct {
 // Run executes the chats list command.
 func (c *ChatsListCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
+
+	autoPageLimit, err := resolveAutoPageLimit(c.All, c.MaxItems)
+	if err != nil {
+		return err
+	}
 
 	token, _, err := config.GetToken()
 	if err != nil {
@@ -57,6 +64,49 @@ func (c *ChatsListCmd) Run(ctx context.Context, flags *RootFlags) error {
 	})
 	if err != nil {
 		return err
+	}
+	capped := false
+	if c.All {
+		items := make([]beeperapi.ChatListItem, 0, len(resp.Items))
+		items = append(items, resp.Items...)
+		lastCursor := c.Cursor
+
+		for resp.HasMore {
+			if limitReached(len(items), autoPageLimit) {
+				capped = true
+				break
+			}
+
+			nextCursor := nextSearchCursor(c.Direction, resp.OldestCursor, resp.NewestCursor)
+			if nextCursor == "" || nextCursor == lastCursor {
+				break
+			}
+			lastCursor = nextCursor
+
+			page, err := client.Chats().List(ctx, beeperapi.ChatListParams{
+				AccountIDs: accountIDs,
+				Cursor:     nextCursor,
+				Direction:  c.Direction,
+			})
+			if err != nil {
+				return err
+			}
+
+			items = append(items, page.Items...)
+			resp.HasMore = page.HasMore
+			resp.OldestCursor = page.OldestCursor
+			resp.NewestCursor = page.NewestCursor
+		}
+		if limitReached(len(items), autoPageLimit) {
+			if len(items) > autoPageLimit {
+				items = items[:autoPageLimit]
+			}
+			capped = true
+		}
+		resp.Items = items
+		if capped {
+			resp.HasMore = true
+		}
 	}
 
 	if err := failIfEmpty(c.FailIfEmpty, len(resp.Items), "chats"); err != nil {
@@ -112,6 +162,9 @@ func (c *ChatsListCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if resp.HasMore && resp.OldestCursor != "" {
 		u.Out().Dim(fmt.Sprintf("\nMore chats available. Use --cursor=%q --direction=before", resp.OldestCursor))
 	}
+	if capped {
+		u.Out().Dim(autoPageStoppedMessage(autoPageLimit))
+	}
 
 	return nil
 }
@@ -130,6 +183,8 @@ type ChatsSearchCmd struct {
 	Limit              int      `help:"Max results (1-200)" default:"50"`
 	Cursor             string   `help:"Pagination cursor"`
 	Direction          string   `help:"Pagination direction: before|after" enum:"before,after," default:""`
+	All                bool     `help:"Fetch all pages automatically" name:"all"`
+	MaxItems           int      `help:"Maximum items to collect with --all (default 500, max 5000)" name:"max-items" default:"0"`
 	Fields             []string `help:"Comma-separated list of fields for --plain output" name:"fields" sep:","`
 	FailIfEmpty        bool     `help:"Exit with code 1 if no results" name:"fail-if-empty"`
 }
@@ -140,6 +195,10 @@ func (c *ChatsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	if c.Limit < 1 || c.Limit > 200 {
 		return errfmt.UsageError("invalid --limit %d (expected 1-200)", c.Limit)
+	}
+	autoPageLimit, err := resolveAutoPageLimit(c.All, c.MaxItems)
+	if err != nil {
+		return err
 	}
 
 	var lastAfter *time.Time
@@ -188,6 +247,57 @@ func (c *ChatsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 	})
 	if err != nil {
 		return err
+	}
+	capped := false
+	if c.All {
+		items := make([]beeperapi.ChatSearchItem, 0, len(resp.Items))
+		items = append(items, resp.Items...)
+		lastCursor := c.Cursor
+		for resp.HasMore {
+			if limitReached(len(items), autoPageLimit) {
+				capped = true
+				break
+			}
+
+			nextCursor := nextSearchCursor(c.Direction, resp.OldestCursor, resp.NewestCursor)
+			if nextCursor == "" || nextCursor == lastCursor {
+				break
+			}
+			lastCursor = nextCursor
+
+			page, err := client.Chats().Search(ctx, beeperapi.ChatSearchParams{
+				Query:              c.Query,
+				AccountIDs:         accountIDs,
+				Inbox:              c.Inbox,
+				UnreadOnly:         c.UnreadOnly,
+				IncludeMuted:       c.IncludeMuted,
+				LastActivityAfter:  lastAfter,
+				LastActivityBefore: lastBefore,
+				Type:               c.Type,
+				Scope:              c.Scope,
+				Limit:              c.Limit,
+				Cursor:             nextCursor,
+				Direction:          c.Direction,
+			})
+			if err != nil {
+				return err
+			}
+
+			items = append(items, page.Items...)
+			resp.HasMore = page.HasMore
+			resp.OldestCursor = page.OldestCursor
+			resp.NewestCursor = page.NewestCursor
+		}
+		if limitReached(len(items), autoPageLimit) {
+			if len(items) > autoPageLimit {
+				items = items[:autoPageLimit]
+			}
+			capped = true
+		}
+		resp.Items = items
+		if capped {
+			resp.HasMore = true
+		}
 	}
 
 	if err := failIfEmpty(c.FailIfEmpty, len(resp.Items), "chats"); err != nil {
@@ -250,13 +360,17 @@ func (c *ChatsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if resp.HasMore && resp.OldestCursor != "" {
 		u.Out().Dim(fmt.Sprintf("\nMore chats available. Use --cursor=%q --direction=before", resp.OldestCursor))
 	}
+	if capped {
+		u.Out().Dim(autoPageStoppedMessage(autoPageLimit))
+	}
 
 	return nil
 }
 
 // ChatsGetCmd gets a single chat.
 type ChatsGetCmd struct {
-	ChatID string `arg:"" name:"chatID" help:"Chat ID to retrieve"`
+	ChatID              string `arg:"" name:"chatID" help:"Chat ID to retrieve"`
+	MaxParticipantCount int    `help:"Maximum participants to return: -1 for all, otherwise 0-500" name:"max-participant-count" default:"-1"`
 }
 
 // ChatsResolveCmd resolves a chat by exact match.
@@ -279,6 +393,9 @@ type ChatsCreateCmd struct {
 func (c *ChatsGetCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
 	chatID := normalizeChatID(c.ChatID)
+	if err := validateMaxParticipantCount(c.MaxParticipantCount); err != nil {
+		return err
+	}
 
 	token, _, err := config.GetToken()
 	if err != nil {
@@ -291,7 +408,10 @@ func (c *ChatsGetCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
-	chat, err := client.Chats().Get(ctx, chatID)
+	maxParticipantCount := c.MaxParticipantCount
+	chat, err := client.Chats().Get(ctx, chatID, beeperapi.ChatGetParams{
+		MaxParticipantCount: &maxParticipantCount,
+	})
 	if err != nil {
 		return err
 	}
@@ -478,7 +598,7 @@ func looksLikeChatID(value string) bool {
 }
 
 func writeResolvedChat(ctx context.Context, u *ui.UI, client *beeperapi.Client, chatID string, fields []string) error {
-	chat, err := client.Chats().Get(ctx, chatID)
+	chat, err := client.Chats().Get(ctx, chatID, beeperapi.ChatGetParams{})
 	if err != nil {
 		return err
 	}

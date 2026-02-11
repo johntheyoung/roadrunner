@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -33,6 +34,8 @@ type MessagesListCmd struct {
 	ChatID        string   `arg:"" name:"chatID" help:"Chat ID to list messages from"`
 	Cursor        string   `help:"Pagination cursor (use sortKey from previous results)"`
 	Direction     string   `help:"Pagination direction: before|after" enum:"before,after," default:"before"`
+	All           bool     `help:"Fetch all pages automatically" name:"all"`
+	MaxItems      int      `help:"Maximum items to collect with --all (default 500, max 5000)" name:"max-items" default:"0"`
 	DownloadMedia bool     `help:"Download attachments for listed messages" name:"download-media"`
 	DownloadDir   string   `help:"Directory to save downloaded attachments" name:"download-dir" default:"."`
 	Fields        []string `help:"Comma-separated list of fields for --plain output" name:"fields" sep:","`
@@ -43,6 +46,10 @@ type MessagesListCmd struct {
 func (c *MessagesListCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
 	chatID := normalizeChatID(c.ChatID)
+	autoPageLimit, err := resolveAutoPageLimit(c.All, c.MaxItems)
+	if err != nil {
+		return err
+	}
 
 	token, _, err := config.GetToken()
 	if err != nil {
@@ -61,6 +68,47 @@ func (c *MessagesListCmd) Run(ctx context.Context, flags *RootFlags) error {
 	})
 	if err != nil {
 		return err
+	}
+	capped := false
+	if c.All {
+		items := make([]beeperapi.MessageItem, 0, len(resp.Items))
+		items = append(items, resp.Items...)
+		cursor := c.Cursor
+
+		for resp.HasMore {
+			if limitReached(len(items), autoPageLimit) {
+				capped = true
+				break
+			}
+
+			nextCursor := resp.NextCursor
+			if nextCursor == "" || nextCursor == cursor {
+				break
+			}
+			cursor = nextCursor
+
+			page, err := client.Messages().List(ctx, chatID, beeperapi.MessageListParams{
+				Cursor:    nextCursor,
+				Direction: c.Direction,
+			})
+			if err != nil {
+				return err
+			}
+
+			items = append(items, page.Items...)
+			resp.HasMore = page.HasMore
+			resp.NextCursor = page.NextCursor
+		}
+
+		if limitReached(len(items), autoPageLimit) {
+			if len(items) > autoPageLimit {
+				items = items[:autoPageLimit]
+			}
+			capped = true
+			resp.HasMore = true
+			resp.NextCursor = lastSortKey(items)
+		}
+		resp.Items = items
 	}
 
 	if c.DownloadMedia {
@@ -124,6 +172,9 @@ func (c *MessagesListCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if resp.HasMore && resp.NextCursor != "" {
 		u.Out().Dim(fmt.Sprintf("\nMore messages available. Use --cursor=%q", resp.NextCursor))
 	}
+	if capped {
+		u.Out().Dim(autoPageStoppedMessage(autoPageLimit))
+	}
 
 	return nil
 }
@@ -144,6 +195,8 @@ type MessagesSearchCmd struct {
 	Direction          string   `help:"Pagination direction: before|after" enum:"before,after," default:""`
 	Limit              int      `help:"Max results (1-20)" default:"20"`
 	Fields             []string `help:"Comma-separated list of fields for --plain output" name:"fields" sep:","`
+	All                bool     `help:"Fetch all pages automatically" name:"all"`
+	MaxItems           int      `help:"Maximum items to collect with --all (default 500, max 5000)" name:"max-items" default:"0"`
 	FailIfEmpty        bool     `help:"Exit with code 1 if no results" name:"fail-if-empty"`
 }
 
@@ -191,6 +244,10 @@ func (c *MessagesSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	if c.Limit < 1 || c.Limit > 20 {
 		return errfmt.UsageError("invalid --limit %d (expected 1-20)", c.Limit)
+	}
+	autoPageLimit, err := resolveAutoPageLimit(c.All, c.MaxItems)
+	if err != nil {
+		return err
 	}
 	allowedMedia := map[string]struct{}{
 		"any":   {},
@@ -251,6 +308,58 @@ func (c *MessagesSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 	})
 	if err != nil {
 		return err
+	}
+	capped := false
+	if c.All {
+		items := make([]beeperapi.MessageItem, 0, len(resp.Items))
+		items = append(items, resp.Items...)
+		lastCursor := c.Cursor
+		for resp.HasMore {
+			if limitReached(len(items), autoPageLimit) {
+				capped = true
+				break
+			}
+
+			nextCursor := nextSearchCursor(c.Direction, resp.OldestCursor, resp.NewestCursor)
+			if nextCursor == "" || nextCursor == lastCursor {
+				break
+			}
+			lastCursor = nextCursor
+
+			page, err := client.Messages().Search(ctx, beeperapi.MessageSearchParams{
+				Query:              c.Query,
+				AccountIDs:         c.AccountIDs,
+				ChatIDs:            normalizeChatIDs(c.ChatIDs),
+				ChatType:           c.ChatType,
+				Sender:             c.Sender,
+				MediaTypes:         c.MediaTypes,
+				DateAfter:          dateAfter,
+				DateBefore:         dateBefore,
+				IncludeMuted:       c.IncludeMuted,
+				ExcludeLowPriority: c.ExcludeLowPriority,
+				Cursor:             nextCursor,
+				Direction:          c.Direction,
+				Limit:              c.Limit,
+			})
+			if err != nil {
+				return err
+			}
+
+			items = append(items, page.Items...)
+			resp.HasMore = page.HasMore
+			resp.OldestCursor = page.OldestCursor
+			resp.NewestCursor = page.NewestCursor
+		}
+		if limitReached(len(items), autoPageLimit) {
+			if len(items) > autoPageLimit {
+				items = items[:autoPageLimit]
+			}
+			capped = true
+		}
+		resp.Items = items
+		if capped {
+			resp.HasMore = true
+		}
 	}
 
 	if err := failIfEmpty(c.FailIfEmpty, len(resp.Items), "messages"); err != nil {
@@ -314,6 +423,9 @@ func (c *MessagesSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	if resp.HasMore && resp.OldestCursor != "" {
 		u.Out().Dim(fmt.Sprintf("\nMore results available. Use --cursor=%q --direction=before", resp.OldestCursor))
+	}
+	if capped {
+		u.Out().Dim(autoPageStoppedMessage(autoPageLimit))
 	}
 
 	return nil
@@ -687,6 +799,12 @@ type MessagesSendCmd struct {
 	TextFile           string `help:"Read message text from file ('-' for stdin)" name:"text-file"`
 	Stdin              bool   `help:"Read message text from stdin" name:"stdin"`
 	AttachmentUploadID string `help:"Upload ID from 'rr assets upload' to send as attachment" name:"attachment-upload-id"`
+	AttachmentFileName string `help:"Filename override for attachment metadata" name:"attachment-file-name"`
+	AttachmentMimeType string `help:"MIME type override for attachment metadata" name:"attachment-mime-type"`
+	AttachmentType     string `help:"Attachment type override: gif|voiceNote|sticker" name:"attachment-type" enum:"gif,voiceNote,sticker," default:""`
+	AttachmentDuration string `help:"Attachment duration override in seconds" name:"attachment-duration"`
+	AttachmentWidth    string `help:"Attachment width override in pixels (requires --attachment-height)" name:"attachment-width"`
+	AttachmentHeight   string `help:"Attachment height override in pixels (requires --attachment-width)" name:"attachment-height"`
 }
 
 // MessagesSendFileCmd uploads a file and sends it as an attachment.
@@ -710,6 +828,34 @@ func (c *MessagesSendCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 	attachmentUploadID := strings.TrimSpace(c.AttachmentUploadID)
+	attachmentDuration, err := parseOptionalFloatFlag(c.AttachmentDuration, "--attachment-duration")
+	if err != nil {
+		return err
+	}
+	attachmentWidth, err := parseOptionalFloatFlag(c.AttachmentWidth, "--attachment-width")
+	if err != nil {
+		return err
+	}
+	attachmentHeight, err := parseOptionalFloatFlag(c.AttachmentHeight, "--attachment-height")
+	if err != nil {
+		return err
+	}
+	if err := validateAttachmentSize(attachmentWidth, attachmentHeight); err != nil {
+		return err
+	}
+	if err := attachmentWarning(
+		attachmentUploadID,
+		hasAttachmentOverrides(
+			c.AttachmentFileName,
+			c.AttachmentMimeType,
+			c.AttachmentType,
+			attachmentDuration,
+			attachmentWidth,
+			attachmentHeight,
+		),
+	); err != nil {
+		return err
+	}
 	if strings.TrimSpace(text) == "" && attachmentUploadID == "" {
 		return errfmt.UsageError("message text or --attachment-upload-id is required")
 	}
@@ -732,6 +878,12 @@ func (c *MessagesSendCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if attachmentUploadID != "" {
 		params.Attachment = &beeperapi.SendAttachmentParams{
 			UploadID: attachmentUploadID,
+			FileName: c.AttachmentFileName,
+			MimeType: c.AttachmentMimeType,
+			Type:     c.AttachmentType,
+			Duration: attachmentDuration,
+			Width:    attachmentWidth,
+			Height:   attachmentHeight,
 		}
 	}
 
@@ -820,6 +972,18 @@ func (c *MessagesSendFileCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u.Out().Printf("Upload ID:  %s", upload.UploadID)
 
 	return nil
+}
+
+func parseOptionalFloatFlag(value string, flagName string) (*float64, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil, nil
+	}
+	parsed, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		return nil, errfmt.UsageError("invalid %s %q (expected numeric value)", flagName, value)
+	}
+	return &parsed, nil
 }
 
 func firstSortKey(items []beeperapi.MessageItem) string {

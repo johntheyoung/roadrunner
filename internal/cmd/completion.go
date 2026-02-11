@@ -287,7 +287,7 @@ complete -c rr -n '__fish_seen_subcommand_from chats' -a 'archive' -d 'Archive o
 # messages subcommands
 complete -c rr -n '__fish_seen_subcommand_from messages' -a 'list' -d 'List messages in a chat'
 complete -c rr -n '__fish_seen_subcommand_from messages' -a 'search' -d 'Search messages'
-complete -c rr -n '__fish_seen_subcommand_from messages' -a 'send' -d 'Send a message to a chat'
+complete -c rr -n '__fish_seen_subcommand_from messages' -a 'send' -d 'Send a text message and/or attachment to a chat'
 complete -c rr -n '__fish_seen_subcommand_from messages' -a 'send-file' -d 'Upload a file and send it as an attachment'
 complete -c rr -n '__fish_seen_subcommand_from messages' -a 'edit' -d 'Edit a previously sent message'
 complete -c rr -n '__fish_seen_subcommand_from messages' -a 'tail' -d 'Follow messages in a chat'
@@ -299,6 +299,12 @@ complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcomm
 complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send' -l text-file -d 'Read message text from file'
 complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send' -l stdin -d 'Read message text from stdin'
 complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send' -l attachment-upload-id -d 'Attachment upload ID from assets upload'
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send' -l attachment-file-name -d 'Filename override for attachment metadata'
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send' -l attachment-mime-type -d 'MIME type override for attachment metadata'
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send' -l attachment-type -d 'Attachment type override: gif|voiceNote|sticker'
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send' -l attachment-duration -d 'Attachment duration override in seconds'
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send' -l attachment-width -d 'Attachment width override in pixels'
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send' -l attachment-height -d 'Attachment height override in pixels'
 
 # messages send-file flags
 complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send-file' -l text-file -d 'Read message text from file'
@@ -315,6 +321,21 @@ complete -c rr -n '__fish_seen_subcommand_from assets; and __fish_seen_subcomman
 complete -c rr -n '__fish_seen_subcommand_from assets; and __fish_seen_subcommand_from upload-base64' -l stdin -d 'Read base64 content from stdin'
 complete -c rr -n '__fish_seen_subcommand_from assets; and __fish_seen_subcommand_from upload-base64' -l file-name -d 'Filename override for upload metadata'
 complete -c rr -n '__fish_seen_subcommand_from assets; and __fish_seen_subcommand_from upload-base64' -l mime-type -d 'MIME type override for upload metadata'
+
+# chats pagination flags
+complete -c rr -n '__fish_seen_subcommand_from chats; and __fish_seen_subcommand_from list' -l all -d 'Fetch all pages automatically'
+complete -c rr -n '__fish_seen_subcommand_from chats; and __fish_seen_subcommand_from list' -l max-items -d 'Maximum items to collect with --all'
+complete -c rr -n '__fish_seen_subcommand_from chats; and __fish_seen_subcommand_from search' -l all -d 'Fetch all pages automatically'
+complete -c rr -n '__fish_seen_subcommand_from chats; and __fish_seen_subcommand_from search' -l max-items -d 'Maximum items to collect with --all'
+
+# chats get flags
+complete -c rr -n '__fish_seen_subcommand_from chats; and __fish_seen_subcommand_from get' -l max-participant-count -d 'Maximum participants to return'
+
+# messages pagination flags
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from list' -l all -d 'Fetch all pages automatically'
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from list' -l max-items -d 'Maximum items to collect with --all'
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from search' -l all -d 'Fetch all pages automatically'
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from search' -l max-items -d 'Maximum items to collect with --all'
 
 # reminders subcommands
 complete -c rr -n '__fish_seen_subcommand_from reminders' -a 'set' -d 'Set a reminder for a chat'

@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Added
+- Attachment metadata override flags on `rr messages send`:
+  `--attachment-file-name`, `--attachment-mime-type`, `--attachment-type`,
+  `--attachment-duration`, `--attachment-width`, `--attachment-height`.
+- `rr chats get --max-participant-count` for bounded participant payloads.
+- `--all` and `--max-items` for `chats list/search` and `messages list/search`
+  to auto-fetch multiple pages with a safety cap.
+
+### Changed
+- `messages send` now supports richer attachment payload metadata beyond upload ID.
+- Shell completion includes new attachment override and pagination flags.
+
 ## v0.10.0 - 2026-02-11
 
 ### Added

@@ -95,6 +95,11 @@ type ChatDetail struct {
 	ParticipantsHasMore    bool   `json:"participants_has_more"`
 }
 
+// ChatGetParams configures chat detail retrieval.
+type ChatGetParams struct {
+	MaxParticipantCount *int
+}
+
 // ChatCreateParams configures chat creation.
 type ChatCreateParams struct {
 	AccountID      string
@@ -250,11 +255,16 @@ func (s *ChatsService) Search(ctx context.Context, params ChatSearchParams) (Cha
 }
 
 // Get retrieves details for a single chat by ID.
-func (s *ChatsService) Get(ctx context.Context, chatID string) (ChatDetail, error) {
+func (s *ChatsService) Get(ctx context.Context, chatID string, params ChatGetParams) (ChatDetail, error) {
 	ctx, cancel := s.client.contextWithTimeout(ctx)
 	defer cancel()
 
-	chat, err := s.client.SDK.Chats.Get(ctx, chatID, beeperdesktopapi.ChatGetParams{})
+	sdkParams := beeperdesktopapi.ChatGetParams{}
+	if params.MaxParticipantCount != nil {
+		sdkParams.MaxParticipantCount = beeperdesktopapi.Int(int64(*params.MaxParticipantCount))
+	}
+
+	chat, err := s.client.SDK.Chats.Get(ctx, chatID, sdkParams)
 	if err != nil {
 		return ChatDetail{}, err
 	}

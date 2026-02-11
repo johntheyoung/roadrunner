@@ -194,6 +194,12 @@ type SendParams struct {
 // SendAttachmentParams configures attachment payload values for message send.
 type SendAttachmentParams struct {
 	UploadID string
+	FileName string
+	MimeType string
+	Type     string
+	Duration *float64
+	Width    *float64
+	Height   *float64
 }
 
 // EditParams configures message edit requests.
@@ -227,9 +233,28 @@ func (s *MessagesService) Send(ctx context.Context, chatID string, params SendPa
 		sdkParams.ReplyToMessageID = beeperdesktopapi.String(params.ReplyToMessageID)
 	}
 	if params.Attachment != nil {
-		sdkParams.Attachment = beeperdesktopapi.MessageSendParamsAttachment{
+		attachment := beeperdesktopapi.MessageSendParamsAttachment{
 			UploadID: params.Attachment.UploadID,
 		}
+		if params.Attachment.FileName != "" {
+			attachment.FileName = beeperdesktopapi.String(params.Attachment.FileName)
+		}
+		if params.Attachment.MimeType != "" {
+			attachment.MimeType = beeperdesktopapi.String(params.Attachment.MimeType)
+		}
+		if params.Attachment.Type != "" {
+			attachment.Type = params.Attachment.Type
+		}
+		if params.Attachment.Duration != nil {
+			attachment.Duration = beeperdesktopapi.Float(*params.Attachment.Duration)
+		}
+		if params.Attachment.Width != nil && params.Attachment.Height != nil {
+			attachment.Size = beeperdesktopapi.MessageSendParamsAttachmentSize{
+				Width:  *params.Attachment.Width,
+				Height: *params.Attachment.Height,
+			}
+		}
+		sdkParams.Attachment = attachment
 	}
 
 	resp, err := s.client.SDK.Messages.Send(ctx, chatID, sdkParams)

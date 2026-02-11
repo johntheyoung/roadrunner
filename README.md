@@ -56,8 +56,14 @@ Token is stored in `~/.config/beeper/config.json`. `BEEPER_TOKEN` env var overri
 # List your chats
 rr chats list
 
+# List across all pages with a safety cap
+rr chats list --all --max-items=1000
+
 # Search chats by name
 rr chats search "Alice"
+
+# Search across all pages
+rr chats search "Alice" --all --max-items=1000
 
 # Resolve a chat by exact title or ID
 rr chats resolve "Alice"
@@ -73,6 +79,7 @@ rr chats search --last-activity-after="2024-07-01T00:00:00Z"
 
 # Get chat details
 rr chats get '!roomid:beeper.local'
+rr chats get '!roomid:beeper.local' --max-participant-count=50
 
 # Create a new chat (single)
 rr chats create "<account-id>" --participant "<user-id>"
@@ -116,9 +123,11 @@ rr contacts resolve "<contact-id>" --account-id="<account-id>" --json
 ```bash
 # List messages in a chat
 rr messages list '!roomid:beeper.local'
+rr messages list '!roomid:beeper.local' --all --max-items=1000
 
 # Search messages globally
 rr messages search "meeting notes"
+rr messages search "meeting notes" --all --max-items=1000
 
 # Filter by sender
 rr messages search --sender=me
@@ -138,6 +147,14 @@ rr messages send '!roomid:beeper.local' --attachment-upload-id "$UPLOAD_ID"
 
 # Send text + attachment
 rr messages send '!roomid:beeper.local' "See attached" --attachment-upload-id "$UPLOAD_ID"
+
+# Send attachment with metadata overrides
+rr messages send '!roomid:beeper.local' --attachment-upload-id "$UPLOAD_ID" \
+  --attachment-file-name photo.jpg \
+  --attachment-mime-type image/jpeg \
+  --attachment-type gif \
+  --attachment-width 1200 \
+  --attachment-height 900
 
 # Upload and send in one command
 rr messages send-file '!roomid:beeper.local' ./photo.jpg "See attached"

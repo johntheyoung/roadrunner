@@ -63,6 +63,61 @@ func TestWriteEnvelope(t *testing.T) {
 	if env.Metadata.Timestamp == "" {
 		t.Error("expected timestamp to be set")
 	}
+	if env.Metadata.Pagination != nil {
+		t.Error("expected pagination metadata to be nil by default")
+	}
+}
+
+func TestWriteEnvelopeWithPagination(t *testing.T) {
+	var buf bytes.Buffer
+	data := map[string]string{"foo": "bar"}
+	pagination := &EnvelopePagination{
+		HasMore:      true,
+		Direction:    "before",
+		OldestCursor: "old",
+		NewestCursor: "new",
+		AutoPaged:    true,
+		Capped:       true,
+		MaxItems:     50,
+	}
+
+	err := WriteEnvelopeWithPagination(&buf, data, "1.0.0", "chats list", pagination)
+	if err != nil {
+		t.Fatalf("WriteEnvelopeWithPagination() error = %v", err)
+	}
+
+	var env Envelope
+	if err := json.Unmarshal(buf.Bytes(), &env); err != nil {
+		t.Fatalf("failed to unmarshal envelope: %v", err)
+	}
+
+	if env.Metadata == nil {
+		t.Fatal("expected metadata to be set")
+	}
+	if env.Metadata.Pagination == nil {
+		t.Fatal("expected pagination metadata to be set")
+	}
+	if !env.Metadata.Pagination.HasMore {
+		t.Error("expected has_more=true")
+	}
+	if env.Metadata.Pagination.Direction != "before" {
+		t.Errorf("expected direction=before, got %q", env.Metadata.Pagination.Direction)
+	}
+	if env.Metadata.Pagination.OldestCursor != "old" {
+		t.Errorf("expected oldest_cursor=old, got %q", env.Metadata.Pagination.OldestCursor)
+	}
+	if env.Metadata.Pagination.NewestCursor != "new" {
+		t.Errorf("expected newest_cursor=new, got %q", env.Metadata.Pagination.NewestCursor)
+	}
+	if !env.Metadata.Pagination.AutoPaged {
+		t.Error("expected auto_paged=true")
+	}
+	if !env.Metadata.Pagination.Capped {
+		t.Error("expected capped=true")
+	}
+	if env.Metadata.Pagination.MaxItems != 50 {
+		t.Errorf("expected max_items=50, got %d", env.Metadata.Pagination.MaxItems)
+	}
 }
 
 func TestWriteEnvelopeError(t *testing.T) {

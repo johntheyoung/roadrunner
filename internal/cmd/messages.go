@@ -123,7 +123,18 @@ func (c *MessagesListCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// JSON output
 	if outfmt.IsJSON(ctx) {
-		return writeJSON(ctx, resp, "messages list")
+		maxItems := 0
+		if c.All {
+			maxItems = autoPageLimit
+		}
+		return writeJSONWithPagination(ctx, resp, "messages list", &outfmt.EnvelopePagination{
+			HasMore:    resp.HasMore,
+			Direction:  c.Direction,
+			NextCursor: resp.NextCursor,
+			AutoPaged:  c.All,
+			Capped:     capped,
+			MaxItems:   maxItems,
+		})
 	}
 
 	// Plain output (TSV)
@@ -369,7 +380,19 @@ func (c *MessagesSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// JSON output
 	if outfmt.IsJSON(ctx) {
-		return writeJSON(ctx, resp, "messages search")
+		maxItems := 0
+		if c.All {
+			maxItems = autoPageLimit
+		}
+		return writeJSONWithPagination(ctx, resp, "messages search", &outfmt.EnvelopePagination{
+			HasMore:      resp.HasMore,
+			Direction:    c.Direction,
+			OldestCursor: resp.OldestCursor,
+			NewestCursor: resp.NewestCursor,
+			AutoPaged:    c.All,
+			Capped:       capped,
+			MaxItems:     maxItems,
+		})
 	}
 
 	// Plain output (TSV)

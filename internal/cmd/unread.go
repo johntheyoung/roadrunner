@@ -63,7 +63,14 @@ func (c *UnreadCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 
 	if outfmt.IsJSON(ctx) {
-		return writeJSON(ctx, resp, "unread")
+		return writeJSONWithPagination(ctx, resp, "unread", &outfmt.EnvelopePagination{
+			HasMore:      resp.HasMore,
+			Direction:    c.Direction,
+			OldestCursor: resp.OldestCursor,
+			NewestCursor: resp.NewestCursor,
+			AutoPaged:    false,
+			Capped:       false,
+		})
 	}
 
 	if outfmt.IsPlain(ctx) {

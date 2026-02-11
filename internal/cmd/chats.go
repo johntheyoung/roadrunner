@@ -115,7 +115,19 @@ func (c *ChatsListCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// JSON output
 	if outfmt.IsJSON(ctx) {
-		return writeJSON(ctx, resp, "chats list")
+		maxItems := 0
+		if c.All {
+			maxItems = autoPageLimit
+		}
+		return writeJSONWithPagination(ctx, resp, "chats list", &outfmt.EnvelopePagination{
+			HasMore:      resp.HasMore,
+			Direction:    c.Direction,
+			OldestCursor: resp.OldestCursor,
+			NewestCursor: resp.NewestCursor,
+			AutoPaged:    c.All,
+			Capped:       capped,
+			MaxItems:     maxItems,
+		})
 	}
 
 	// Plain output (TSV)
@@ -306,7 +318,19 @@ func (c *ChatsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// JSON output
 	if outfmt.IsJSON(ctx) {
-		return writeJSON(ctx, resp, "chats search")
+		maxItems := 0
+		if c.All {
+			maxItems = autoPageLimit
+		}
+		return writeJSONWithPagination(ctx, resp, "chats search", &outfmt.EnvelopePagination{
+			HasMore:      resp.HasMore,
+			Direction:    c.Direction,
+			OldestCursor: resp.OldestCursor,
+			NewestCursor: resp.NewestCursor,
+			AutoPaged:    c.All,
+			Capped:       capped,
+			MaxItems:     maxItems,
+		})
 	}
 
 	// Plain output (TSV)

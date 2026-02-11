@@ -399,7 +399,14 @@ $ rr chats list --json --envelope
   "metadata": {
     "timestamp": "2026-01-18T12:00:00Z",
     "version": "0.11.0",
-    "command": "chats list"
+    "command": "chats list",
+    "pagination": {
+      "has_more": true,
+      "oldest_cursor": "c1",
+      "newest_cursor": "n1",
+      "auto_paged": false,
+      "capped": false
+    }
   }
 }
 
@@ -415,6 +422,10 @@ $ rr chats get "invalid" --json --envelope
 ```
 
 Error codes: `AUTH_ERROR`, `NOT_FOUND`, `VALIDATION_ERROR`, `CONNECTION_ERROR`, `INTERNAL_ERROR`.
+
+For cursor-based commands, `metadata.pagination` is normalized across endpoints:
+`has_more`, `direction`, `next_cursor`, `oldest_cursor`, `newest_cursor`,
+`auto_paged`, `capped`, and `max_items` (when auto-paging is enabled).
 
 ## Agent Safety
 

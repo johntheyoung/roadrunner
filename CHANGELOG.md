@@ -8,6 +8,9 @@ All notable changes to this project will be documented in this file.
 - `--chat` exact-name targeting for action commands:
   `messages send`, `messages send-file`, `messages edit`,
   `reminders set`, and `reminders clear`.
+- Normalized envelope pagination metadata (`metadata.pagination`) for cursor-based
+  commands (`chats list/search`, `messages list/search`, `search`, `unread`) to
+  provide a stable machine contract in `--json --envelope` mode.
 
 ### Changed
 - Shared exact chat resolution logic across `chats resolve` and action commands to

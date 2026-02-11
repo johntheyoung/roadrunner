@@ -31,3 +31,6 @@
 - Message search returns `oldestCursor`/`newestCursor` for paging.
 - `--all` auto-fetches pages client-side with a safety cap (default 500, max 5000 via `--max-items`).
 - `rr search --messages-all` auto-pages global search message results using `--messages-cursor` semantics with a separate cap via `--messages-max-items`.
+- In `--json --envelope` mode, cursor-based commands include normalized machine metadata at
+  `metadata.pagination` with fields: `has_more`, `direction`, `next_cursor`, `oldest_cursor`,
+  `newest_cursor`, `auto_paged`, `capped`, and `max_items` (when auto-paging is enabled).

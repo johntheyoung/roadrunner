@@ -112,7 +112,19 @@ func (c *SearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// JSON output
 	if outfmt.IsJSON(ctx) {
-		return writeJSON(ctx, resp, "search")
+		maxItems := 0
+		if c.MessagesAll {
+			maxItems = autoPageLimit
+		}
+		return writeJSONWithPagination(ctx, resp, "search", &outfmt.EnvelopePagination{
+			HasMore:      resp.Messages.HasMore,
+			Direction:    c.MessagesDirection,
+			OldestCursor: resp.Messages.OldestCursor,
+			NewestCursor: resp.Messages.NewestCursor,
+			AutoPaged:    c.MessagesAll,
+			Capped:       capped,
+			MaxItems:     maxItems,
+		})
 	}
 
 	// Plain output (TSV)

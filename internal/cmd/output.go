@@ -15,3 +15,12 @@ func writeJSON(ctx context.Context, data any, command string) error {
 	}
 	return outfmt.WriteJSON(os.Stdout, data)
 }
+
+// writeJSONWithPagination writes data as JSON with optional normalized pagination
+// metadata when envelope mode is enabled.
+func writeJSONWithPagination(ctx context.Context, data any, command string, pagination *outfmt.EnvelopePagination) error {
+	if outfmt.IsEnvelope(ctx) {
+		return outfmt.WriteEnvelopeWithPagination(os.Stdout, data, Version, command, pagination)
+	}
+	return outfmt.WriteJSON(os.Stdout, data)
+}

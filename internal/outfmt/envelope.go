@@ -22,9 +22,23 @@ type EnvelopeError struct {
 
 // EnvelopeMeta contains metadata about the response.
 type EnvelopeMeta struct {
-	Timestamp string `json:"timestamp"`
-	Version   string `json:"version,omitempty"`
-	Command   string `json:"command,omitempty"`
+	Timestamp  string              `json:"timestamp"`
+	Version    string              `json:"version,omitempty"`
+	Command    string              `json:"command,omitempty"`
+	Pagination *EnvelopePagination `json:"pagination,omitempty"`
+}
+
+// EnvelopePagination contains normalized pagination metadata for machine consumers.
+// It is included in metadata for cursor-based commands when --envelope is enabled.
+type EnvelopePagination struct {
+	HasMore      bool   `json:"has_more"`
+	Direction    string `json:"direction,omitempty"`
+	NextCursor   string `json:"next_cursor,omitempty"`
+	OldestCursor string `json:"oldest_cursor,omitempty"`
+	NewestCursor string `json:"newest_cursor,omitempty"`
+	AutoPaged    bool   `json:"auto_paged"`
+	Capped       bool   `json:"capped"`
+	MaxItems     int    `json:"max_items,omitempty"`
 }
 
 // Error codes
@@ -55,13 +69,19 @@ func IsEnvelope(ctx context.Context) bool {
 
 // WriteEnvelope writes a success envelope to w.
 func WriteEnvelope(w io.Writer, data any, version, command string) error {
+	return WriteEnvelopeWithPagination(w, data, version, command, nil)
+}
+
+// WriteEnvelopeWithPagination writes a success envelope with optional pagination metadata.
+func WriteEnvelopeWithPagination(w io.Writer, data any, version, command string, pagination *EnvelopePagination) error {
 	env := Envelope{
 		Success: true,
 		Data:    data,
 		Metadata: &EnvelopeMeta{
-			Timestamp: time.Now().UTC().Format(time.RFC3339),
-			Version:   version,
-			Command:   command,
+			Timestamp:  time.Now().UTC().Format(time.RFC3339),
+			Version:    version,
+			Command:    command,
+			Pagination: pagination,
 		},
 	}
 	return WriteJSON(w, env)

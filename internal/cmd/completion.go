@@ -33,12 +33,14 @@ _rr_completions() {
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    commands="auth accounts chats messages reminders search focus doctor version capabilities completion"
+    commands="auth accounts contacts assets chats messages reminders search status unread focus doctor version capabilities completion"
     auth_cmds="set status clear"
     accounts_cmds="list alias"
     accounts_alias_cmds="set list unset"
-    chats_cmds="list search get archive"
-    messages_cmds="list search send"
+    contacts_cmds="search resolve"
+    assets_cmds="download upload upload-base64"
+    chats_cmds="list search resolve get create archive"
+    messages_cmds="list search send send-file edit tail wait context"
     reminders_cmds="set clear"
 
     case "${prev}" in
@@ -52,6 +54,14 @@ _rr_completions() {
             ;;
         accounts)
             COMPREPLY=( $(compgen -W "${accounts_cmds}" -- "${cur}") )
+            return 0
+            ;;
+        contacts)
+            COMPREPLY=( $(compgen -W "${contacts_cmds}" -- "${cur}") )
+            return 0
+            ;;
+        assets)
+            COMPREPLY=( $(compgen -W "${assets_cmds}" -- "${cur}") )
             return 0
             ;;
         alias)
@@ -88,10 +98,14 @@ _rr() {
     commands=(
         'auth:Manage authentication'
         'accounts:Manage messaging accounts'
+        'contacts:Search contacts'
+        'assets:Manage assets'
         'chats:Manage chats'
         'messages:Manage messages'
         'reminders:Manage chat reminders'
         'search:Global search across chats and messages'
+        'status:Show chat and unread summary'
+        'unread:List unread chats'
         'focus:Focus Beeper Desktop app'
         'doctor:Diagnose configuration and connectivity'
         'version:Show version information'
@@ -119,11 +133,26 @@ _rr() {
         'unset:Remove an account alias'
     )
 
+    local -a contacts_cmds
+    contacts_cmds=(
+        'search:Search contacts on an account'
+        'resolve:Resolve a contact by exact match'
+    )
+
+    local -a assets_cmds
+    assets_cmds=(
+        'download:Download an asset by mxc:// URL'
+        'upload:Upload an asset and return upload ID'
+        'upload-base64:Upload base64 data and return upload ID'
+    )
+
     local -a chats_cmds
     chats_cmds=(
         'list:List chats'
         'search:Search chats'
+        'resolve:Resolve a chat by exact match'
         'get:Get chat details'
+        'create:Create a new chat'
         'archive:Archive or unarchive a chat'
     )
 
@@ -131,7 +160,12 @@ _rr() {
     messages_cmds=(
         'list:List messages in a chat'
         'search:Search messages'
-        'send:Send a message to a chat'
+        'send:Send a text message and/or attachment to a chat'
+        'send-file:Upload a file and send it as an attachment'
+        'edit:Edit a previously sent message'
+        'tail:Follow messages in a chat'
+        'wait:Wait for a matching message'
+        'context:Fetch context around a message'
     )
 
     local -a reminders_cmds
@@ -163,6 +197,12 @@ _rr() {
                     ;;
                 accounts)
                     _describe -t commands 'accounts commands' accounts_cmds
+                    ;;
+                contacts)
+                    _describe -t commands 'contacts commands' contacts_cmds
+                    ;;
+                assets)
+                    _describe -t commands 'assets commands' assets_cmds
                     ;;
                 chats)
                     _describe -t commands 'chats commands' chats_cmds
@@ -199,10 +239,14 @@ complete -c rr -f
 # Top-level commands
 complete -c rr -n '__fish_use_subcommand' -a 'auth' -d 'Manage authentication'
 complete -c rr -n '__fish_use_subcommand' -a 'accounts' -d 'Manage messaging accounts'
+complete -c rr -n '__fish_use_subcommand' -a 'contacts' -d 'Search contacts'
+complete -c rr -n '__fish_use_subcommand' -a 'assets' -d 'Manage assets'
 complete -c rr -n '__fish_use_subcommand' -a 'chats' -d 'Manage chats'
 complete -c rr -n '__fish_use_subcommand' -a 'messages' -d 'Manage messages'
 complete -c rr -n '__fish_use_subcommand' -a 'reminders' -d 'Manage chat reminders'
 complete -c rr -n '__fish_use_subcommand' -a 'search' -d 'Global search across chats and messages'
+complete -c rr -n '__fish_use_subcommand' -a 'status' -d 'Show chat and unread summary'
+complete -c rr -n '__fish_use_subcommand' -a 'unread' -d 'List unread chats'
 complete -c rr -n '__fish_use_subcommand' -a 'focus' -d 'Focus Beeper Desktop app'
 complete -c rr -n '__fish_use_subcommand' -a 'doctor' -d 'Diagnose configuration and connectivity'
 complete -c rr -n '__fish_use_subcommand' -a 'version' -d 'Show version information'
@@ -218,6 +262,15 @@ complete -c rr -n '__fish_seen_subcommand_from auth' -a 'clear' -d 'Remove store
 complete -c rr -n '__fish_seen_subcommand_from accounts' -a 'list' -d 'List connected messaging accounts'
 complete -c rr -n '__fish_seen_subcommand_from accounts' -a 'alias' -d 'Manage account aliases'
 
+# contacts subcommands
+complete -c rr -n '__fish_seen_subcommand_from contacts' -a 'search' -d 'Search contacts on an account'
+complete -c rr -n '__fish_seen_subcommand_from contacts' -a 'resolve' -d 'Resolve a contact by exact match'
+
+# assets subcommands
+complete -c rr -n '__fish_seen_subcommand_from assets' -a 'download' -d 'Download an asset by mxc:// URL'
+complete -c rr -n '__fish_seen_subcommand_from assets' -a 'upload' -d 'Upload an asset and return upload ID'
+complete -c rr -n '__fish_seen_subcommand_from assets' -a 'upload-base64' -d 'Upload base64 data and return upload ID'
+
 # accounts alias subcommands
 complete -c rr -n '__fish_seen_subcommand_from accounts; and __fish_seen_subcommand_from alias' -a 'set' -d 'Create or update an account alias'
 complete -c rr -n '__fish_seen_subcommand_from accounts; and __fish_seen_subcommand_from alias' -a 'list' -d 'List account aliases'
@@ -226,13 +279,42 @@ complete -c rr -n '__fish_seen_subcommand_from accounts; and __fish_seen_subcomm
 # chats subcommands
 complete -c rr -n '__fish_seen_subcommand_from chats' -a 'list' -d 'List chats'
 complete -c rr -n '__fish_seen_subcommand_from chats' -a 'search' -d 'Search chats'
+complete -c rr -n '__fish_seen_subcommand_from chats' -a 'resolve' -d 'Resolve a chat by exact match'
 complete -c rr -n '__fish_seen_subcommand_from chats' -a 'get' -d 'Get chat details'
+complete -c rr -n '__fish_seen_subcommand_from chats' -a 'create' -d 'Create a new chat'
 complete -c rr -n '__fish_seen_subcommand_from chats' -a 'archive' -d 'Archive or unarchive a chat'
 
 # messages subcommands
 complete -c rr -n '__fish_seen_subcommand_from messages' -a 'list' -d 'List messages in a chat'
 complete -c rr -n '__fish_seen_subcommand_from messages' -a 'search' -d 'Search messages'
 complete -c rr -n '__fish_seen_subcommand_from messages' -a 'send' -d 'Send a message to a chat'
+complete -c rr -n '__fish_seen_subcommand_from messages' -a 'send-file' -d 'Upload a file and send it as an attachment'
+complete -c rr -n '__fish_seen_subcommand_from messages' -a 'edit' -d 'Edit a previously sent message'
+complete -c rr -n '__fish_seen_subcommand_from messages' -a 'tail' -d 'Follow messages in a chat'
+complete -c rr -n '__fish_seen_subcommand_from messages' -a 'wait' -d 'Wait for a matching message'
+complete -c rr -n '__fish_seen_subcommand_from messages' -a 'context' -d 'Fetch context around a message'
+
+# messages send flags
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send' -l reply-to -d 'Message ID to reply to'
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send' -l text-file -d 'Read message text from file'
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send' -l stdin -d 'Read message text from stdin'
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send' -l attachment-upload-id -d 'Attachment upload ID from assets upload'
+
+# messages send-file flags
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send-file' -l text-file -d 'Read message text from file'
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send-file' -l stdin -d 'Read message text from stdin'
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send-file' -l file-name -d 'Filename override for upload metadata'
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send-file' -l mime-type -d 'MIME type override for upload metadata'
+
+# assets upload flags
+complete -c rr -n '__fish_seen_subcommand_from assets; and __fish_seen_subcommand_from upload' -l file-name -d 'Filename override for upload metadata'
+complete -c rr -n '__fish_seen_subcommand_from assets; and __fish_seen_subcommand_from upload' -l mime-type -d 'MIME type override for upload metadata'
+
+# assets upload-base64 flags
+complete -c rr -n '__fish_seen_subcommand_from assets; and __fish_seen_subcommand_from upload-base64' -l content-file -d 'Read base64 content from file'
+complete -c rr -n '__fish_seen_subcommand_from assets; and __fish_seen_subcommand_from upload-base64' -l stdin -d 'Read base64 content from stdin'
+complete -c rr -n '__fish_seen_subcommand_from assets; and __fish_seen_subcommand_from upload-base64' -l file-name -d 'Filename override for upload metadata'
+complete -c rr -n '__fish_seen_subcommand_from assets; and __fish_seen_subcommand_from upload-base64' -l mime-type -d 'MIME type override for upload metadata'
 
 # reminders subcommands
 complete -c rr -n '__fish_seen_subcommand_from reminders' -a 'set' -d 'Set a reminder for a chat'

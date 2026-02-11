@@ -222,6 +222,7 @@ func (s *ChatsService) Search(ctx context.Context, params ChatSearchParams) (Cha
 	if err != nil {
 		return ChatSearchResult{}, err
 	}
+	accountNetworks := s.client.accountNetworksByID(ctx)
 
 	result := ChatSearchResult{
 		Items:        make([]ChatSearchItem, 0, len(page.Items)),
@@ -238,7 +239,7 @@ func (s *ChatsService) Search(ctx context.Context, params ChatSearchParams) (Cha
 			DisplayName: displayName,
 			AccountID:   chat.AccountID,
 			Type:        string(chat.Type),
-			Network:     "",
+			Network:     accountNetworks[chat.AccountID],
 			UnreadCount: chat.UnreadCount,
 			IsArchived:  chat.IsArchived,
 			IsMuted:     chat.IsMuted,
@@ -257,12 +258,13 @@ func (s *ChatsService) Get(ctx context.Context, chatID string) (ChatDetail, erro
 	if err != nil {
 		return ChatDetail{}, err
 	}
+	accountNetworks := s.client.accountNetworksByID(ctx)
 
 	detail := ChatDetail{
 		ID:                     chat.ID,
 		Title:                  chat.Title,
 		AccountID:              chat.AccountID,
-		Network:                "",
+		Network:                accountNetworks[chat.AccountID],
 		Type:                   string(chat.Type),
 		UnreadCount:            chat.UnreadCount,
 		IsArchived:             chat.IsArchived,

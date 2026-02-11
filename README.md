@@ -139,6 +139,9 @@ rr messages send '!roomid:beeper.local' --attachment-upload-id "$UPLOAD_ID"
 # Send text + attachment
 rr messages send '!roomid:beeper.local' "See attached" --attachment-upload-id "$UPLOAD_ID"
 
+# Upload and send in one command
+rr messages send-file '!roomid:beeper.local' ./photo.jpg "See attached"
+
 # Edit a message
 rr messages edit '!roomid:beeper.local' "<message-id>" "Updated text"
 
@@ -380,14 +383,14 @@ Restrict CLI capabilities when used by AI agents or in sandboxed environments:
 # Only allow specific commands
 rr --enable-commands=chats,messages,status chats list
 
-# Block data writes (send, create, archive, reminders)
+# Block data writes (send/edit/create/archive/reminders/uploads/alias writes)
 rr --readonly messages list '!roomid:beeper.local'
 
 # Combine for read-only access to specific commands
 rr --enable-commands=chats,messages --readonly chats search "Alice"
 ```
 
-Write commands blocked by `--readonly`: `messages send`, `chats create`, `chats archive`, `reminders set`, `reminders clear`.
+Write commands blocked by `--readonly`: `messages send`, `messages send-file`, `messages edit`, `chats create`, `chats archive`, `reminders set`, `reminders clear`, `assets upload`, `assets upload-base64`, `accounts alias set`, `accounts alias unset`.
 
 Exemptions: `auth set`, `auth clear`, and `focus` are always allowed (local-only operations).
 

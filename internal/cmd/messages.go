@@ -18,13 +18,14 @@ import (
 
 // MessagesCmd is the parent command for message subcommands.
 type MessagesCmd struct {
-	List    MessagesListCmd    `cmd:"" help:"List messages in a chat"`
-	Search  MessagesSearchCmd  `cmd:"" help:"Search messages"`
-	Send    MessagesSendCmd    `cmd:"" help:"Send a message to a chat"`
-	Edit    MessagesEditCmd    `cmd:"" help:"Edit a previously sent message"`
-	Tail    MessagesTailCmd    `cmd:"" help:"Follow messages in a chat"`
-	Wait    MessagesWaitCmd    `cmd:"" help:"Wait for a matching message"`
-	Context MessagesContextCmd `cmd:"" help:"Fetch context around a message"`
+	List     MessagesListCmd     `cmd:"" help:"List messages in a chat"`
+	Search   MessagesSearchCmd   `cmd:"" help:"Search messages"`
+	Send     MessagesSendCmd     `cmd:"" help:"Send a text message and/or attachment to a chat"`
+	SendFile MessagesSendFileCmd `cmd:"" name:"send-file" help:"Upload a file and send it as an attachment"`
+	Edit     MessagesEditCmd     `cmd:"" help:"Edit a previously sent message"`
+	Tail     MessagesTailCmd     `cmd:"" help:"Follow messages in a chat"`
+	Wait     MessagesWaitCmd     `cmd:"" help:"Wait for a matching message"`
+	Context  MessagesContextCmd  `cmd:"" help:"Fetch context around a message"`
 }
 
 // MessagesListCmd lists messages in a chat.
@@ -688,6 +689,17 @@ type MessagesSendCmd struct {
 	AttachmentUploadID string `help:"Upload ID from 'rr assets upload' to send as attachment" name:"attachment-upload-id"`
 }
 
+// MessagesSendFileCmd uploads a file and sends it as an attachment.
+type MessagesSendFileCmd struct {
+	ChatID   string `arg:"" name:"chatID" help:"Chat ID to send message to"`
+	FilePath string `arg:"" name:"path" help:"Path to the file to upload and send"`
+	Text     string `arg:"" optional:"" help:"Optional message text"`
+	TextFile string `help:"Read message text from file ('-' for stdin)" name:"text-file"`
+	Stdin    bool   `help:"Read message text from stdin" name:"stdin"`
+	FileName string `help:"Filename to send in upload metadata (optional)" name:"file-name"`
+	MimeType string `help:"MIME type override for upload (optional)" name:"mime-type"`
+}
+
 // Run executes the messages send command.
 func (c *MessagesSendCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
@@ -743,6 +755,69 @@ func (c *MessagesSendCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u.Out().Success("Message sent")
 	u.Out().Printf("Chat ID:    %s", resp.ChatID)
 	u.Out().Printf("Pending ID: %s", resp.PendingMessageID)
+
+	return nil
+}
+
+// Run executes the messages send-file command.
+func (c *MessagesSendFileCmd) Run(ctx context.Context, flags *RootFlags) error {
+	u := ui.FromContext(ctx)
+	chatID := normalizeChatID(c.ChatID)
+
+	text, err := resolveTextInput(c.Text, c.TextFile, c.Stdin, false, "message text", "--text-file", "--stdin")
+	if err != nil {
+		return err
+	}
+
+	token, _, err := config.GetToken()
+	if err != nil {
+		return err
+	}
+
+	timeout := time.Duration(flags.Timeout) * time.Second
+	client, err := beeperapi.NewClient(token, flags.BaseURL, timeout)
+	if err != nil {
+		return err
+	}
+
+	upload, err := client.Assets().Upload(ctx, beeperapi.AssetUploadParams{
+		FilePath: c.FilePath,
+		FileName: c.FileName,
+		MimeType: c.MimeType,
+	})
+	if err != nil {
+		if beeperapi.IsUnsupportedRoute(err, "POST", "/assets/upload") {
+			return fmt.Errorf("asset upload is not supported by this Beeper Desktop API version (requires a newer Beeper Desktop build)")
+		}
+		return err
+	}
+
+	resp, err := client.Messages().Send(ctx, chatID, beeperapi.SendParams{
+		Text: text,
+		Attachment: &beeperapi.SendAttachmentParams{
+			UploadID: upload.UploadID,
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	if outfmt.IsJSON(ctx) {
+		return writeJSON(ctx, map[string]any{
+			"upload":  upload,
+			"message": resp,
+		}, "messages send-file")
+	}
+
+	if outfmt.IsPlain(ctx) {
+		u.Out().Printf("%s\t%s\t%s", resp.ChatID, resp.PendingMessageID, upload.UploadID)
+		return nil
+	}
+
+	u.Out().Success("Attachment sent")
+	u.Out().Printf("Chat ID:    %s", resp.ChatID)
+	u.Out().Printf("Pending ID: %s", resp.PendingMessageID)
+	u.Out().Printf("Upload ID:  %s", upload.UploadID)
 
 	return nil
 }

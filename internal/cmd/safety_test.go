@@ -142,6 +142,12 @@ func TestCheckReadonly(t *testing.T) {
 			wantErr:  true,
 		},
 		{
+			name:     "readonly blocks messages send-file",
+			readonly: true,
+			command:  "messages send-file",
+			wantErr:  true,
+		},
+		{
 			name:     "readonly blocks messages edit",
 			readonly: true,
 			command:  "messages edit",
@@ -253,6 +259,7 @@ func TestDataWriteCommandsList(t *testing.T) {
 	// Check that it contains expected commands
 	expected := map[string]bool{
 		"messages send":        false,
+		"messages send-file":   false,
 		"messages edit":        false,
 		"chats create":         false,
 		"chats archive":        false,

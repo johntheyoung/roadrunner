@@ -56,6 +56,7 @@ func (c *Client) Search(ctx context.Context, params SearchParams) (SearchResult,
 	if err != nil {
 		return SearchResult{}, err
 	}
+	accountNetworks := c.accountNetworksByID(ctx)
 
 	result := SearchResult{
 		Chats:    make([]SearchChat, 0, len(resp.Results.Chats)),
@@ -76,7 +77,7 @@ func (c *Client) Search(ctx context.Context, params SearchParams) (SearchResult,
 			Title:       chat.Title,
 			DisplayName: displayName,
 			Type:        string(chat.Type),
-			Network:     "",
+			Network:     accountNetworks[chat.AccountID],
 			AccountID:   chat.AccountID,
 			UnreadCount: chat.UnreadCount,
 		})
@@ -90,7 +91,7 @@ func (c *Client) Search(ctx context.Context, params SearchParams) (SearchResult,
 			Title:       chat.Title,
 			DisplayName: displayName,
 			Type:        string(chat.Type),
-			Network:     "",
+			Network:     accountNetworks[chat.AccountID],
 			AccountID:   chat.AccountID,
 			UnreadCount: chat.UnreadCount,
 		})

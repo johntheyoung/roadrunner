@@ -374,7 +374,7 @@ $ rr chats list --json --envelope
   "data": { "items": [...] },
   "metadata": {
     "timestamp": "2026-01-18T12:00:00Z",
-    "version": "0.10.0",
+    "version": "0.11.0",
     "command": "chats list"
   }
 }
@@ -430,7 +430,7 @@ The `--enable-commands` flag is **required** in agent mode to ensure agents only
 ```bash
 $ rr version --json
 {
-  "version": "0.10.0",
+  "version": "0.11.0",
   "features": ["enable-commands", "readonly", "envelope", "agent-mode"]
 }
 ```
@@ -440,7 +440,7 @@ For detailed capability discovery:
 ```bash
 $ rr capabilities --json
 {
-  "version": "0.10.0",
+  "version": "0.11.0",
   "features": ["enable-commands", "readonly", "envelope", "agent-mode"],
   "defaults": { "timeout": 30, "base_url": "http://localhost:23373" },
   "output_modes": ["human", "json", "plain"],

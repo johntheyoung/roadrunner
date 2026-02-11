@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## v0.11.0 - 2026-02-11
+
 ### Added
 - Attachment metadata override flags on `rr messages send`:
   `--attachment-file-name`, `--attachment-mime-type`, `--attachment-type`,
@@ -15,6 +17,10 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - `messages send` now supports richer attachment payload metadata beyond upload ID.
 - Shell completion includes new attachment override and pagination flags.
+
+### Fixed
+- Added command-level integration tests for auto-pagination loops in
+  `chats list/search` and `messages list/search`.
 
 ## v0.10.0 - 2026-02-11
 

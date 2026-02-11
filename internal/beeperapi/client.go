@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	beeperdesktopapi "github.com/beeper/desktop-api-go"
@@ -15,6 +16,10 @@ type Client struct {
 	SDK     *beeperdesktopapi.Client
 	baseURL string
 	timeout time.Duration
+
+	accountNetworksMu     sync.Mutex
+	accountNetworks       map[string]string
+	accountNetworksLoaded bool
 }
 
 // NewClient creates a new Beeper API client.

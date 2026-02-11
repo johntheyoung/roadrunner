@@ -3,9 +3,12 @@ package beeperapi
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 
 	beeperdesktopapi "github.com/beeper/desktop-api-go"
+	"github.com/beeper/desktop-api-go/option"
 )
 
 // AssetsService handles asset operations.
@@ -39,6 +42,13 @@ type AssetUploadResult struct {
 	Height   int     `json:"height,omitempty"`
 }
 
+// AssetServeResult represents streamed response metadata.
+type AssetServeResult struct {
+	ContentType   string `json:"content_type,omitempty"`
+	ContentLength int64  `json:"content_length,omitempty"`
+	BytesWritten  int64  `json:"bytes_written"`
+}
+
 // Download retrieves a local file URL for an asset.
 func (s *AssetsService) Download(ctx context.Context, url string) (string, error) {
 	ctx, cancel := s.client.contextWithTimeout(ctx)
@@ -57,6 +67,45 @@ func (s *AssetsService) Download(ctx context.Context, url string) (string, error
 		return "", fmt.Errorf("empty src_url in response")
 	}
 	return resp.SrcURL, nil
+}
+
+// Serve streams an asset response to the provided writer.
+func (s *AssetsService) Serve(ctx context.Context, url string, dst io.Writer) (AssetServeResult, error) {
+	if dst == nil {
+		return AssetServeResult{}, fmt.Errorf("serve failed: destination writer is nil")
+	}
+
+	ctx, cancel := s.client.contextWithTimeout(ctx)
+	defer cancel()
+
+	var resp *http.Response
+	if err := s.client.SDK.Get(
+		ctx,
+		"v1/assets/serve",
+		beeperdesktopapi.AssetServeParams{URL: url},
+		nil,
+		option.WithHeader("Accept", "*/*"),
+		option.WithResponseInto(&resp),
+	); err != nil {
+		return AssetServeResult{}, err
+	}
+	if resp == nil || resp.Body == nil {
+		return AssetServeResult{}, fmt.Errorf("serve failed: empty response body")
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	n, err := io.Copy(dst, resp.Body)
+	if err != nil {
+		return AssetServeResult{}, fmt.Errorf("stream asset: %w", err)
+	}
+
+	return AssetServeResult{
+		ContentType:   resp.Header.Get("Content-Type"),
+		ContentLength: resp.ContentLength,
+		BytesWritten:  n,
+	}, nil
 }
 
 // Upload stores a local file in temporary upload storage and returns an upload ID.

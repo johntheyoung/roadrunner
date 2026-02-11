@@ -20,6 +20,7 @@ import (
 // AssetsCmd is the parent command for asset subcommands.
 type AssetsCmd struct {
 	Download     AssetsDownloadCmd     `cmd:"" help:"Download an asset by mxc:// URL"`
+	Serve        AssetsServeCmd        `cmd:"" help:"Stream an asset by URL (raw bytes)"`
 	Upload       AssetsUploadCmd       `cmd:"" help:"Upload an asset and return upload ID"`
 	UploadBase64 AssetsUploadBase64Cmd `cmd:"" name:"upload-base64" help:"Upload base64 data and return upload ID"`
 }
@@ -28,6 +29,13 @@ type AssetsCmd struct {
 type AssetsDownloadCmd struct {
 	URL  string `arg:"" name:"url" help:"Matrix content URL (mxc:// or localmxc://)"`
 	Dest string `help:"Destination file or directory (optional)" name:"dest"`
+}
+
+// AssetsServeCmd streams an asset by URL.
+type AssetsServeCmd struct {
+	URL    string `arg:"" name:"url" help:"Asset URL to stream (mxc://, localmxc://, or file://)"`
+	Dest   string `help:"Destination file path (writes raw bytes to file)" name:"dest"`
+	Stdout bool   `help:"Force writing raw bytes to stdout (even on a terminal)" name:"stdout"`
 }
 
 // AssetsUploadCmd uploads a local file.
@@ -105,6 +113,93 @@ func (c *AssetsDownloadCmd) Run(ctx context.Context, flags *RootFlags) error {
 		u.Out().Successf("Saved to %s", destPath)
 	} else {
 		u.Out().Successf("Downloaded to %s", srcURL)
+	}
+
+	return nil
+}
+
+// Run executes the assets serve command.
+func (c *AssetsServeCmd) Run(ctx context.Context, flags *RootFlags) error {
+	u := ui.FromContext(ctx)
+
+	if c.URL == "" {
+		return errfmt.UsageError("asset URL is required")
+	}
+	if c.Dest != "" && c.Stdout {
+		return errfmt.UsageError("cannot use --dest with --stdout")
+	}
+	if outfmt.IsJSON(ctx) || outfmt.IsPlain(ctx) {
+		if c.Dest == "" {
+			return errfmt.UsageError("--dest is required with --json or --plain for assets serve")
+		}
+		if c.Stdout {
+			return errfmt.UsageError("--stdout cannot be used with --json or --plain")
+		}
+	}
+
+	writeToStdout := c.Stdout || c.Dest == ""
+	if writeToStdout && !c.Stdout && stdoutIsTerminal() {
+		return errfmt.UsageError("refusing to write binary data to terminal stdout; use --dest or --stdout")
+	}
+
+	token, _, err := config.GetToken()
+	if err != nil {
+		return err
+	}
+
+	timeout := time.Duration(flags.Timeout) * time.Second
+	client, err := beeperapi.NewClient(token, flags.BaseURL, timeout)
+	if err != nil {
+		return err
+	}
+
+	var writer io.Writer
+	var outFile *os.File
+	if writeToStdout {
+		writer = os.Stdout
+	} else {
+		if err := os.MkdirAll(filepath.Dir(c.Dest), 0755); err != nil {
+			return fmt.Errorf("create dir: %w", err)
+		}
+		f, err := os.Create(c.Dest)
+		if err != nil {
+			return fmt.Errorf("create %s: %w", c.Dest, err)
+		}
+		outFile = f
+		writer = f
+	}
+
+	serve, err := client.Assets().Serve(ctx, c.URL, writer)
+	if outFile != nil {
+		_ = outFile.Close()
+	}
+	if err != nil {
+		return err
+	}
+
+	if writeToStdout {
+		return nil
+	}
+
+	if outfmt.IsJSON(ctx) {
+		return writeJSON(ctx, map[string]any{
+			"url":            c.URL,
+			"dest":           c.Dest,
+			"content_type":   serve.ContentType,
+			"content_length": serve.ContentLength,
+			"bytes_written":  serve.BytesWritten,
+		}, "assets serve")
+	}
+
+	if outfmt.IsPlain(ctx) {
+		u.Out().Printf("%s\t%d\t%s", c.Dest, serve.BytesWritten, serve.ContentType)
+		return nil
+	}
+
+	u.Out().Successf("Streamed to %s", c.Dest)
+	u.Out().Printf("Bytes: %d", serve.BytesWritten)
+	if serve.ContentType != "" {
+		u.Out().Printf("Content-Type: %s", serve.ContentType)
 	}
 
 	return nil
@@ -288,4 +383,12 @@ func copyAsset(srcURL string, dest string) error {
 	}
 
 	return nil
+}
+
+func stdoutIsTerminal() bool {
+	info, err := os.Stdout.Stat()
+	if err != nil {
+		return false
+	}
+	return info.Mode()&os.ModeCharDevice != 0
 }

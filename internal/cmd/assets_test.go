@@ -1,13 +1,19 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/johntheyoung/roadrunner/internal/errfmt"
+	"github.com/johntheyoung/roadrunner/internal/outfmt"
+	"github.com/johntheyoung/roadrunner/internal/ui"
 )
 
 func TestAssetsDownloadDestination(t *testing.T) {
@@ -130,5 +136,159 @@ func TestAssetsUploadBase64SourceConflict(t *testing.T) {
 	}
 	if exitErr.Code != errfmt.ExitUsageError {
 		t.Fatalf("exit code = %d, want %d", exitErr.Code, errfmt.ExitUsageError)
+	}
+}
+
+func TestAssetsServeRequiresURL(t *testing.T) {
+	cmd := AssetsServeCmd{}
+	err := cmd.Run(context.Background(), &RootFlags{})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	var exitErr *errfmt.ExitError
+	if !errors.As(err, &exitErr) {
+		t.Fatalf("error = %T, want *errfmt.ExitError", err)
+	}
+	if exitErr.Code != errfmt.ExitUsageError {
+		t.Fatalf("exit code = %d, want %d", exitErr.Code, errfmt.ExitUsageError)
+	}
+}
+
+func TestAssetsServeRejectsDestWithStdout(t *testing.T) {
+	cmd := AssetsServeCmd{
+		URL:    "mxc://beeper.local/abc",
+		Dest:   "out.bin",
+		Stdout: true,
+	}
+	err := cmd.Run(context.Background(), &RootFlags{})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	var exitErr *errfmt.ExitError
+	if !errors.As(err, &exitErr) {
+		t.Fatalf("error = %T, want *errfmt.ExitError", err)
+	}
+	if exitErr.Code != errfmt.ExitUsageError {
+		t.Fatalf("exit code = %d, want %d", exitErr.Code, errfmt.ExitUsageError)
+	}
+}
+
+func TestAssetsServeJSONRequiresDest(t *testing.T) {
+	testUI, err := ui.New(ui.Options{Color: "never"})
+	if err != nil {
+		t.Fatalf("ui.New() error = %v", err)
+	}
+	ctx := ui.WithUI(context.Background(), testUI)
+	ctx = outfmt.WithMode(ctx, outfmt.Mode{JSON: true})
+
+	cmd := AssetsServeCmd{
+		URL: "mxc://beeper.local/abc",
+	}
+	err = cmd.Run(ctx, &RootFlags{})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	var exitErr *errfmt.ExitError
+	if !errors.As(err, &exitErr) {
+		t.Fatalf("error = %T, want *errfmt.ExitError", err)
+	}
+	if exitErr.Code != errfmt.ExitUsageError {
+		t.Fatalf("exit code = %d, want %d", exitErr.Code, errfmt.ExitUsageError)
+	}
+}
+
+func TestAssetsServeStreamsToStdoutByDefault(t *testing.T) {
+	t.Setenv("BEEPER_TOKEN", "test-token")
+	t.Setenv("BEEPER_ACCESS_TOKEN", "")
+
+	const body = "streamed-binary"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/v1/assets/serve" {
+			http.NotFound(w, r)
+			return
+		}
+		if got := r.URL.Query().Get("url"); got != "mxc://beeper.local/abc" {
+			http.Error(w, "bad url query", http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/octet-stream")
+		_, _ = w.Write([]byte(body))
+	}))
+	defer server.Close()
+
+	out, _ := captureOutput(t, func() {
+		testUI, err := ui.New(ui.Options{Color: "never"})
+		if err != nil {
+			t.Fatalf("ui.New() error = %v", err)
+		}
+		ctx := ui.WithUI(context.Background(), testUI)
+		cmd := AssetsServeCmd{
+			URL: "mxc://beeper.local/abc",
+		}
+		if err := cmd.Run(ctx, &RootFlags{
+			BaseURL: server.URL,
+			Timeout: 5,
+		}); err != nil {
+			t.Fatalf("Run() error = %v", err)
+		}
+	})
+
+	if out != body {
+		t.Fatalf("stdout = %q, want %q", out, body)
+	}
+}
+
+func TestAssetsServeWritesDestAndJSONMetadata(t *testing.T) {
+	t.Setenv("BEEPER_TOKEN", "test-token")
+	t.Setenv("BEEPER_ACCESS_TOKEN", "")
+
+	payload := []byte{0x00, 0x01, 0x02, 0x03}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/v1/assets/serve" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/octet-stream")
+		_, _ = w.Write(payload)
+	}))
+	defer server.Close()
+
+	dest := filepath.Join(t.TempDir(), "asset.bin")
+	out, _ := captureOutput(t, func() {
+		testUI, err := ui.New(ui.Options{Color: "never"})
+		if err != nil {
+			t.Fatalf("ui.New() error = %v", err)
+		}
+		ctx := ui.WithUI(context.Background(), testUI)
+		ctx = outfmt.WithMode(ctx, outfmt.Mode{JSON: true})
+		cmd := AssetsServeCmd{
+			URL:  "mxc://beeper.local/abc",
+			Dest: dest,
+		}
+		if err := cmd.Run(ctx, &RootFlags{
+			BaseURL: server.URL,
+			Timeout: 5,
+		}); err != nil {
+			t.Fatalf("Run() error = %v", err)
+		}
+	})
+
+	gotFile, err := os.ReadFile(dest)
+	if err != nil {
+		t.Fatalf("read dest file: %v", err)
+	}
+	if !bytes.Equal(gotFile, payload) {
+		t.Fatalf("dest bytes = %v, want %v", gotFile, payload)
+	}
+
+	var envelope map[string]any
+	if err := json.Unmarshal([]byte(out), &envelope); err != nil {
+		t.Fatalf("unmarshal output: %v\noutput: %s", err, out)
+	}
+	if envelope["dest"] != dest {
+		t.Fatalf("json dest = %#v, want %q", envelope["dest"], dest)
+	}
+	if envelope["bytes_written"] != float64(len(payload)) {
+		t.Fatalf("json bytes_written = %#v, want %d", envelope["bytes_written"], len(payload))
 	}
 }

@@ -38,7 +38,7 @@ _rr_completions() {
     accounts_cmds="list alias"
     accounts_alias_cmds="set list unset"
     contacts_cmds="search resolve"
-    assets_cmds="download upload upload-base64"
+    assets_cmds="download serve upload upload-base64"
     chats_cmds="list search resolve get create archive"
     messages_cmds="list search send send-file edit tail wait context"
     reminders_cmds="set clear"
@@ -142,6 +142,7 @@ _rr() {
     local -a assets_cmds
     assets_cmds=(
         'download:Download an asset by mxc:// URL'
+        'serve:Stream an asset by URL (raw bytes)'
         'upload:Upload an asset and return upload ID'
         'upload-base64:Upload base64 data and return upload ID'
     )
@@ -268,8 +269,13 @@ complete -c rr -n '__fish_seen_subcommand_from contacts' -a 'resolve' -d 'Resolv
 
 # assets subcommands
 complete -c rr -n '__fish_seen_subcommand_from assets' -a 'download' -d 'Download an asset by mxc:// URL'
+complete -c rr -n '__fish_seen_subcommand_from assets' -a 'serve' -d 'Stream an asset by URL (raw bytes)'
 complete -c rr -n '__fish_seen_subcommand_from assets' -a 'upload' -d 'Upload an asset and return upload ID'
 complete -c rr -n '__fish_seen_subcommand_from assets' -a 'upload-base64' -d 'Upload base64 data and return upload ID'
+
+# assets serve flags
+complete -c rr -n '__fish_seen_subcommand_from assets; and __fish_seen_subcommand_from serve' -l dest -d 'Destination file path (writes raw bytes to file)'
+complete -c rr -n '__fish_seen_subcommand_from assets; and __fish_seen_subcommand_from serve' -l stdout -d 'Force writing raw bytes to stdout (even on a terminal)'
 
 # accounts alias subcommands
 complete -c rr -n '__fish_seen_subcommand_from accounts; and __fish_seen_subcommand_from alias' -a 'set' -d 'Create or update an account alias'

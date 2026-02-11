@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
 - `rr messages send-file` now supports `--reply-to` and attachment override flags
   (`--attachment-file-name`, `--attachment-mime-type`, `--attachment-type`,
   `--attachment-duration`, `--attachment-width`, `--attachment-height`).
+- `rr assets serve` to stream raw asset bytes from `mxc://`, `localmxc://`,
+  or `file://` URLs (stdout by default, `--dest` for file output).
 
 ### Changed
 - Refreshed skill documentation (`SKILL.md` and `skill/SKILL.md`) for v0.10.0/v0.11.0 features:

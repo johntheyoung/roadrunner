@@ -94,6 +94,7 @@ Common commands
 - Draft message from file: `rr focus --chat-id="!chatid:beeper.com" --draft-text-file ./draft.txt`
 - Draft with attachment: `rr focus --chat-id="!chatid:beeper.com" --draft-attachment="/path/to/file.jpg"`
 - Download attachment: `rr assets download "mxc://example.org/abc123" --dest "./attachment.jpg"`
+- Stream attachment bytes: `rr assets serve "mxc://example.org/abc123" --dest "./attachment.jpg" --json`
 - Upload attachment file: `rr assets upload ./photo.jpg`
 - Upload base64 attachment: `rr assets upload-base64 --content-file ./photo.b64 --file-name photo.jpg --mime-type image/jpeg`
 - Reminders: `rr reminders set "!chatid:beeper.com" "2h"` / `rr reminders clear "!chatid:beeper.com"`
@@ -127,6 +128,7 @@ Notes
 - Message JSON includes `is_sender`, `is_unread`, `attachments`, and `reactions`.
 - `downloaded_attachments` is only populated when `--download-media` is used.
 - `rr messages send` returns `pending_message_id` (temporary ID).
+- `rr assets serve` writes raw bytes to stdout unless `--dest` is provided.
 - Attachment overrides require `--attachment-upload-id`; set `--attachment-width` and `--attachment-height` together.
 - `--all` has a safety cap (default 500 items, max 5000); use `--max-items` to tune it.
 - Prefer `--json` (and `--no-input`) for automation.

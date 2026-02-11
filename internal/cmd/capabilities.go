@@ -48,6 +48,7 @@ func readCommands() []string {
 		"accounts list",
 		"accounts alias list",
 		"assets download",
+		"assets serve",
 		"auth status",
 		"chats get",
 		"chats list",

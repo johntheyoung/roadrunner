@@ -21,6 +21,7 @@
 - `rr messages send-file` performs upload + send in one command.
 - `rr messages edit` calls `/v1/chats/{chatID}/messages/edit`.
 - Attachment override fields (`file_name`, `mime_type`, `type`, `duration`, `size`) are sent only when an `upload_id` is provided.
+- `rr assets serve` streams `/v1/assets/serve` bytes for `mxc://`, `localmxc://`, or `file://` URLs.
 
 ## Pagination
 

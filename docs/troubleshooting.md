@@ -30,3 +30,9 @@
 - `--attachment-width` and `--attachment-height` must be provided together.
 - `rr messages send` requires either message text or `--attachment-upload-id`.
 - `rr search --messages-max-items` requires `--messages-all`.
+
+## assets serve output mode errors
+
+- `rr assets serve --json` and `rr assets serve --plain` require `--dest`.
+- Without `--dest`, `assets serve` streams raw bytes to stdout.
+- To intentionally stream to an interactive terminal, pass `--stdout`.

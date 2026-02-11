@@ -5,7 +5,7 @@
 - **Chats** — list, search, resolve, get, create, archive conversations
 - **Contacts** — search and resolve contacts on an account
 - **Messages** — list, search, send, edit, reply, tail (polling), wait, and context
-- **Assets** — download, upload, and base64 upload for attachments
+- **Assets** — download, serve (stream), upload, and base64 upload for attachments
 - **Search** — global search across all chats and messages
 - **Unread** — roll up unread chats across accounts
 - **Status** — unread and chat summary (optional per-account)
@@ -204,6 +204,12 @@ rr messages list '!roomid:beeper.local' --download-media --download-dir ./media
 ```bash
 # Download an attachment by mxc:// URL
 rr assets download "mxc://beeper.local/abc123" --dest "./attachment.jpg"
+
+# Stream raw bytes to stdout (pipe to another tool)
+rr assets serve "mxc://beeper.local/abc123" > ./attachment.jpg
+
+# Stream to a destination file with metadata output
+rr assets serve "mxc://beeper.local/abc123" --dest "./attachment.jpg" --json
 
 # Upload a local file and get an upload_id
 rr assets upload ./photo.jpg

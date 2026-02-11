@@ -809,13 +809,20 @@ type MessagesSendCmd struct {
 
 // MessagesSendFileCmd uploads a file and sends it as an attachment.
 type MessagesSendFileCmd struct {
-	ChatID   string `arg:"" name:"chatID" help:"Chat ID to send message to"`
-	FilePath string `arg:"" name:"path" help:"Path to the file to upload and send"`
-	Text     string `arg:"" optional:"" help:"Optional message text"`
-	TextFile string `help:"Read message text from file ('-' for stdin)" name:"text-file"`
-	Stdin    bool   `help:"Read message text from stdin" name:"stdin"`
-	FileName string `help:"Filename to send in upload metadata (optional)" name:"file-name"`
-	MimeType string `help:"MIME type override for upload (optional)" name:"mime-type"`
+	ChatID             string `arg:"" name:"chatID" help:"Chat ID to send message to"`
+	FilePath           string `arg:"" name:"path" help:"Path to the file to upload and send"`
+	Text               string `arg:"" optional:"" help:"Optional message text"`
+	ReplyToMessageID   string `help:"Message ID to reply to" name:"reply-to"`
+	TextFile           string `help:"Read message text from file ('-' for stdin)" name:"text-file"`
+	Stdin              bool   `help:"Read message text from stdin" name:"stdin"`
+	FileName           string `help:"Filename to send in upload metadata (optional)" name:"file-name"`
+	MimeType           string `help:"MIME type override for upload (optional)" name:"mime-type"`
+	AttachmentFileName string `help:"Filename override for attachment metadata" name:"attachment-file-name"`
+	AttachmentMimeType string `help:"MIME type override for attachment metadata" name:"attachment-mime-type"`
+	AttachmentType     string `help:"Attachment type override: gif|voiceNote|sticker" name:"attachment-type" enum:"gif,voiceNote,sticker," default:""`
+	AttachmentDuration string `help:"Attachment duration override in seconds" name:"attachment-duration"`
+	AttachmentWidth    string `help:"Attachment width override in pixels (requires --attachment-height)" name:"attachment-width"`
+	AttachmentHeight   string `help:"Attachment height override in pixels (requires --attachment-width)" name:"attachment-height"`
 }
 
 // Run executes the messages send command.
@@ -920,6 +927,21 @@ func (c *MessagesSendFileCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if err != nil {
 		return err
 	}
+	attachmentDuration, err := parseOptionalFloatFlag(c.AttachmentDuration, "--attachment-duration")
+	if err != nil {
+		return err
+	}
+	attachmentWidth, err := parseOptionalFloatFlag(c.AttachmentWidth, "--attachment-width")
+	if err != nil {
+		return err
+	}
+	attachmentHeight, err := parseOptionalFloatFlag(c.AttachmentHeight, "--attachment-height")
+	if err != nil {
+		return err
+	}
+	if err := validateAttachmentSize(attachmentWidth, attachmentHeight); err != nil {
+		return err
+	}
 
 	token, _, err := config.GetToken()
 	if err != nil {
@@ -945,9 +967,16 @@ func (c *MessagesSendFileCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 
 	resp, err := client.Messages().Send(ctx, chatID, beeperapi.SendParams{
-		Text: text,
+		Text:             text,
+		ReplyToMessageID: c.ReplyToMessageID,
 		Attachment: &beeperapi.SendAttachmentParams{
 			UploadID: upload.UploadID,
+			FileName: c.AttachmentFileName,
+			MimeType: c.AttachmentMimeType,
+			Type:     c.AttachmentType,
+			Duration: attachmentDuration,
+			Width:    attachmentWidth,
+			Height:   attachmentHeight,
 		},
 	})
 	if err != nil {

@@ -295,3 +295,109 @@ func TestMessagesSearchAllAutoPaginationWithCap(t *testing.T) {
 		t.Fatalf("request count = %d, want 1 because --max-items capped first page", requestCount)
 	}
 }
+
+func TestSearchMessagesAllAutoPaginationWithCap(t *testing.T) {
+	t.Setenv("BEEPER_TOKEN", "test-token")
+	t.Setenv("BEEPER_ACCESS_TOKEN", "")
+
+	searchRequestCount := 0
+	messageSearchRequestCount := 0
+	accountsRequestCount := 0
+	cursorValues := make([]string, 0, 2)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v1/accounts":
+			accountsRequestCount++
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[{"accountID":"acc1","network":"WhatsApp","user":{"id":"u1"}}]`))
+		case "/v1/search":
+			searchRequestCount++
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{
+				"results": {
+					"chats": [],
+					"in_groups": [],
+					"messages": {
+						"chats": {},
+						"hasMore": true,
+						"items": [],
+						"oldestCursor": "c1",
+						"newestCursor": "n1"
+					}
+				}
+			}`))
+		case "/v1/messages/search":
+			messageSearchRequestCount++
+			cursor := r.URL.Query().Get("cursor")
+			cursorValues = append(cursorValues, cursor)
+			w.Header().Set("Content-Type", "application/json")
+			if cursor == "" {
+				_, _ = w.Write([]byte(`{
+					"items": [
+						{"id":"msg1","accountID":"acc1","chatID":"!room:beeper.local","senderID":"u1","sortKey":"s1","timestamp":"2026-02-11T00:00:00Z","text":"one"},
+						{"id":"msg2","accountID":"acc1","chatID":"!room:beeper.local","senderID":"u1","sortKey":"s2","timestamp":"2026-02-11T00:01:00Z","text":"two"}
+					],
+					"hasMore": true,
+					"oldestCursor": "c1",
+					"newestCursor": "n1"
+				}`))
+				return
+			}
+			if cursor != "c1" {
+				http.Error(w, "bad cursor", http.StatusBadRequest)
+				return
+			}
+			_, _ = w.Write([]byte(`{
+				"items": [
+					{"id":"msg3","accountID":"acc1","chatID":"!room:beeper.local","senderID":"u1","sortKey":"s3","timestamp":"2026-02-11T00:02:00Z","text":"three"},
+					{"id":"msg4","accountID":"acc1","chatID":"!room:beeper.local","senderID":"u1","sortKey":"s4","timestamp":"2026-02-11T00:03:00Z","text":"four"}
+				],
+				"hasMore": true,
+				"oldestCursor": "c2",
+				"newestCursor": "n2"
+			}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	ctx := testJSONContext(t)
+	cmd := SearchCmd{
+		Query:            "deploy",
+		MessagesAll:      true,
+		MessagesLimit:    2,
+		MessagesMaxItems: 3,
+	}
+	out, _ := captureOutput(t, func() {
+		if err := cmd.Run(ctx, &RootFlags{BaseURL: server.URL, Timeout: 5}); err != nil {
+			t.Fatalf("Run() error = %v", err)
+		}
+	})
+
+	var resp beeperapi.SearchResult
+	if err := json.Unmarshal([]byte(strings.TrimSpace(out)), &resp); err != nil {
+		t.Fatalf("unmarshal output: %v\noutput: %s", err, out)
+	}
+	if len(resp.Messages.Items) != 3 {
+		t.Fatalf("items len = %d, want 3", len(resp.Messages.Items))
+	}
+	if !resp.Messages.HasMore {
+		t.Fatalf("has_more = %t, want true due to cap", resp.Messages.HasMore)
+	}
+	if resp.Messages.OldestCursor != "c2" {
+		t.Fatalf("oldest cursor = %q, want %q", resp.Messages.OldestCursor, "c2")
+	}
+	if searchRequestCount != 1 {
+		t.Fatalf("search request count = %d, want 1", searchRequestCount)
+	}
+	if messageSearchRequestCount != 2 {
+		t.Fatalf("message search request count = %d, want 2", messageSearchRequestCount)
+	}
+	if accountsRequestCount != 1 {
+		t.Fatalf("accounts request count = %d, want 1", accountsRequestCount)
+	}
+	if len(cursorValues) != 2 || cursorValues[0] != "" || cursorValues[1] != "c1" {
+		t.Fatalf("unexpected cursor sequence: %#v", cursorValues)
+	}
+}

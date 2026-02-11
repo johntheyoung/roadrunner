@@ -159,6 +159,14 @@ rr messages send '!roomid:beeper.local' --attachment-upload-id "$UPLOAD_ID" \
 # Upload and send in one command
 rr messages send-file '!roomid:beeper.local' ./photo.jpg "See attached"
 
+# Upload + send with reply target and attachment overrides
+rr messages send-file '!roomid:beeper.local' ./clip.mp4 "see this" \
+  --reply-to "<message-id>" \
+  --attachment-type gif \
+  --attachment-duration 1.5 \
+  --attachment-width 1200 \
+  --attachment-height 900
+
 # Edit a message
 rr messages edit '!roomid:beeper.local' "<message-id>" "Updated text"
 
@@ -214,6 +222,9 @@ rr search "dinner plans"
 # Paginate message results (max 20 per page)
 rr search "project" --messages-limit=20
 rr search "project" --messages-cursor="<cursor>" --messages-direction=before
+
+# Auto-page message results with a safety cap
+rr search "project" --messages-all --messages-max-items=500 --messages-limit=20
 ```
 
 Global search returns matching chats, messages, and an "In Groups" section for participant name matches.

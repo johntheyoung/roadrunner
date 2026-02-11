@@ -84,6 +84,7 @@ Common commands
 - Send attachment by upload ID: `rr messages send "!chatid:beeper.com" --attachment-upload-id "<upload-id>"`
 - Send attachment with metadata overrides: `rr messages send "!chatid:beeper.com" --attachment-upload-id "<upload-id>" --attachment-file-name photo.jpg --attachment-mime-type image/jpeg --attachment-type gif --attachment-width 1200 --attachment-height 900`
 - Upload and send file in one step: `rr messages send-file "!chatid:beeper.com" ./photo.jpg "See attached"`
+- Upload+send with reply/metadata overrides: `rr messages send-file "!chatid:beeper.com" ./clip.mp4 "see this" --reply-to "<message-id>" --attachment-type gif --attachment-duration 1.5 --attachment-width 1200 --attachment-height 900`
 - Edit message text: `rr messages edit "!chatid:beeper.com" "<message-id>" "Updated text"`
 - Edit from stdin: `cat edit.txt | rr messages edit "!chatid:beeper.com" "<message-id>" --stdin`
 - Tail messages (polling): `rr messages tail "!chatid:beeper.com" --interval 2s --stop-after 30s --json`
@@ -99,6 +100,7 @@ Common commands
 - Archive chat: `rr chats archive "!chatid:beeper.com"` / `rr chats archive "!chatid:beeper.com" --unarchive`
 - Focus app: `rr focus`
 - Global search: `rr search "dinner" --json`
+- Global search messages auto-page: `rr search "dinner" --messages-all --messages-max-items=500 --messages-limit=20 --json`
 - Status summary: `rr status --json`
 - Status by account: `rr status --by-account --json`
 - Unread rollup: `rr unread --json`

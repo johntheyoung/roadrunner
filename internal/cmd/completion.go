@@ -307,10 +307,17 @@ complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcomm
 complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send' -l attachment-height -d 'Attachment height override in pixels'
 
 # messages send-file flags
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send-file' -l reply-to -d 'Message ID to reply to'
 complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send-file' -l text-file -d 'Read message text from file'
 complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send-file' -l stdin -d 'Read message text from stdin'
 complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send-file' -l file-name -d 'Filename override for upload metadata'
 complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send-file' -l mime-type -d 'MIME type override for upload metadata'
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send-file' -l attachment-file-name -d 'Filename override for attachment metadata'
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send-file' -l attachment-mime-type -d 'MIME type override for attachment metadata'
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send-file' -l attachment-type -d 'Attachment type override: gif|voiceNote|sticker'
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send-file' -l attachment-duration -d 'Attachment duration override in seconds'
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send-file' -l attachment-width -d 'Attachment width override in pixels'
+complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from send-file' -l attachment-height -d 'Attachment height override in pixels'
 
 # assets upload flags
 complete -c rr -n '__fish_seen_subcommand_from assets; and __fish_seen_subcommand_from upload' -l file-name -d 'Filename override for upload metadata'
@@ -336,6 +343,13 @@ complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcomm
 complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from list' -l max-items -d 'Maximum items to collect with --all'
 complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from search' -l all -d 'Fetch all pages automatically'
 complete -c rr -n '__fish_seen_subcommand_from messages; and __fish_seen_subcommand_from search' -l max-items -d 'Maximum items to collect with --all'
+
+# global search message pagination flags
+complete -c rr -n '__fish_seen_subcommand_from search' -l messages-cursor -d 'Cursor for message results pagination'
+complete -c rr -n '__fish_seen_subcommand_from search' -l messages-direction -d 'Pagination direction for message results: before|after'
+complete -c rr -n '__fish_seen_subcommand_from search' -l messages-limit -d 'Max messages per page when paging (1-20)'
+complete -c rr -n '__fish_seen_subcommand_from search' -l messages-all -d 'Fetch all message pages automatically'
+complete -c rr -n '__fish_seen_subcommand_from search' -l messages-max-items -d 'Maximum message items to collect with --messages-all'
 
 # reminders subcommands
 complete -c rr -n '__fish_seen_subcommand_from reminders' -a 'set' -d 'Set a reminder for a chat'

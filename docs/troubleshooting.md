@@ -29,3 +29,4 @@
 - `--attachment-upload-id` is required when using attachment metadata override flags.
 - `--attachment-width` and `--attachment-height` must be provided together.
 - `rr messages send` requires either message text or `--attachment-upload-id`.
+- `rr search --messages-max-items` requires `--messages-all`.

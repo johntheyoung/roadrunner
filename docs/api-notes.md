@@ -28,3 +28,4 @@
 - Messages list uses the last item's `sortKey` as the cursor.
 - Message search returns `oldestCursor`/`newestCursor` for paging.
 - `--all` auto-fetches pages client-side with a safety cap (default 500, max 5000 via `--max-items`).
+- `rr search --messages-all` auto-pages global search message results using `--messages-cursor` semantics with a separate cap via `--messages-max-items`.

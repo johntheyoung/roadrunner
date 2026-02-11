@@ -20,6 +20,8 @@ type SearchCmd struct {
 	MessagesCursor    string   `help:"Cursor for message results pagination" name:"messages-cursor"`
 	MessagesDirection string   `help:"Pagination direction for message results: before|after" name:"messages-direction" enum:"before,after," default:""`
 	MessagesLimit     int      `help:"Max messages per page when paging (1-20)" name:"messages-limit" default:"0"`
+	MessagesAll       bool     `help:"Fetch all message pages automatically" name:"messages-all"`
+	MessagesMaxItems  int      `help:"Maximum message items to collect with --messages-all (default 500, max 5000)" name:"messages-max-items" default:"0"`
 	FailIfEmpty       bool     `help:"Exit with code 1 if no results" name:"fail-if-empty"`
 	Fields            []string `help:"Comma-separated list of fields for --plain output" name:"fields" sep:","`
 }
@@ -27,6 +29,17 @@ type SearchCmd struct {
 // Run executes the search command.
 func (c *SearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
+	if c.MessagesLimit < 0 || c.MessagesLimit > 20 {
+		return errfmt.UsageError("invalid --messages-limit %d (expected 0-20)", c.MessagesLimit)
+	}
+	autoPageLimit, err := resolveAutoPageLimitNamed(c.MessagesAll, c.MessagesMaxItems, "--messages-all", "--messages-max-items")
+	if err != nil {
+		return err
+	}
+	effectiveMessagesLimit := c.MessagesLimit
+	if c.MessagesAll && effectiveMessagesLimit == 0 {
+		effectiveMessagesLimit = 20
+	}
 
 	token, _, err := config.GetToken()
 	if err != nil {
@@ -39,18 +52,57 @@ func (c *SearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
-	if c.MessagesLimit < 0 || c.MessagesLimit > 20 {
-		return errfmt.UsageError("invalid --messages-limit %d (expected 1-20)", c.MessagesLimit)
-	}
-
 	resp, err := client.Search(ctx, beeperapi.SearchParams{
 		Query:             c.Query,
 		MessagesCursor:    c.MessagesCursor,
 		MessagesDirection: c.MessagesDirection,
-		MessagesLimit:     c.MessagesLimit,
+		MessagesLimit:     effectiveMessagesLimit,
 	})
 	if err != nil {
 		return err
+	}
+	capped := false
+	if c.MessagesAll {
+		items := make([]beeperapi.MessageItem, 0, len(resp.Messages.Items))
+		items = append(items, resp.Messages.Items...)
+		lastCursor := c.MessagesCursor
+		for resp.Messages.HasMore {
+			if limitReached(len(items), autoPageLimit) {
+				capped = true
+				break
+			}
+
+			nextCursor := nextSearchCursor(c.MessagesDirection, resp.Messages.OldestCursor, resp.Messages.NewestCursor)
+			if nextCursor == "" || nextCursor == lastCursor {
+				break
+			}
+			lastCursor = nextCursor
+
+			page, err := client.Messages().Search(ctx, beeperapi.MessageSearchParams{
+				Query:     c.Query,
+				Cursor:    nextCursor,
+				Direction: c.MessagesDirection,
+				Limit:     effectiveMessagesLimit,
+			})
+			if err != nil {
+				return err
+			}
+
+			items = append(items, page.Items...)
+			resp.Messages.HasMore = page.HasMore
+			resp.Messages.OldestCursor = page.OldestCursor
+			resp.Messages.NewestCursor = page.NewestCursor
+		}
+		if limitReached(len(items), autoPageLimit) {
+			if len(items) > autoPageLimit {
+				items = items[:autoPageLimit]
+			}
+			capped = true
+		}
+		resp.Messages.Items = items
+		if capped {
+			resp.Messages.HasMore = true
+		}
 	}
 
 	resultCount := len(resp.Chats) + len(resp.InGroups) + len(resp.Messages.Items)
@@ -174,6 +226,9 @@ func (c *SearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 			} else {
 				u.Out().Dim("\nMore message results available. Use 'rr messages search' for pagination.")
 			}
+		}
+		if capped {
+			u.Out().Dim(autoPageStoppedMessageNamed(autoPageLimit, "--messages-max-items"))
 		}
 	}
 

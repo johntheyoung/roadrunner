@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Added
+- `rr search --messages-all --messages-max-items` to auto-page global search
+  message results with a safety cap.
+- `rr messages send-file` now supports `--reply-to` and attachment override flags
+  (`--attachment-file-name`, `--attachment-mime-type`, `--attachment-type`,
+  `--attachment-duration`, `--attachment-width`, `--attachment-height`).
+
 ### Changed
 - Refreshed skill documentation (`SKILL.md` and `skill/SKILL.md`) for v0.10.0/v0.11.0 features:
   message edit/send-file, asset upload/upload-base64, attachment send overrides,

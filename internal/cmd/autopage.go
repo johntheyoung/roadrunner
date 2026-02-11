@@ -12,9 +12,13 @@ const (
 )
 
 func resolveAutoPageLimit(all bool, maxItems int) (int, error) {
+	return resolveAutoPageLimitNamed(all, maxItems, "--all", "--max-items")
+}
+
+func resolveAutoPageLimitNamed(all bool, maxItems int, allFlagName, maxItemsFlagName string) (int, error) {
 	if !all {
 		if maxItems != 0 {
-			return 0, errfmt.UsageError("--max-items requires --all")
+			return 0, errfmt.UsageError("%s requires %s", maxItemsFlagName, allFlagName)
 		}
 		return 0, nil
 	}
@@ -23,7 +27,7 @@ func resolveAutoPageLimit(all bool, maxItems int) (int, error) {
 		return defaultAutoPageMaxItems, nil
 	}
 	if maxItems < 1 || maxItems > maxAutoPageItems {
-		return 0, errfmt.UsageError("invalid --max-items %d (expected 1-%d)", maxItems, maxAutoPageItems)
+		return 0, errfmt.UsageError("invalid %s %d (expected 1-%d)", maxItemsFlagName, maxItems, maxAutoPageItems)
 	}
 	return maxItems, nil
 }
@@ -82,5 +86,9 @@ func validateMaxParticipantCount(v int) error {
 }
 
 func autoPageStoppedMessage(limit int) string {
-	return fmt.Sprintf("Stopped after --max-items=%d. Narrow filters or increase --max-items to fetch more.", limit)
+	return autoPageStoppedMessageNamed(limit, "--max-items")
+}
+
+func autoPageStoppedMessageNamed(limit int, maxItemsFlagName string) string {
+	return fmt.Sprintf("Stopped after %s=%d. Narrow filters or increase %s to fetch more.", maxItemsFlagName, limit, maxItemsFlagName)
 }

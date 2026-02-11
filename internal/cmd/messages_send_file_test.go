@@ -38,6 +38,25 @@ func TestMessagesSendFileInputSourceConflict(t *testing.T) {
 	}
 }
 
+func TestMessagesSendFileAttachmentSizeRequiresBothDimensions(t *testing.T) {
+	cmd := MessagesSendFileCmd{
+		ChatID:          "!room:beeper.local",
+		FilePath:        "photo.jpg",
+		AttachmentWidth: "1200",
+	}
+	err := cmd.Run(context.Background(), &RootFlags{})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	var exitErr *errfmt.ExitError
+	if !errors.As(err, &exitErr) {
+		t.Fatalf("error = %T, want *errfmt.ExitError", err)
+	}
+	if exitErr.Code != errfmt.ExitUsageError {
+		t.Fatalf("exit code = %d, want %d", exitErr.Code, errfmt.ExitUsageError)
+	}
+}
+
 func TestMessagesSendFileUploadsThenSendsWithUploadID(t *testing.T) {
 	tmpDir := t.TempDir()
 	filePath := filepath.Join(tmpDir, "photo.jpg")
@@ -137,11 +156,18 @@ func TestMessagesSendFileUploadsThenSendsWithUploadID(t *testing.T) {
 
 	ctx := ui.WithUI(context.Background(), testUI)
 	cmd := MessagesSendFileCmd{
-		ChatID:   "chat-1",
-		FilePath: filePath,
-		Text:     "see attachment",
-		FileName: "renamed.jpg",
-		MimeType: "image/jpeg",
+		ChatID:             "chat-1",
+		FilePath:           filePath,
+		Text:               "see attachment",
+		ReplyToMessageID:   "msg-1",
+		FileName:           "renamed.jpg",
+		MimeType:           "image/jpeg",
+		AttachmentFileName: "photo-override.jpg",
+		AttachmentMimeType: "image/webp",
+		AttachmentType:     "gif",
+		AttachmentDuration: "1.5",
+		AttachmentWidth:    "1200",
+		AttachmentHeight:   "900",
 	}
 	if err := cmd.Run(ctx, &RootFlags{
 		BaseURL: server.URL,
@@ -169,5 +195,30 @@ func TestMessagesSendFileUploadsThenSendsWithUploadID(t *testing.T) {
 	}
 	if attachment["uploadID"] != "up_test_123" {
 		t.Fatalf("send attachment.uploadID payload = %#v, want %q", attachment["uploadID"], "up_test_123")
+	}
+	if sendPayload["replyToMessageID"] != "msg-1" {
+		t.Fatalf("send replyToMessageID payload = %#v, want %q", sendPayload["replyToMessageID"], "msg-1")
+	}
+	if attachment["fileName"] != "photo-override.jpg" {
+		t.Fatalf("send attachment.fileName payload = %#v, want %q", attachment["fileName"], "photo-override.jpg")
+	}
+	if attachment["mimeType"] != "image/webp" {
+		t.Fatalf("send attachment.mimeType payload = %#v, want %q", attachment["mimeType"], "image/webp")
+	}
+	if attachment["type"] != "gif" {
+		t.Fatalf("send attachment.type payload = %#v, want %q", attachment["type"], "gif")
+	}
+	if attachment["duration"] != 1.5 {
+		t.Fatalf("send attachment.duration payload = %#v, want %v", attachment["duration"], 1.5)
+	}
+	size, ok := attachment["size"].(map[string]any)
+	if !ok {
+		t.Fatalf("send attachment.size payload type = %T, want object", attachment["size"])
+	}
+	if size["width"] != 1200.0 {
+		t.Fatalf("send attachment.size.width payload = %#v, want %v", size["width"], 1200.0)
+	}
+	if size["height"] != 900.0 {
+		t.Fatalf("send attachment.size.height payload = %#v, want %v", size["height"], 900.0)
 	}
 }

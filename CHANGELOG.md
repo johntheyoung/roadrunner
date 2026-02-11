@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Changed
+- Refreshed skill documentation (`SKILL.md` and `skill/SKILL.md`) for v0.10.0/v0.11.0 features:
+  message edit/send-file, asset upload/upload-base64, attachment send overrides,
+  and safe auto-pagination flags.
+- Expanded skill metadata with Beeper config path and required environment variables.
+- Updated API and troubleshooting docs for upload/edit route behavior and attachment validation rules.
+
 ## v0.11.0 - 2026-02-11
 
 ### Added

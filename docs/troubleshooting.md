@@ -17,3 +17,15 @@
 - Destructive commands require confirmation.
 - In CI or scripts, pass `--force` explicitly.
 - `--no-input`/`BEEPER_NO_INPUT` disables prompts and will fail without `--force`.
+
+## Unsupported route errors for edit/upload commands
+
+- If you see `message editing is not supported` or `asset upload is not supported`,
+  your Beeper Desktop build is older than the required Desktop API routes.
+- Update Beeper Desktop and retry `rr doctor`, then re-run the command.
+
+## Attachment send validation errors
+
+- `--attachment-upload-id` is required when using attachment metadata override flags.
+- `--attachment-width` and `--attachment-height` must be provided together.
+- `rr messages send` requires either message text or `--attachment-upload-id`.

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	beeperdesktopapi "github.com/beeper/desktop-api-go"
@@ -118,4 +119,25 @@ func IsUnauthorized(err error) bool {
 		return apiErr.StatusCode == 401
 	}
 	return false
+}
+
+// IsUnsupportedRoute returns true when an API route appears unavailable on the
+// current Beeper Desktop API version.
+func IsUnsupportedRoute(err error, method, pathContains string) bool {
+	var apiErr *beeperdesktopapi.Error
+	if !errors.As(err, &apiErr) {
+		return false
+	}
+	if apiErr.StatusCode != http.StatusNotFound && apiErr.StatusCode != http.StatusMethodNotAllowed {
+		return false
+	}
+	if method != "" && (apiErr.Request == nil || !strings.EqualFold(apiErr.Request.Method, method)) {
+		return false
+	}
+	if pathContains != "" {
+		if apiErr.Request == nil || apiErr.Request.URL == nil || !strings.Contains(apiErr.Request.URL.Path, pathContains) {
+			return false
+		}
+	}
+	return true
 }

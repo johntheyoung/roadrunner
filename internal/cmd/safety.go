@@ -9,10 +9,13 @@ import (
 // dataWriteCommands are commands that modify data and should be blocked in --readonly mode.
 var dataWriteCommands = map[string]bool{
 	"messages send":        true,
+	"messages edit":        true,
 	"chats create":         true,
 	"chats archive":        true,
 	"reminders set":        true,
 	"reminders clear":      true,
+	"assets upload":        true,
+	"assets upload-base64": true,
 	"accounts alias set":   true,
 	"accounts alias unset": true,
 }

@@ -190,10 +190,22 @@ type SendParams struct {
 	ReplyToMessageID string
 }
 
+// EditParams configures message edit requests.
+type EditParams struct {
+	Text string
+}
+
 // SendResult is the response from sending a message.
 type SendResult struct {
 	ChatID           string `json:"chat_id"`
 	PendingMessageID string `json:"pending_message_id"`
+}
+
+// EditResult is the response from editing a message.
+type EditResult struct {
+	ChatID    string `json:"chat_id"`
+	MessageID string `json:"message_id"`
+	Success   bool   `json:"success"`
 }
 
 // Send sends a text message to a chat.
@@ -217,6 +229,26 @@ func (s *MessagesService) Send(ctx context.Context, chatID string, params SendPa
 	return SendResult{
 		ChatID:           resp.ChatID,
 		PendingMessageID: resp.PendingMessageID,
+	}, nil
+}
+
+// Edit updates the text content of an existing message.
+func (s *MessagesService) Edit(ctx context.Context, chatID, messageID string, params EditParams) (EditResult, error) {
+	ctx, cancel := s.client.contextWithTimeout(ctx)
+	defer cancel()
+
+	resp, err := s.client.SDK.Messages.Update(ctx, messageID, beeperdesktopapi.MessageUpdateParams{
+		ChatID: chatID,
+		Text:   params.Text,
+	})
+	if err != nil {
+		return EditResult{}, err
+	}
+
+	return EditResult{
+		ChatID:    resp.ChatID,
+		MessageID: resp.MessageID,
+		Success:   resp.Success,
 	}, nil
 }
 

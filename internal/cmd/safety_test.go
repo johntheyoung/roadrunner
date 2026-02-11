@@ -142,6 +142,12 @@ func TestCheckReadonly(t *testing.T) {
 			wantErr:  true,
 		},
 		{
+			name:     "readonly blocks messages edit",
+			readonly: true,
+			command:  "messages edit",
+			wantErr:  true,
+		},
+		{
 			name:     "readonly blocks chats create",
 			readonly: true,
 			command:  "chats create",
@@ -163,6 +169,18 @@ func TestCheckReadonly(t *testing.T) {
 			name:     "readonly blocks reminders clear",
 			readonly: true,
 			command:  "reminders clear",
+			wantErr:  true,
+		},
+		{
+			name:     "readonly blocks assets upload",
+			readonly: true,
+			command:  "assets upload",
+			wantErr:  true,
+		},
+		{
+			name:     "readonly blocks assets upload-base64",
+			readonly: true,
+			command:  "assets upload-base64",
 			wantErr:  true,
 		},
 		{
@@ -235,10 +253,13 @@ func TestDataWriteCommandsList(t *testing.T) {
 	// Check that it contains expected commands
 	expected := map[string]bool{
 		"messages send":        false,
+		"messages edit":        false,
 		"chats create":         false,
 		"chats archive":        false,
 		"reminders set":        false,
 		"reminders clear":      false,
+		"assets upload":        false,
+		"assets upload-base64": false,
 		"accounts alias set":   false,
 		"accounts alias unset": false,
 	}

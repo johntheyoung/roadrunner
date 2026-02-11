@@ -21,6 +21,7 @@ type MessagesCmd struct {
 	List    MessagesListCmd    `cmd:"" help:"List messages in a chat"`
 	Search  MessagesSearchCmd  `cmd:"" help:"Search messages"`
 	Send    MessagesSendCmd    `cmd:"" help:"Send a message to a chat"`
+	Edit    MessagesEditCmd    `cmd:"" help:"Edit a previously sent message"`
 	Tail    MessagesTailCmd    `cmd:"" help:"Follow messages in a chat"`
 	Wait    MessagesWaitCmd    `cmd:"" help:"Wait for a matching message"`
 	Context MessagesContextCmd `cmd:"" help:"Fetch context around a message"`
@@ -172,6 +173,15 @@ type MessagesWaitCmd struct {
 	Sender      string        `help:"Only match messages from sender ID or name"`
 	Interval    time.Duration `help:"Polling interval" default:"2s"`
 	WaitTimeout time.Duration `help:"Stop waiting after duration (0=forever)" name:"wait-timeout" default:"0s"`
+}
+
+// MessagesEditCmd edits an existing message.
+type MessagesEditCmd struct {
+	ChatID    string `arg:"" name:"chatID" help:"Chat ID containing the message"`
+	MessageID string `arg:"" name:"messageID" help:"Message ID to edit"`
+	Text      string `arg:"" optional:"" help:"Replacement message text"`
+	TextFile  string `help:"Read replacement text from file ('-' for stdin)" name:"text-file"`
+	Stdin     bool   `help:"Read replacement text from stdin" name:"stdin"`
 }
 
 // Run executes the messages search command.
@@ -528,6 +538,57 @@ func (c *MessagesWaitCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 		<-ticker.C
 	}
+}
+
+// Run executes the messages edit command.
+func (c *MessagesEditCmd) Run(ctx context.Context, flags *RootFlags) error {
+	u := ui.FromContext(ctx)
+	chatID := normalizeChatID(c.ChatID)
+
+	text, err := resolveTextInput(c.Text, c.TextFile, c.Stdin, true, "message text", "--text-file", "--stdin")
+	if err != nil {
+		return err
+	}
+
+	token, _, err := config.GetToken()
+	if err != nil {
+		return err
+	}
+
+	timeout := time.Duration(flags.Timeout) * time.Second
+	client, err := beeperapi.NewClient(token, flags.BaseURL, timeout)
+	if err != nil {
+		return err
+	}
+
+	resp, err := client.Messages().Edit(ctx, chatID, c.MessageID, beeperapi.EditParams{
+		Text: text,
+	})
+	if err != nil {
+		if beeperapi.IsUnsupportedRoute(err, "PUT", "/messages/") {
+			return fmt.Errorf("message editing is not supported by this Beeper Desktop API version (requires a newer Beeper Desktop build)")
+		}
+		return err
+	}
+
+	if outfmt.IsJSON(ctx) {
+		return writeJSON(ctx, resp, "messages edit")
+	}
+
+	if outfmt.IsPlain(ctx) {
+		u.Out().Printf("%s\t%s\t%t", resp.ChatID, resp.MessageID, resp.Success)
+		return nil
+	}
+
+	if resp.Success {
+		u.Out().Success("Message edited")
+	} else {
+		u.Out().Warn("Edit request sent but message may not have been updated")
+	}
+	u.Out().Printf("Chat ID:    %s", resp.ChatID)
+	u.Out().Printf("Message ID: %s", resp.MessageID)
+
+	return nil
 }
 
 // Run executes the messages context command.

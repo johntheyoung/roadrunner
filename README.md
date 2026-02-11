@@ -4,7 +4,8 @@
 
 - **Chats** — list, search, resolve, get, create, archive conversations
 - **Contacts** — search and resolve contacts on an account
-- **Messages** — list, search, send, reply, tail (polling), wait, and context
+- **Messages** — list, search, send, edit, reply, tail (polling), wait, and context
+- **Assets** — download, upload, and base64 upload for attachments
 - **Search** — global search across all chats and messages
 - **Unread** — roll up unread chats across accounts
 - **Status** — unread and chat summary (optional per-account)
@@ -131,6 +132,13 @@ rr messages search --media-types=image
 # Send a message
 rr messages send '!roomid:beeper.local' "Hello!"
 
+# Edit a message
+rr messages edit '!roomid:beeper.local' "<message-id>" "Updated text"
+
+# Edit from file/stdin
+rr messages edit '!roomid:beeper.local' "<message-id>" --text-file ./edit.txt
+cat edit.txt | rr messages edit '!roomid:beeper.local' "<message-id>" --stdin
+
 # Reply to a specific message
 rr messages send '!roomid:beeper.local' "Thanks!" --reply-to "<message-id>"
 
@@ -154,6 +162,20 @@ rr messages context '!roomid:beeper.local' '<sortKey>' --before 5 --after 2
 
 # Download attachments from listed messages
 rr messages list '!roomid:beeper.local' --download-media --download-dir ./media
+```
+
+## Assets
+
+```bash
+# Download an attachment by mxc:// URL
+rr assets download "mxc://beeper.local/abc123" --dest "./attachment.jpg"
+
+# Upload a local file and get an upload_id
+rr assets upload ./photo.jpg
+
+# Upload base64 payload from file/stdin
+rr assets upload-base64 --content-file ./photo.b64 --file-name photo.jpg --mime-type image/jpeg
+cat ./photo.b64 | rr assets upload-base64 --stdin --file-name photo.jpg --mime-type image/jpeg
 ```
 
 ## Search
@@ -252,6 +274,12 @@ cat draft.txt | rr messages send "$CHAT_ID" --stdin
 
 # Download an attachment
 rr assets download "mxc://beeper.local/abc123" --dest "./attachment.jpg"
+
+# Upload and inspect upload_id
+UPLOAD_ID=$(rr assets upload ./photo.jpg --json | jq -r '.upload_id')
+
+# Edit a message
+rr messages edit "$CHAT_ID" "<message-id>" "Updated text"
 
 # Search contacts on an account
 rr contacts search "Alice" --account-id="<account-id>" --json

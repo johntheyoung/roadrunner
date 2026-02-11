@@ -1,9 +1,13 @@
 package cmd
 
 import (
+	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/johntheyoung/roadrunner/internal/errfmt"
 )
 
 func TestAssetsDownloadDestination(t *testing.T) {
@@ -78,5 +82,53 @@ func TestAssetLocalPath(t *testing.T) {
 	want := filepath.FromSlash("/tmp/beeper/hello world.png")
 	if got != want {
 		t.Fatalf("assetLocalPath = %q, want %q", got, want)
+	}
+}
+
+func TestAssetsUploadRequiresFilePath(t *testing.T) {
+	cmd := AssetsUploadCmd{}
+	err := cmd.Run(context.Background(), &RootFlags{})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	var exitErr *errfmt.ExitError
+	if !errors.As(err, &exitErr) {
+		t.Fatalf("error = %T, want *errfmt.ExitError", err)
+	}
+	if exitErr.Code != errfmt.ExitUsageError {
+		t.Fatalf("exit code = %d, want %d", exitErr.Code, errfmt.ExitUsageError)
+	}
+}
+
+func TestAssetsUploadBase64RequiresContent(t *testing.T) {
+	cmd := AssetsUploadBase64Cmd{}
+	err := cmd.Run(context.Background(), &RootFlags{})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	var exitErr *errfmt.ExitError
+	if !errors.As(err, &exitErr) {
+		t.Fatalf("error = %T, want *errfmt.ExitError", err)
+	}
+	if exitErr.Code != errfmt.ExitUsageError {
+		t.Fatalf("exit code = %d, want %d", exitErr.Code, errfmt.ExitUsageError)
+	}
+}
+
+func TestAssetsUploadBase64SourceConflict(t *testing.T) {
+	cmd := AssetsUploadBase64Cmd{
+		Content:     "YQ==",
+		ContentFile: "payload.b64",
+	}
+	err := cmd.Run(context.Background(), &RootFlags{})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	var exitErr *errfmt.ExitError
+	if !errors.As(err, &exitErr) {
+		t.Fatalf("error = %T, want *errfmt.ExitError", err)
+	}
+	if exitErr.Code != errfmt.ExitUsageError {
+		t.Fatalf("exit code = %d, want %d", exitErr.Code, errfmt.ExitUsageError)
 	}
 }

@@ -238,8 +238,7 @@ func (s *ChatsService) Search(ctx context.Context, params ChatSearchParams) (Cha
 			DisplayName: displayName,
 			AccountID:   chat.AccountID,
 			Type:        string(chat.Type),
-			//nolint:staticcheck // Network is deprecated in SDK but still returned by API for display.
-			Network:     chat.Network,
+			Network:     "",
 			UnreadCount: chat.UnreadCount,
 			IsArchived:  chat.IsArchived,
 			IsMuted:     chat.IsMuted,
@@ -260,11 +259,10 @@ func (s *ChatsService) Get(ctx context.Context, chatID string) (ChatDetail, erro
 	}
 
 	detail := ChatDetail{
-		ID:        chat.ID,
-		Title:     chat.Title,
-		AccountID: chat.AccountID,
-		//nolint:staticcheck // Network is deprecated in SDK but still returned by API for display.
-		Network:                chat.Network,
+		ID:                     chat.ID,
+		Title:                  chat.Title,
+		AccountID:              chat.AccountID,
+		Network:                "",
 		Type:                   string(chat.Type),
 		UnreadCount:            chat.UnreadCount,
 		IsArchived:             chat.IsArchived,
@@ -323,5 +321,6 @@ func (s *ChatsService) Archive(ctx context.Context, chatID string, archived bool
 		Archived: beeperdesktopapi.Bool(archived),
 	}
 
-	return s.client.SDK.Chats.Archive(ctx, chatID, sdkParams)
+	_, err := s.client.SDK.Chats.Archive(ctx, chatID, sdkParams)
+	return err
 }

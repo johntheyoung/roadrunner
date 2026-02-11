@@ -76,8 +76,7 @@ func (c *Client) Search(ctx context.Context, params SearchParams) (SearchResult,
 			Title:       chat.Title,
 			DisplayName: displayName,
 			Type:        string(chat.Type),
-			//nolint:staticcheck // Network is deprecated in SDK but still returned by API for display.
-			Network:     chat.Network,
+			Network:     "",
 			AccountID:   chat.AccountID,
 			UnreadCount: chat.UnreadCount,
 		})
@@ -91,8 +90,7 @@ func (c *Client) Search(ctx context.Context, params SearchParams) (SearchResult,
 			Title:       chat.Title,
 			DisplayName: displayName,
 			Type:        string(chat.Type),
-			//nolint:staticcheck // Network is deprecated in SDK but still returned by API for display.
-			Network:     chat.Network,
+			Network:     "",
 			AccountID:   chat.AccountID,
 			UnreadCount: chat.UnreadCount,
 		})

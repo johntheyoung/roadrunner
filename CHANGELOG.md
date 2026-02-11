@@ -5,7 +5,13 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
 ### Added
-- (none)
+- `rr messages edit` to update the text of existing messages.
+- `rr assets upload` and `rr assets upload-base64` to create upload IDs for attachment workflows.
+- Endpoint compatibility hints for newly added commands when Desktop API routes are unavailable.
+
+### Changed
+- Upgraded SDK dependency to `github.com/beeper/desktop-api-go v0.2.0`.
+- Chat-level `network` fields in chat/search output are now blank when unavailable from the API.
 
 ## v0.9.0 - 2026-01-19
 

@@ -32,6 +32,8 @@ go install github.com/johntheyoung/roadrunner/cmd/rr@latest
 
 Download from the [releases page](https://github.com/johntheyoung/roadrunner/releases).
 
+ClawHub skill: https://clawhub.ai/johntheyoung/roadrunner
+
 ## Requirements
 
 - [Beeper Desktop](https://www.beeper.com/) **v4.1.169 or later** running locally

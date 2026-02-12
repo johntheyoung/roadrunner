@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## v0.13.0 - 2026-02-12
+
 ### Added
 - `--chat` exact-name targeting for action commands:
   `messages send`, `messages send-file`, `messages edit`,

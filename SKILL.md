@@ -8,10 +8,6 @@ metadata:
     requires:
       bins:
         - rr
-      env:
-        - BEEPER_TOKEN
-      config:
-        - ~/.config/beeper/config.json
     install:
       - id: brew
         kind: brew
@@ -46,6 +42,7 @@ Safety
 - If sending message text through a shell, avoid interpolation/expansion (e.g. `$100/month` or `!`). Prefer `--stdin <<'EOF' ... EOF` for safe literals.
 
 Setup (once)
+- `rr auth set --stdin` (recommended; token saved to `~/.config/beeper/config.json`)
 - `rr auth status --check`
 - `rr doctor`
 
@@ -109,7 +106,7 @@ Pagination
 
 Notes
 - Requires Beeper Desktop running; token from app settings.
-- Prefer `BEEPER_TOKEN` environment variable for agent-driven runs.
+- Token is stored in `~/.config/beeper/config.json` via `rr auth set` (recommended). `BEEPER_TOKEN` overrides the config file.
 - `BEEPER_ACCOUNT` sets the default account ID (aliases supported).
 - Message search is literal word match (not semantic).
 - `rr contacts resolve` is strict and fails on ambiguous names; resolve by ID after `contacts search` when needed.

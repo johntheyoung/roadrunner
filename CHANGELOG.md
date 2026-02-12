@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## v0.14.3 - 2026-02-12
+
 ### Added
 - `rr auth set --stdin` and `rr auth set --from-env <VAR>` for secret-safe token input (avoid shell history).
 - Safety guard: `rr messages send`/`send-file`/`edit` refuse message text that looks like pasted rr JSON output unless `--allow-tool-output` is set.

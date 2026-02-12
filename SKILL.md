@@ -21,7 +21,7 @@ metadata:
         label: Install rr (brew)
       - id: go
         kind: go
-        module: github.com/johntheyoung/roadrunner/cmd/rr@v0.14.0
+        module: github.com/johntheyoung/roadrunner/cmd/rr@v0.14.3
         bins:
           - rr
         label: Install rr (go)

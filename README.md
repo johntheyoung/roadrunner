@@ -722,6 +722,7 @@ Destructive commands require confirmation. In non-interactive environments (no T
 ## AI Agent Skill
 
 The ClawdHub skill definition lives in `./skill/SKILL.md`. This is the single source published to ClawdHub.
+The published skill is read-first by default and treats mutations as explicit user-approved actions.
 
 ## Links
 

@@ -8,8 +8,6 @@ metadata:
     requires:
       bins:
         - rr
-      config:
-        - '~/.config/beeper/config.json'
     install:
       - id: brew
         kind: brew
@@ -19,19 +17,13 @@ metadata:
         label: Install rr (brew)
       - id: go
         kind: go
-        module: github.com/johntheyoung/roadrunner/cmd/rr@latest
+        module: github.com/johntheyoung/roadrunner/cmd/rr@v0.13.0
         bins:
           - rr
         label: Install rr (go)
     config:
       requiredEnv:
         - BEEPER_TOKEN
-        - BEEPER_ACCOUNT
-        - BEEPER_URL
-        - BEEPER_TIMEOUT
-        - BEEPER_NO_INPUT
-      stateDirs:
-        - .config/beeper
 ---
 
 # roadrunner (rr)
@@ -40,6 +32,7 @@ Use `rr` when the user explicitly wants to operate Beeper Desktop via the local 
 Prefer `--agent` for agent use (forces JSON, envelope, no-input, readonly).
 
 Safety
+- Default to read-only commands unless the user explicitly requests a mutation in this turn.
 - Require explicit recipient (chat ID) and message text before sending.
 - Confirm or ask a clarifying question if the chat ID is ambiguous.
 - Use `--agent` for safe agent defaults: `rr --agent --enable-commands=chats,messages,status chats list`
@@ -47,9 +40,9 @@ Safety
 - Use `--enable-commands` to allowlist: `rr --enable-commands=chats,messages chats list --json`
 - Use `--envelope` for structured errors: `rr --json --envelope chats get "!chatid"`
 - Envelope errors may include `error.hint` with next-step guidance for safe retries.
+- Never request, paste, or store raw auth tokens in chat. If auth is missing, ask the user to configure it locally.
 
 Setup (once)
-- `rr auth set <token>`
 - `rr auth status --check`
 - `rr doctor`
 
@@ -68,29 +61,13 @@ Common commands
 - Resolve chat: `rr chats resolve "Jamie" --json`
 - Get chat: `rr chats get "!chatid:beeper.com" --json`
 - Get chat (bounded participants): `rr chats get "!chatid:beeper.com" --max-participant-count=50 --json`
-- Create chat (single): `rr chats create "<account-id>" --participant "<user-id>"`
-- Create chat (group): `rr chats create "<account-id>" --participant "<user-a>" --participant "<user-b>" --type group --title "Project Chat" --message "Welcome!"`
 - Default account for commands: `rr --account="imessage:+123" chats list --json`
-- Account aliases: `rr accounts alias set work "slack:T123"`
 - List messages: `rr messages list "!chatid:beeper.com" --json`
 - List messages (all pages): `rr messages list "!chatid:beeper.com" --all --max-items=1000 --json`
 - List messages (download media): `rr messages list "!chatid:beeper.com" --download-media --download-dir ./media --json`
 - Search messages: `rr messages search "dinner" --json`
 - Search messages (all pages): `rr messages search "dinner" --all --max-items=1000 --json`
 - Search messages (filters): `rr messages search --sender=me --date-after="2024-07-01T00:00:00Z" --media-types=image --json`
-- Send message: `rr messages send "!chatid:beeper.com" "Hello!"`
-- Send by exact chat name: `rr messages send --chat "Alice" "Hello!"`
-- Reply to message: `rr messages send "!chatid:beeper.com" "Thanks!" --reply-to "<message-id>"`
-- Send message from file: `rr messages send "!chatid:beeper.com" --text-file ./message.txt`
-- Send message from stdin: `cat message.txt | rr messages send "!chatid:beeper.com" --stdin`
-- Send attachment by upload ID: `rr messages send "!chatid:beeper.com" --attachment-upload-id "<upload-id>"`
-- Send attachment with metadata overrides: `rr messages send "!chatid:beeper.com" --attachment-upload-id "<upload-id>" --attachment-file-name photo.jpg --attachment-mime-type image/jpeg --attachment-type gif --attachment-width 1200 --attachment-height 900`
-- Upload and send file in one step: `rr messages send-file "!chatid:beeper.com" ./photo.jpg "See attached"`
-- Upload and send file by exact chat name: `rr messages send-file --chat "Alice" ./photo.jpg "See attached"`
-- Upload+send with reply/metadata overrides: `rr messages send-file "!chatid:beeper.com" ./clip.mp4 "see this" --reply-to "<message-id>" --attachment-type gif --attachment-duration 1.5 --attachment-width 1200 --attachment-height 900`
-- Edit message text: `rr messages edit "!chatid:beeper.com" "<message-id>" "Updated text"`
-- Edit by exact chat name: `rr messages edit --chat "Alice" "<message-id>" "Updated text"`
-- Edit from stdin: `cat edit.txt | rr messages edit "!chatid:beeper.com" "<message-id>" --stdin`
 - Tail messages (polling): `rr messages tail "!chatid:beeper.com" --interval 2s --stop-after 30s --json`
 - Wait for message: `rr messages wait --chat-id="!chatid:beeper.com" --contains "deploy" --wait-timeout 2m --json`
 - Message context: `rr messages context "!chatid:beeper.com" "<sortKey>" --before 5 --after 2 --json`
@@ -99,11 +76,6 @@ Common commands
 - Draft with attachment: `rr focus --chat-id="!chatid:beeper.com" --draft-attachment="/path/to/file.jpg"`
 - Download attachment: `rr assets download "mxc://example.org/abc123" --dest "./attachment.jpg"`
 - Stream attachment bytes: `rr assets serve "mxc://example.org/abc123" --dest "./attachment.jpg" --json`
-- Upload attachment file: `rr assets upload ./photo.jpg`
-- Upload base64 attachment: `rr assets upload-base64 --content-file ./photo.b64 --file-name photo.jpg --mime-type image/jpeg`
-- Reminders: `rr reminders set "!chatid:beeper.com" "2h"` / `rr reminders clear "!chatid:beeper.com"`
-- Reminders by exact chat name: `rr reminders set --chat "Alice" "2h"` / `rr reminders clear --chat "Alice"`
-- Archive chat: `rr chats archive "!chatid:beeper.com"` / `rr chats archive "!chatid:beeper.com" --unarchive`
 - Focus app: `rr focus`
 - Global search: `rr search "dinner" --json`
 - Global search messages auto-page: `rr search "dinner" --messages-all --messages-max-items=500 --messages-limit=20 --json`
@@ -111,6 +83,16 @@ Common commands
 - Status by account: `rr status --by-account --json`
 - Unread rollup: `rr unread --json`
 - Global search includes `in_groups` for participant matches.
+
+Mutations (explicit user request only)
+- Message send: `rr messages send "!chatid:beeper.com" "Hello!"`
+- Message edit: `rr messages edit "!chatid:beeper.com" "<message-id>" "Updated text"`
+- Upload + send file: `rr messages send-file "!chatid:beeper.com" ./photo.jpg "See attached"`
+- Create chat: `rr chats create "<account-id>" --participant "<user-id>"`
+- Archive/unarchive: `rr chats archive "!chatid:beeper.com"` / `rr chats archive "!chatid:beeper.com" --unarchive`
+- Reminder mutations: `rr reminders set "!chatid:beeper.com" "2h"` / `rr reminders clear "!chatid:beeper.com"`
+- Asset uploads: `rr assets upload ./photo.jpg` / `rr assets upload-base64 --content-file ./photo.b64`
+- For retries on non-idempotent writes, use `--request-id` and prefer `--dedupe-window`.
 
 Pagination
 - Auto-page chats list/search: `rr chats list --all --max-items=1000 --json` / `rr chats search "alice" --all --max-items=1000 --json`
@@ -124,7 +106,7 @@ Pagination
 
 Notes
 - Requires Beeper Desktop running; token from app settings.
-- Token stored at `~/.config/beeper/config.json`. `BEEPER_TOKEN` overrides.
+- Prefer `BEEPER_TOKEN` environment variable for agent-driven runs.
 - `BEEPER_ACCOUNT` sets the default account ID (aliases supported).
 - Message search is literal word match (not semantic).
 - `rr contacts resolve` is strict and fails on ambiguous names; resolve by ID after `contacts search` when needed.

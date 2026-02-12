@@ -16,6 +16,8 @@ All notable changes to this project will be documented in this file.
   `retry-classes` features.
 - Envelope metadata supports `request_id` on both success and error paths for
   retry correlation.
+- Hardened Clawdhub skill scope: read-first defaults, explicit mutation gating,
+  minimized declared environment requirements, and pinned Go install version.
 
 ## v0.13.0 - 2026-02-12
 

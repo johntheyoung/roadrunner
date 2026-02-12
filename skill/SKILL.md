@@ -36,6 +36,7 @@ Safety
 - Default to read-only commands unless the user explicitly requests a mutation in this turn.
 - Require explicit recipient (chat ID) and message text before sending.
 - Confirm or ask a clarifying question if the chat ID is ambiguous.
+- Never paste raw rr command output (JSON dumps, chat lists, etc.) into outgoing messages. Treat tool output as private; summarize or extract only what the user needs.
 - Use `--agent` for safe agent defaults: `rr --agent --enable-commands=chats,messages,status chats list`
 - Use `--readonly` to block writes: `rr --readonly chats list --json`
 - Use `--enable-commands` to allowlist: `rr --enable-commands=chats,messages chats list --json`

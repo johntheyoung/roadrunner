@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/johntheyoung/roadrunner/internal/errfmt"
@@ -233,5 +234,95 @@ func TestMessagesSendChatQueryAmbiguous(t *testing.T) {
 	}
 	if sendCalled != 0 {
 		t.Fatalf("send endpoint calls = %d, want 0", sendCalled)
+	}
+}
+
+func TestMessagesSendRejectsPastedToolOutput(t *testing.T) {
+	cmd := MessagesSendCmd{
+		ChatID: "!room:beeper.local",
+		Text: `Great progress!
+
+{
+  "items": [],
+  "has_more": false,
+  "oldest_cursor": "",
+  "newest_cursor": ""
+}`,
+	}
+	err := cmd.Run(context.Background(), &RootFlags{})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	var exitErr *errfmt.ExitError
+	if !errors.As(err, &exitErr) {
+		t.Fatalf("error = %T, want *errfmt.ExitError", err)
+	}
+	if exitErr.Code != errfmt.ExitUsageError {
+		t.Fatalf("exit code = %d, want %d", exitErr.Code, errfmt.ExitUsageError)
+	}
+	if !strings.Contains(err.Error(), "looks like rr list output") {
+		t.Fatalf("error message = %q, want contains %q", err.Error(), "looks like rr list output")
+	}
+}
+
+func TestMessagesSendAllowsPastedToolOutputWithAllowFlag(t *testing.T) {
+	t.Setenv("BEEPER_TOKEN", "test-token")
+	t.Setenv("BEEPER_ACCESS_TOKEN", "")
+
+	sendCalled := 0
+	var sendPayload map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/chats/chat-1/messages":
+			sendCalled++
+			if err := json.NewDecoder(r.Body).Decode(&sendPayload); err != nil {
+				http.Error(w, "bad payload", http.StatusBadRequest)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"chatID":"chat-1","pendingMessageID":"pending-123"}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	text := `{
+  "items": [],
+  "has_more": false,
+  "oldest_cursor": "",
+  "newest_cursor": ""
+}`
+
+	cmd := MessagesSendCmd{
+		ChatID:          "chat-1",
+		Text:            text,
+		AllowToolOutput: true,
+	}
+
+	outBuf := &bytes.Buffer{}
+	errBuf := &bytes.Buffer{}
+	testUI, err := ui.New(ui.Options{
+		Stdout: outBuf,
+		Stderr: errBuf,
+		Color:  "never",
+	})
+	if err != nil {
+		t.Fatalf("ui.New() error = %v", err)
+	}
+	ctx := ui.WithUI(context.Background(), testUI)
+
+	if err := cmd.Run(ctx, &RootFlags{
+		BaseURL: server.URL,
+		Timeout: 5,
+	}); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	if sendCalled != 1 {
+		t.Fatalf("send endpoint calls = %d, want 1", sendCalled)
+	}
+	if sendPayload["text"] != text {
+		t.Fatalf("send text payload = %#v, want %q", sendPayload["text"], text)
 	}
 }

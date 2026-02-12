@@ -242,12 +242,13 @@ type MessagesWaitCmd struct {
 
 // MessagesEditCmd edits an existing message.
 type MessagesEditCmd struct {
-	ChatID    string `arg:"" optional:"" name:"chatID" help:"Chat ID containing the message"`
-	MessageID string `arg:"" optional:"" name:"messageID" help:"Message ID to edit"`
-	Chat      string `help:"Exact chat title/display name or ID (alternative to chatID arg)" name:"chat"`
-	Text      string `arg:"" optional:"" help:"Replacement message text"`
-	TextFile  string `help:"Read replacement text from file ('-' for stdin)" name:"text-file"`
-	Stdin     bool   `help:"Read replacement text from stdin" name:"stdin"`
+	ChatID          string `arg:"" optional:"" name:"chatID" help:"Chat ID containing the message"`
+	MessageID       string `arg:"" optional:"" name:"messageID" help:"Message ID to edit"`
+	Chat            string `help:"Exact chat title/display name or ID (alternative to chatID arg)" name:"chat"`
+	Text            string `arg:"" optional:"" help:"Replacement message text"`
+	TextFile        string `help:"Read replacement text from file ('-' for stdin)" name:"text-file"`
+	Stdin           bool   `help:"Read replacement text from stdin" name:"stdin"`
+	AllowToolOutput bool   `help:"Allow sending message text that looks like rr tool output (dangerous; may leak private data)" name:"allow-tool-output"`
 }
 
 // Run executes the messages search command.
@@ -709,6 +710,9 @@ func (c *MessagesEditCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if err != nil {
 		return err
 	}
+	if err := guardAgainstPastedToolOutput(text, c.AllowToolOutput); err != nil {
+		return err
+	}
 
 	token, _, err := config.GetToken()
 	if err != nil {
@@ -852,6 +856,7 @@ type MessagesSendCmd struct {
 	ReplyToMessageID   string `help:"Message ID to reply to" name:"reply-to"`
 	TextFile           string `help:"Read message text from file ('-' for stdin)" name:"text-file"`
 	Stdin              bool   `help:"Read message text from stdin" name:"stdin"`
+	AllowToolOutput    bool   `help:"Allow sending message text that looks like rr tool output (dangerous; may leak private data)" name:"allow-tool-output"`
 	AttachmentUploadID string `help:"Upload ID from 'rr assets upload' to send as attachment" name:"attachment-upload-id"`
 	AttachmentFileName string `help:"Filename override for attachment metadata" name:"attachment-file-name"`
 	AttachmentMimeType string `help:"MIME type override for attachment metadata" name:"attachment-mime-type"`
@@ -870,6 +875,7 @@ type MessagesSendFileCmd struct {
 	ReplyToMessageID   string `help:"Message ID to reply to" name:"reply-to"`
 	TextFile           string `help:"Read message text from file ('-' for stdin)" name:"text-file"`
 	Stdin              bool   `help:"Read message text from stdin" name:"stdin"`
+	AllowToolOutput    bool   `help:"Allow sending message text that looks like rr tool output (dangerous; may leak private data)" name:"allow-tool-output"`
 	FileName           string `help:"Filename to send in upload metadata (optional)" name:"file-name"`
 	MimeType           string `help:"MIME type override for upload (optional)" name:"mime-type"`
 	AttachmentFileName string `help:"Filename override for attachment metadata" name:"attachment-file-name"`
@@ -923,6 +929,9 @@ func (c *MessagesSendCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 	if strings.TrimSpace(text) == "" && attachmentUploadID == "" {
 		return errfmt.UsageError("message text or --attachment-upload-id is required")
+	}
+	if err := guardAgainstPastedToolOutput(text, c.AllowToolOutput); err != nil {
+		return err
 	}
 
 	token, _, err := config.GetToken()
@@ -1027,6 +1036,9 @@ func (c *MessagesSendFileCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	text, err := resolveTextInput(c.Text, c.TextFile, c.Stdin, false, "message text", "--text-file", "--stdin")
 	if err != nil {
+		return err
+	}
+	if err := guardAgainstPastedToolOutput(text, c.AllowToolOutput); err != nil {
 		return err
 	}
 	attachmentDuration, err := parseOptionalFloatFlag(c.AttachmentDuration, "--attachment-duration")

@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - `rr auth set --stdin` and `rr auth set --from-env <VAR>` for secret-safe token input (avoid shell history).
+- Safety guard: `rr messages send`/`send-file`/`edit` refuse message text that looks like pasted rr JSON output unless `--allow-tool-output` is set.
 
 ### Fixed
 - `rr auth set` now preserves unrelated keys in `~/.config/beeper/config.json` (Roadrunner only manages its own keys).

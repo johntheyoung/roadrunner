@@ -60,6 +60,12 @@ rr auth set --stdin
 - If you see `duplicate non-idempotent request blocked`, the same `--request-id` and payload was replayed within `--dedupe-window`.
 - Use a new `--request-id` for deliberate retries, or `--force` to bypass the dedupe guard.
 
+## Refusing to send pasted rr output
+
+To prevent accidental privacy leaks, `rr messages send` / `send-file` / `edit` refuse message text that looks like pasted `rr --json` output.
+
+Fix: remove the pasted output from the message text, or pass `--allow-tool-output` if you really intend to send it.
+
 ## Message text contains "$" (e.g. $100 becomes 00)
 
 If you pass message text in double quotes, your shell may expand `$100` before `rr` sees it (e.g. `$100/month` can become `00/month`).

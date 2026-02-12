@@ -144,6 +144,11 @@ rr messages search --media-types=image
 rr messages send '!roomid:beeper.local' "Hello!"
 rr messages send --chat "Alice" "Hello!"
 
+# If your message contains shell-special characters (like `$100/month`), prefer stdin to avoid shell expansion:
+rr messages send '!roomid:beeper.local' --stdin <<'EOF'
+Cost is $100/month
+EOF
+
 # Send an attachment using upload ID
 UPLOAD_ID=$(rr assets upload ./photo.jpg --json | jq -r '.upload_id')
 rr messages send '!roomid:beeper.local' --attachment-upload-id "$UPLOAD_ID"

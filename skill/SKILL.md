@@ -42,6 +42,7 @@ Safety
 - Use `--envelope` for structured errors: `rr --json --envelope chats get "!chatid"`
 - Envelope errors may include `error.hint` with next-step guidance for safe retries.
 - Never request, paste, or store raw auth tokens in chat. If auth is missing, ask the user to configure it locally.
+- If sending message text through a shell, avoid interpolation/expansion (e.g. `$100/month` or `!`). Prefer `--stdin <<'EOF' ... EOF` for safe literals.
 
 Setup (once)
 - `rr auth status --check`

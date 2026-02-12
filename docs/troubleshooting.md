@@ -53,3 +53,21 @@
 
 - If you see `duplicate non-idempotent request blocked`, the same `--request-id` and payload was replayed within `--dedupe-window`.
 - Use a new `--request-id` for deliberate retries, or `--force` to bypass the dedupe guard.
+
+## Message text contains "$" (e.g. $100 becomes 00)
+
+If you pass message text in double quotes, your shell may expand `$100` before `rr` sees it (e.g. `$100/month` can become `00/month`).
+
+Fix: send message text via stdin or single quotes:
+
+```bash
+rr messages send "<chat-id>" --stdin <<'EOF'
+Cost is $100/month
+EOF
+```
+
+Or escape the dollar sign:
+
+```bash
+rr messages send "<chat-id>" "Cost is \\$100/month"
+```

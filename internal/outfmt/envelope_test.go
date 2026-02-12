@@ -66,6 +66,9 @@ func TestWriteEnvelope(t *testing.T) {
 	if env.Metadata.Pagination != nil {
 		t.Error("expected pagination metadata to be nil by default")
 	}
+	if env.Metadata.RequestID != "" {
+		t.Errorf("expected request_id empty, got %q", env.Metadata.RequestID)
+	}
 }
 
 func TestWriteEnvelopeWithPagination(t *testing.T) {
@@ -118,6 +121,29 @@ func TestWriteEnvelopeWithPagination(t *testing.T) {
 	if env.Metadata.Pagination.MaxItems != 50 {
 		t.Errorf("expected max_items=50, got %d", env.Metadata.Pagination.MaxItems)
 	}
+	if env.Metadata.RequestID != "" {
+		t.Errorf("expected request_id empty, got %q", env.Metadata.RequestID)
+	}
+}
+
+func TestWriteEnvelopeWithMetadataRequestID(t *testing.T) {
+	var buf bytes.Buffer
+
+	err := WriteEnvelopeWithMetadata(&buf, map[string]any{"ok": true}, "1.0.0", "version", nil, "req-abc")
+	if err != nil {
+		t.Fatalf("WriteEnvelopeWithMetadata() error = %v", err)
+	}
+
+	var env Envelope
+	if err := json.Unmarshal(buf.Bytes(), &env); err != nil {
+		t.Fatalf("failed to unmarshal envelope: %v", err)
+	}
+	if env.Metadata == nil {
+		t.Fatal("expected metadata")
+	}
+	if env.Metadata.RequestID != "req-abc" {
+		t.Fatalf("request_id = %q, want %q", env.Metadata.RequestID, "req-abc")
+	}
 }
 
 func TestWriteEnvelopeError(t *testing.T) {
@@ -160,6 +186,9 @@ func TestWriteEnvelopeError(t *testing.T) {
 	if env.Metadata.Command != "chats get" {
 		t.Errorf("expected command='chats get', got %s", env.Metadata.Command)
 	}
+	if env.Metadata.RequestID != "" {
+		t.Errorf("expected request_id empty, got %q", env.Metadata.RequestID)
+	}
 }
 
 func TestWriteEnvelopeErrorWithHint(t *testing.T) {
@@ -180,6 +209,32 @@ func TestWriteEnvelopeErrorWithHint(t *testing.T) {
 	}
 	if env.Error.Hint != "use --help" {
 		t.Fatalf("hint = %q, want %q", env.Error.Hint, "use --help")
+	}
+	if env.Metadata == nil {
+		t.Fatal("expected metadata")
+	}
+	if env.Metadata.RequestID != "" {
+		t.Fatalf("request_id = %q, want empty", env.Metadata.RequestID)
+	}
+}
+
+func TestWriteEnvelopeErrorWithMetadataRequestID(t *testing.T) {
+	var buf bytes.Buffer
+
+	err := WriteEnvelopeErrorWithMetadata(&buf, ErrCodeValidation, "bad input", "use --help", "1.0.0", "messages send", "req-xyz")
+	if err != nil {
+		t.Fatalf("WriteEnvelopeErrorWithMetadata() error = %v", err)
+	}
+
+	var env Envelope
+	if err := json.Unmarshal(buf.Bytes(), &env); err != nil {
+		t.Fatalf("failed to unmarshal envelope: %v", err)
+	}
+	if env.Metadata == nil {
+		t.Fatal("expected metadata")
+	}
+	if env.Metadata.RequestID != "req-xyz" {
+		t.Fatalf("request_id = %q, want %q", env.Metadata.RequestID, "req-xyz")
 	}
 }
 

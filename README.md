@@ -456,6 +456,9 @@ For AI agent integrations, use `--agent` to enable a hardened profile:
 # Agent mode forces JSON+envelope, no-input, readonly
 # and requires --enable-commands for safety
 rr --agent --enable-commands=chats,messages,status chats list
+
+# Optional request correlation ID for retries/tracing
+rr --agent --request-id=req-123 --enable-commands=messages messages list '!roomid:beeper.local'
 ```
 
 Agent mode automatically sets: `--json`, `--envelope`, `--no-input`, `--readonly`.
@@ -468,7 +471,7 @@ The `--enable-commands` flag is **required** in agent mode to ensure agents only
 $ rr version --json
 {
   "version": "0.11.0",
-  "features": ["enable-commands", "readonly", "envelope", "agent-mode", "error-hints"]
+  "features": ["enable-commands", "readonly", "envelope", "agent-mode", "error-hints", "request-id"]
 }
 ```
 
@@ -478,7 +481,7 @@ For detailed capability discovery:
 $ rr capabilities --json
 {
   "version": "0.11.0",
-  "features": ["enable-commands", "readonly", "envelope", "agent-mode", "error-hints"],
+  "features": ["enable-commands", "readonly", "envelope", "agent-mode", "error-hints", "request-id"],
   "defaults": { "timeout": 30, "base_url": "http://localhost:23373" },
   "output_modes": ["human", "json", "plain"],
   "safety": {
@@ -522,6 +525,73 @@ Agent strategy for non-idempotent writes:
 1. Resolve IDs first (`chats resolve`, `contacts resolve`) and cache locally for the turn.
 2. Prefer explicit user confirmation before replaying failed sends/creates.
 3. Log command + arguments + timestamps so duplicates are detectable.
+4. Pass a stable `--request-id` across retries so attempts are traceable in `metadata.request_id`.
+
+Retry helper (bash):
+
+```bash
+send_with_retry() {
+  local chat_id="$1"
+  local text="$2"
+  local req_id="msg-send-$(date +%s)-$RANDOM"
+  local attempts=0
+
+  while [ "$attempts" -lt 3 ]; do
+    attempts=$((attempts + 1))
+    out=$(rr --agent --request-id="$req_id" --enable-commands=messages \
+      messages send "$chat_id" "$text" 2>/dev/null)
+
+    code=$(printf '%s' "$out" | jq -r '.error.code // empty')
+    if [ -z "$code" ]; then
+      printf '%s\n' "$out"
+      return 0
+    fi
+    if [ "$code" != "CONNECTION_ERROR" ]; then
+      printf '%s\n' "$out" >&2
+      return 1
+    fi
+    sleep $((attempts * 2))
+  done
+
+  printf '%s\n' "$out" >&2
+  return 1
+}
+```
+
+Retry helper (Node.js):
+
+```js
+import { spawnSync } from "node:child_process";
+
+function rrJSON(args) {
+  const proc = spawnSync("rr", args, { encoding: "utf8" });
+  const out = (proc.stdout || "").trim();
+  if (!out) throw new Error(proc.stderr || "rr returned no JSON output");
+  return JSON.parse(out);
+}
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function sendWithRetry(chatId, text) {
+  const requestId = `msg-send-${Date.now()}`;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const out = rrJSON([
+      "--agent",
+      `--request-id=${requestId}`,
+      "--enable-commands=messages",
+      "messages",
+      "send",
+      chatId,
+      text,
+    ]);
+
+    if (out.success) return out;
+    if (out.error?.code !== "CONNECTION_ERROR") throw new Error(JSON.stringify(out.error));
+    await delay(attempt * 2000);
+  }
+  throw new Error(`send failed after retries (request_id=${requestId})`);
+}
+```
 
 ## Multi-Account Usage
 
@@ -615,6 +685,7 @@ This validates:
 | `BEEPER_READONLY` | Block data write operations |
 | `BEEPER_ENVELOPE` | Wrap JSON in envelope structure |
 | `BEEPER_AGENT` | Enable agent profile mode |
+| `BEEPER_REQUEST_ID` | Optional request ID added to envelope metadata |
 | `BEEPER_ACCOUNT` | Default account ID for commands |
 | `NO_COLOR` | Disable colored output |
 

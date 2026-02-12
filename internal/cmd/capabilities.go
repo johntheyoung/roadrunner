@@ -85,7 +85,7 @@ func (c *CapabilitiesCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	resp := CapabilitiesResponse{
 		Version:  Version,
-		Features: []string{"enable-commands", "readonly", "envelope", "agent-mode", "error-hints"},
+		Features: []string{"enable-commands", "readonly", "envelope", "agent-mode", "error-hints", "request-id"},
 		Defaults: CapDefaults{
 			Timeout: flags.Timeout,
 			BaseURL: flags.BaseURL,
@@ -110,6 +110,7 @@ func (c *CapabilitiesCmd) Run(ctx context.Context, flags *RootFlags) error {
 			"--enable-commands": "Allowlist of commands",
 			"--agent":           "Agent profile mode",
 			"--account":         "Default account ID for commands",
+			"--request-id":      "Optional request ID for envelope metadata",
 			"--timeout":         "API timeout in seconds",
 			"--force":           "Skip confirmations",
 		},

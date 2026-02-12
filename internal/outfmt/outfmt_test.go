@@ -1,6 +1,9 @@
 package outfmt
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 func TestFromFlags(t *testing.T) {
 	mode, err := FromFlags(false, false)
@@ -21,5 +24,17 @@ func TestFromFlags(t *testing.T) {
 
 	if _, err = FromFlags(true, true); err == nil {
 		t.Fatal("FromFlags(true,true) expected error")
+	}
+}
+
+func TestRequestIDContext(t *testing.T) {
+	ctx := context.Background()
+	if got := RequestIDFromContext(ctx); got != "" {
+		t.Fatalf("RequestIDFromContext() = %q, want empty", got)
+	}
+
+	ctx = WithRequestID(ctx, "req-123")
+	if got := RequestIDFromContext(ctx); got != "req-123" {
+		t.Fatalf("RequestIDFromContext() = %q, want %q", got, "req-123")
 	}
 }

@@ -27,6 +27,7 @@ type EnvelopeMeta struct {
 	Version    string              `json:"version,omitempty"`
 	Command    string              `json:"command,omitempty"`
 	Pagination *EnvelopePagination `json:"pagination,omitempty"`
+	RequestID  string              `json:"request_id,omitempty"`
 }
 
 // EnvelopePagination contains normalized pagination metadata for machine consumers.
@@ -75,6 +76,11 @@ func WriteEnvelope(w io.Writer, data any, version, command string) error {
 
 // WriteEnvelopeWithPagination writes a success envelope with optional pagination metadata.
 func WriteEnvelopeWithPagination(w io.Writer, data any, version, command string, pagination *EnvelopePagination) error {
+	return WriteEnvelopeWithMetadata(w, data, version, command, pagination, "")
+}
+
+// WriteEnvelopeWithMetadata writes a success envelope with optional pagination and request metadata.
+func WriteEnvelopeWithMetadata(w io.Writer, data any, version, command string, pagination *EnvelopePagination, requestID string) error {
 	env := Envelope{
 		Success: true,
 		Data:    data,
@@ -83,6 +89,7 @@ func WriteEnvelopeWithPagination(w io.Writer, data any, version, command string,
 			Version:    version,
 			Command:    command,
 			Pagination: pagination,
+			RequestID:  requestID,
 		},
 	}
 	return WriteJSON(w, env)
@@ -95,6 +102,11 @@ func WriteEnvelopeError(w io.Writer, code, message, version, command string) err
 
 // WriteEnvelopeErrorWithHint writes an error envelope with an optional hint.
 func WriteEnvelopeErrorWithHint(w io.Writer, code, message, hint, version, command string) error {
+	return WriteEnvelopeErrorWithMetadata(w, code, message, hint, version, command, "")
+}
+
+// WriteEnvelopeErrorWithMetadata writes an error envelope with optional hint and request metadata.
+func WriteEnvelopeErrorWithMetadata(w io.Writer, code, message, hint, version, command, requestID string) error {
 	env := Envelope{
 		Success: false,
 		Error: &EnvelopeError{
@@ -106,6 +118,7 @@ func WriteEnvelopeErrorWithHint(w io.Writer, code, message, hint, version, comma
 			Timestamp: time.Now().UTC().Format(time.RFC3339),
 			Version:   version,
 			Command:   command,
+			RequestID: requestID,
 		},
 	}
 	return WriteJSON(w, env)

@@ -31,6 +31,7 @@ func FromFlags(jsonOut bool, plainOut bool) (Mode, error) {
 }
 
 type ctxKey struct{}
+type requestIDCtxKey struct{}
 
 // WithMode attaches the output mode to a context.
 func WithMode(ctx context.Context, mode Mode) context.Context {
@@ -62,6 +63,21 @@ func IsPlain(ctx context.Context) bool {
 func IsHuman(ctx context.Context) bool {
 	m := FromContext(ctx)
 	return !m.JSON && !m.Plain
+}
+
+// WithRequestID attaches an optional request ID to context for output metadata.
+func WithRequestID(ctx context.Context, requestID string) context.Context {
+	return context.WithValue(ctx, requestIDCtxKey{}, requestID)
+}
+
+// RequestIDFromContext retrieves the optional request ID from context.
+func RequestIDFromContext(ctx context.Context) string {
+	if v := ctx.Value(requestIDCtxKey{}); v != nil {
+		if requestID, ok := v.(string); ok {
+			return requestID
+		}
+	}
+	return ""
 }
 
 // WriteJSON writes v as indented JSON to w.

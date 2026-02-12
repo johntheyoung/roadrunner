@@ -28,6 +28,7 @@
 
 - In `--json --envelope` mode, error responses may include `error.hint` for actionable remediation.
 - Hints are deterministic guidance for common failure modes (allowlist/readonly restrictions, missing chat disambiguation, missing upload ID, connectivity checks).
+- When `--request-id` (or `BEEPER_REQUEST_ID`) is set, envelopes include `metadata.request_id` for attempt correlation.
 
 ## Idempotency and retries
 

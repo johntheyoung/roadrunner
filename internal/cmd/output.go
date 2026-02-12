@@ -11,7 +11,7 @@ import (
 // The command parameter is used for envelope metadata.
 func writeJSON(ctx context.Context, data any, command string) error {
 	if outfmt.IsEnvelope(ctx) {
-		return outfmt.WriteEnvelope(os.Stdout, data, Version, command)
+		return outfmt.WriteEnvelopeWithMetadata(os.Stdout, data, Version, command, nil, outfmt.RequestIDFromContext(ctx))
 	}
 	return outfmt.WriteJSON(os.Stdout, data)
 }
@@ -20,7 +20,7 @@ func writeJSON(ctx context.Context, data any, command string) error {
 // metadata when envelope mode is enabled.
 func writeJSONWithPagination(ctx context.Context, data any, command string, pagination *outfmt.EnvelopePagination) error {
 	if outfmt.IsEnvelope(ctx) {
-		return outfmt.WriteEnvelopeWithPagination(os.Stdout, data, Version, command, pagination)
+		return outfmt.WriteEnvelopeWithMetadata(os.Stdout, data, Version, command, pagination, outfmt.RequestIDFromContext(ctx))
 	}
 	return outfmt.WriteJSON(os.Stdout, data)
 }

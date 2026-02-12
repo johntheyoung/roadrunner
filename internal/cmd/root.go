@@ -46,6 +46,7 @@ type RootFlags struct {
 	Readonly       bool             `help:"Block data write operations" env:"BEEPER_READONLY"`
 	Envelope       bool             `help:"Wrap JSON output in {success,data,error,metadata} envelope" env:"BEEPER_ENVELOPE"`
 	Agent          bool             `help:"Agent profile: forces JSON, envelope, no-input, readonly" env:"BEEPER_AGENT"`
+	RequestID      string           `help:"Optional request ID for envelope metadata (agent tracing)" env:"BEEPER_REQUEST_ID"`
 	Account        string           `help:"Default account ID for commands" env:"BEEPER_ACCOUNT"`
 }
 
@@ -111,8 +112,8 @@ func Execute() int {
 		if len(cli.EnableCommands) == 0 {
 			command := normalizeCommand(kongCtx.Command())
 			msg := "agent mode requires --enable-commands to specify allowed commands"
-			_ = outfmt.WriteEnvelopeErrorWithHint(os.Stdout, errfmt.ErrCodeValidation,
-				msg, errfmt.Hint(errfmt.UsageError("%s", msg)), Version, command)
+			_ = outfmt.WriteEnvelopeErrorWithMetadata(os.Stdout, errfmt.ErrCodeValidation,
+				msg, errfmt.Hint(errfmt.UsageError("%s", msg)), Version, command, cli.RequestID)
 			return errfmt.ExitUsageError
 		}
 	}
@@ -146,12 +147,13 @@ func Execute() int {
 	ctx := context.Background()
 	ctx = ui.WithUI(ctx, u)
 	ctx = outfmt.WithMode(ctx, mode)
+	ctx = outfmt.WithRequestID(ctx, cli.RequestID)
 
 	// Validate command allowlist and readonly mode
 	command := normalizeCommand(kongCtx.Command())
 	if err := checkEnableCommands(&cli.RootFlags, command); err != nil {
 		if cli.JSON && cli.Envelope {
-			_ = outfmt.WriteEnvelopeErrorWithHint(os.Stdout, errfmt.ErrCodeValidation, errfmt.Format(err), errfmt.Hint(err), Version, command)
+			_ = outfmt.WriteEnvelopeErrorWithMetadata(os.Stdout, errfmt.ErrCodeValidation, errfmt.Format(err), errfmt.Hint(err), Version, command, cli.RequestID)
 		} else {
 			_, _ = os.Stderr.WriteString("error: " + errfmt.Format(err) + "\n")
 		}
@@ -159,7 +161,7 @@ func Execute() int {
 	}
 	if err := checkReadonly(&cli.RootFlags, command); err != nil {
 		if cli.JSON && cli.Envelope {
-			_ = outfmt.WriteEnvelopeErrorWithHint(os.Stdout, errfmt.ErrCodeValidation, errfmt.Format(err), errfmt.Hint(err), Version, command)
+			_ = outfmt.WriteEnvelopeErrorWithMetadata(os.Stdout, errfmt.ErrCodeValidation, errfmt.Format(err), errfmt.Hint(err), Version, command, cli.RequestID)
 		} else {
 			_, _ = os.Stderr.WriteString("error: " + errfmt.Format(err) + "\n")
 		}
@@ -178,7 +180,7 @@ func Execute() int {
 		// Handle envelope mode errors to stdout
 		if cli.Envelope && cli.JSON {
 			code := errfmt.ErrorCode(err)
-			_ = outfmt.WriteEnvelopeErrorWithHint(os.Stdout, code, errfmt.Format(err), errfmt.Hint(err), Version, command)
+			_ = outfmt.WriteEnvelopeErrorWithMetadata(os.Stdout, code, errfmt.Format(err), errfmt.Hint(err), Version, command, cli.RequestID)
 			var exitErr *errfmt.ExitError
 			if errors.As(err, &exitErr) {
 				return exitErr.Code

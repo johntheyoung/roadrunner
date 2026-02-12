@@ -55,10 +55,11 @@ assert_stdout_contains() {
 }
 
 # 1) Agent success path: version command in envelope mode.
-run_case "agent-version-success" 0 "$rr_bin" --agent --enable-commands=version version
+run_case "agent-version-success" 0 "$rr_bin" --agent --request-id=req-smoke-ok --enable-commands=version version
 assert_stdout_contains "agent-version-success" '"success": true'
 assert_stdout_contains "agent-version-success" '"command": "version"'
 assert_stdout_contains "agent-version-success" '"error-hints"'
+assert_stdout_contains "agent-version-success" '"request_id": "req-smoke-ok"'
 
 # 2) Agent mode requires allowlist.
 run_case "agent-missing-allowlist" 2 "$rr_bin" --agent version
@@ -73,10 +74,11 @@ assert_stdout_contains "enable-commands-restriction" '"hint":'
 assert_stdout_contains "enable-commands-restriction" '--enable-commands'
 
 # 4) Readonly restriction should include a machine hint.
-run_case "readonly-restriction" 2 "$rr_bin" --json --envelope --readonly messages send '!room:beeper.local' 'hello'
+run_case "readonly-restriction" 2 "$rr_bin" --json --envelope --request-id=req-smoke-ro --readonly messages send '!room:beeper.local' 'hello'
 assert_stdout_contains "readonly-restriction" '"code": "VALIDATION_ERROR"'
 assert_stdout_contains "readonly-restriction" '"hint":'
 assert_stdout_contains "readonly-restriction" '--readonly'
+assert_stdout_contains "readonly-restriction" '"request_id": "req-smoke-ro"'
 
 # 5) Connectivity errors in agent mode should expose code + hint.
 run_case "connection-error-hint" 1 env BEEPER_TOKEN=test-token BEEPER_URL=http://127.0.0.1:9 "$rr_bin" --agent --enable-commands=messages messages list '!room:beeper.local'

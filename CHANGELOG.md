@@ -15,6 +15,8 @@ All notable changes to this project will be documented in this file.
   validation/safety/connectivity failures.
 - `make test-agent-smoke` and `scripts/agent-smoke.sh` for end-to-end agent-mode
   contract checks (envelope success/error shape, safety restrictions, connectivity hints).
+- `--request-id` / `BEEPER_REQUEST_ID` to attach attempt IDs to envelope metadata
+  (`metadata.request_id`) for retry correlation.
 
 ### Changed
 - Shared exact chat resolution logic across `chats resolve` and action commands to
@@ -22,6 +24,7 @@ All notable changes to this project will be documented in this file.
 - `version --json` and `capabilities --json` now advertise `error-hints` in
   the feature list.
 - Documented idempotency/retry guidance for agent retries across write commands.
+- Added retry helper examples (bash/Node.js) using envelope `error.code` and stable request IDs.
 
 ## v0.12.0 - 2026-02-11
 

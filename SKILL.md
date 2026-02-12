@@ -149,4 +149,5 @@ Notes
 - Envelope error codes: `AUTH_ERROR`, `NOT_FOUND`, `VALIDATION_ERROR`, `CONNECTION_ERROR`, `INTERNAL_ERROR`.
 - Retry policy: retry `CONNECTION_ERROR` with backoff; do not blind-retry `AUTH_ERROR`/`VALIDATION_ERROR`; refresh IDs before retrying `NOT_FOUND`.
 - Non-idempotent writes: `messages send`, `messages send-file`, `chats create`, `assets upload`, `assets upload-base64`.
+- Use `--request-id`/`BEEPER_REQUEST_ID` to tag envelope metadata for cross-retry attempt tracing.
 - Local smoke check: `make test-agent-smoke`.

@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## v0.14.0 - 2026-02-12
+
 ### Added
 - `--dedupe-window` / `BEEPER_DEDUPE_WINDOW` to block duplicate non-idempotent
   writes when the same `--request-id` and payload replay within a configured window.

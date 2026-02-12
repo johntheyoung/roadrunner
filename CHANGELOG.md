@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## v0.14.2 - 2026-02-12
+
+### Changed
+- Linked the ClawHub skill page from the README for easier discovery/installation.
+- Updated ClawHub skill metadata to use the current `metadata.clawdbot.requires`
+  schema for required env/config.
+- Documented safe shell quoting for message text containing `$` or `!` (e.g.
+  `$100/month` becoming `00/month` due to shell expansion) and recommended using
+  `--stdin <<'EOF' ... EOF` for literal message bodies.
+
 ## v0.14.0 - 2026-02-12
 
 ### Added

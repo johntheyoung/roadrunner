@@ -4,6 +4,16 @@ This project uses GoReleaser (see `.goreleaser.yml`) and GitHub Actions
 (`.github/workflows/release.yml`). Tag pushes create GitHub releases and
 update the Homebrew tap automatically.
 
+## Versioning Policy
+
+- Keep the CLI and Clawdhub skill in lockstep (`vX.Y.Z` tag for the repo, skill
+  published as `X.Y.Z`).
+- Cut a patch release for skill-only changes (SKILL metadata, install guidance,
+  safety notes). Avoid "skill version drift" where the skill version is ahead of
+  the latest CLI tag.
+- If `SKILL.md` changes, keep the Go install pin (`module: ...@vX.Y.Z`) aligned
+  with the release tag.
+
 ## Prereqs
 
 - Clean working tree on `main`.

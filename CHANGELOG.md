@@ -4,9 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## v0.14.4 - 2026-02-12
 
 ### Fixed
 - ClawdHub skill metadata: don't gate skill availability on `BEEPER_TOKEN` or config-file presence; Roadrunner reads token from `~/.config/beeper/config.json` and `BEEPER_TOKEN` is an override.
+
 ## v0.14.3 - 2026-02-12
 
 ### Added

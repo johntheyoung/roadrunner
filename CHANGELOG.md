@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Added
+- `rr auth set --stdin` and `rr auth set --from-env <VAR>` for secret-safe token input (avoid shell history).
+
+### Fixed
+- `rr auth set` now preserves unrelated keys in `~/.config/beeper/config.json` (Roadrunner only manages its own keys).
+
 ## v0.14.2 - 2026-02-12
 
 ### Changed

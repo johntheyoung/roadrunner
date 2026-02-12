@@ -17,6 +17,28 @@ type Config struct {
 // ErrNoToken is returned when no token is configured.
 var ErrNoToken = errors.New("no token configured")
 
+func pruneEmptyConfigKeys(obj map[string]any) {
+	// Keep unrelated keys intact; only remove the keys we own when empty.
+	if v, ok := obj["token"]; ok {
+		s, _ := v.(string)
+		if s == "" {
+			delete(obj, "token")
+		}
+	}
+	if v, ok := obj["account_aliases"]; ok {
+		switch m := v.(type) {
+		case map[string]any:
+			if len(m) == 0 {
+				delete(obj, "account_aliases")
+			}
+		case map[string]string:
+			if len(m) == 0 {
+				delete(obj, "account_aliases")
+			}
+		}
+	}
+}
+
 // Load reads the config from disk.
 // Returns empty config (not error) if file doesn't exist.
 func Load() (*Config, error) {
@@ -54,13 +76,39 @@ func Save(cfg *Config) error {
 		return fmt.Errorf("create config dir: %w", err)
 	}
 
-	data, err := json.MarshalIndent(cfg, "", "  ")
+	// Preserve unknown keys in the existing config file. Beeper Desktop may also
+	// store settings here; rr should only manage the keys it owns.
+	obj := map[string]any{}
+	if data, err := os.ReadFile(path); err == nil {
+		if len(data) > 0 {
+			if err := json.Unmarshal(data, &obj); err != nil {
+				return fmt.Errorf("parse existing config: %w", err)
+			}
+		}
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("read existing config: %w", err)
+	}
+
+	// Apply our fields to the object.
+	if cfg.Token != "" {
+		obj["token"] = cfg.Token
+	} else {
+		obj["token"] = ""
+	}
+	if len(cfg.AccountAliases) > 0 {
+		obj["account_aliases"] = cfg.AccountAliases
+	} else {
+		obj["account_aliases"] = map[string]any{}
+	}
+	pruneEmptyConfigKeys(obj)
+
+	out, err := json.MarshalIndent(obj, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshal config: %w", err)
 	}
 
 	// Write with restrictive permissions (token is sensitive)
-	if err := os.WriteFile(path, data, 0600); err != nil {
+	if err := os.WriteFile(path, out, 0600); err != nil {
 		return fmt.Errorf("write config: %w", err)
 	}
 

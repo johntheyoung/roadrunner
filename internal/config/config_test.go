@@ -1,7 +1,9 @@
 package config
 
 import (
+	"encoding/json"
 	"errors"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -65,5 +67,55 @@ func TestGetTokenPrecedence(t *testing.T) {
 	}
 	if token != "cli-token" || source != TokenSourceEnv {
 		t.Fatalf("GetToken() = %q/%v, want cli-token/env", token, source)
+	}
+}
+
+func TestSavePreservesUnknownFields(t *testing.T) {
+	tmp := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", tmp)
+
+	path, err := FilePath()
+	if err != nil {
+		t.Fatalf("FilePath() error: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		t.Fatalf("MkdirAll error: %v", err)
+	}
+
+	// Simulate Beeper Desktop (or other tooling) storing unrelated keys here.
+	orig := map[string]any{
+		"unrelated": "keep-me",
+		"nested": map[string]any{
+			"x": float64(1),
+		},
+		"token": "old",
+	}
+	data, _ := json.MarshalIndent(orig, "", "  ")
+	if err := os.WriteFile(path, data, 0600); err != nil {
+		t.Fatalf("WriteFile error: %v", err)
+	}
+
+	if err := SetToken("new"); err != nil {
+		t.Fatalf("SetToken error: %v", err)
+	}
+
+	gotBytes, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("ReadFile error: %v", err)
+	}
+
+	got := map[string]any{}
+	if err := json.Unmarshal(gotBytes, &got); err != nil {
+		t.Fatalf("Unmarshal error: %v", err)
+	}
+
+	if got["unrelated"] != "keep-me" {
+		t.Fatalf("unrelated key was not preserved: %#v", got["unrelated"])
+	}
+	if nested, ok := got["nested"].(map[string]any); !ok || nested["x"] != float64(1) {
+		t.Fatalf("nested key was not preserved: %#v", got["nested"])
+	}
+	if got["token"] != "new" {
+		t.Fatalf("token = %#v, want %q", got["token"], "new")
 	}
 }

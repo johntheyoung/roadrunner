@@ -2,8 +2,11 @@ package cmd
 
 import (
 	"context"
+	"os"
+	"strings"
 
 	"github.com/johntheyoung/roadrunner/internal/config"
+	"github.com/johntheyoung/roadrunner/internal/errfmt"
 	"github.com/johntheyoung/roadrunner/internal/outfmt"
 	"github.com/johntheyoung/roadrunner/internal/ui"
 )
@@ -17,14 +20,53 @@ type AuthCmd struct {
 
 // AuthSetCmd stores an API token.
 type AuthSetCmd struct {
-	Token string `arg:"" help:"API token to store"`
+	Token   string `arg:"" help:"API token to store (avoid shell history; prefer --stdin)"`
+	Stdin   bool   `help:"Read token from stdin (recommended to avoid shell history)"`
+	FromEnv string `help:"Read token from an environment variable (e.g. BEEPER_TOKEN)" name:"from-env" placeholder:"VAR"`
 }
 
 // Run executes the auth set command.
 func (c *AuthSetCmd) Run(ctx context.Context) error {
 	u := ui.FromContext(ctx)
 
-	if err := config.SetToken(c.Token); err != nil {
+	sources := 0
+	if strings.TrimSpace(c.Token) != "" {
+		sources++
+	}
+	if c.Stdin {
+		sources++
+	}
+	if strings.TrimSpace(c.FromEnv) != "" {
+		sources++
+	}
+	if sources == 0 {
+		return errfmt.UsageError("token is required (use `rr auth set --stdin` or `rr auth set --from-env BEEPER_TOKEN`)")
+	}
+	if sources > 1 {
+		return errfmt.UsageError("use only one of <token>, --stdin, --from-env")
+	}
+
+	token := c.Token
+	if c.Stdin {
+		t, err := resolveTextInput("", "", true, true, "token", "", "--stdin")
+		if err != nil {
+			return err
+		}
+		token = t
+	} else if strings.TrimSpace(c.FromEnv) != "" {
+		val := os.Getenv(strings.TrimSpace(c.FromEnv))
+		if strings.TrimSpace(val) == "" {
+			return errfmt.UsageError("environment variable %q is empty", strings.TrimSpace(c.FromEnv))
+		}
+		token = val
+	}
+
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return errfmt.UsageError("token is required")
+	}
+
+	if err := config.SetToken(token); err != nil {
 		return err
 	}
 
@@ -72,7 +114,8 @@ func (c *AuthStatusCmd) Run(ctx context.Context, flags *RootFlags) error {
 			return nil
 		}
 		u.Out().Warn("Not authenticated")
-		u.Out().Dim("Run: rr auth set <token>")
+		u.Out().Dim("Run: rr auth set --stdin  # recommended (avoids shell history)")
+		u.Out().Dim("Or:  rr auth set --from-env BEEPER_TOKEN")
 		return nil
 	}
 

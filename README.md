@@ -46,7 +46,7 @@ ClawHub skill: https://clawhub.ai/johntheyoung/roadrunner
 4. Configure the CLI:
 
 ```bash
-rr auth set <your-token>
+rr auth set --stdin  # recommended (avoids shell history)
 rr doctor  # verify setup
 ```
 

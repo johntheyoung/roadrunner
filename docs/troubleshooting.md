@@ -8,9 +8,15 @@
 
 ## Token errors
 
-- If you see "no token configured", run `rr auth set <token>`.
+- If you see "no token configured", run `rr auth set --stdin` (recommended) or `rr auth set <token>`.
 - `BEEPER_TOKEN` overrides the config file.
 - Use `rr auth status --check` to validate the token.
+
+Tip: avoid putting tokens in your shell history:
+
+```bash
+rr auth set --stdin
+```
 
 ## Non-interactive failures
 

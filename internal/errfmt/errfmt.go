@@ -40,7 +40,7 @@ func Format(err error) string {
 
 	// Handle no token error
 	if errors.Is(err, config.ErrNoToken) {
-		return "No API token configured.\n\nSet your token:\n  rr auth set <token>\n\nOr use environment variable:\n  export BEEPER_TOKEN=<token>"
+		return "No API token configured.\n\nSet your token (recommended; avoids shell history):\n  rr auth set --stdin\n\nOr from env:\n  rr auth set --from-env BEEPER_TOKEN\n\nOr export env var:\n  export BEEPER_TOKEN=<token>"
 	}
 
 	// Handle API errors
@@ -224,7 +224,7 @@ func Hint(err error) string {
 	}
 
 	if errors.Is(err, config.ErrNoToken) {
-		return "Set a token with `rr auth set <token>` or export `BEEPER_TOKEN`."
+		return "Set a token with `rr auth set --stdin`, `rr auth set --from-env BEEPER_TOKEN`, or export `BEEPER_TOKEN`."
 	}
 
 	if beeperapi.IsNotFound(err) {

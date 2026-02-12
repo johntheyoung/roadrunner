@@ -8,6 +8,10 @@ metadata:
     requires:
       bins:
         - rr
+      env:
+        - BEEPER_TOKEN
+      config:
+        - ~/.config/beeper/config.json
     install:
       - id: brew
         kind: brew
@@ -21,9 +25,6 @@ metadata:
         bins:
           - rr
         label: Install rr (go)
-    config:
-      requiredEnv:
-        - BEEPER_TOKEN
 ---
 
 # roadrunner (rr)

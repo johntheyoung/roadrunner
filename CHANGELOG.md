@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Added
+- `--dedupe-window` / `BEEPER_DEDUPE_WINDOW` to block duplicate non-idempotent
+  writes when the same `--request-id` and payload replay within a configured window.
+- Machine-readable retry classes in `rr capabilities --json` via `retry_classes`
+  (`safe`, `state-convergent`, `non-idempotent`).
+- macOS CI coverage for agent smoke checks.
+
+### Changed
+- `version --json` and `capabilities --json` now advertise `dedupe-guard` and
+  `retry-classes` features.
+- Envelope metadata supports `request_id` on both success and error paths for
+  retry correlation.
+
 ## v0.13.0 - 2026-02-12
 
 ### Added

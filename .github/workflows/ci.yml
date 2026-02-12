@@ -35,3 +35,18 @@ jobs:
 
       - name: Agent Smoke
         run: make test-agent-smoke
+
+  agent-smoke-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Agent Smoke
+        run: make test-agent-smoke

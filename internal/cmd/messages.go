@@ -957,6 +957,31 @@ func (c *MessagesSendCmd) Run(ctx context.Context, flags *RootFlags) error {
 			Height:   attachmentHeight,
 		}
 	}
+	if err := checkAndRememberNonIdempotentDuplicate(ctx, flags, "messages send", struct {
+		ChatID             string   `json:"chat_id"`
+		Text               string   `json:"text"`
+		ReplyToMessageID   string   `json:"reply_to_message_id"`
+		AttachmentUploadID string   `json:"attachment_upload_id"`
+		AttachmentFileName string   `json:"attachment_file_name"`
+		AttachmentMimeType string   `json:"attachment_mime_type"`
+		AttachmentType     string   `json:"attachment_type"`
+		AttachmentDuration *float64 `json:"attachment_duration,omitempty"`
+		AttachmentWidth    *float64 `json:"attachment_width,omitempty"`
+		AttachmentHeight   *float64 `json:"attachment_height,omitempty"`
+	}{
+		ChatID:             chatID,
+		Text:               text,
+		ReplyToMessageID:   c.ReplyToMessageID,
+		AttachmentUploadID: attachmentUploadID,
+		AttachmentFileName: c.AttachmentFileName,
+		AttachmentMimeType: c.AttachmentMimeType,
+		AttachmentType:     c.AttachmentType,
+		AttachmentDuration: attachmentDuration,
+		AttachmentWidth:    attachmentWidth,
+		AttachmentHeight:   attachmentHeight,
+	}); err != nil {
+		return err
+	}
 
 	resp, err := client.Messages().Send(ctx, chatID, params)
 	if err != nil {
@@ -1035,6 +1060,35 @@ func (c *MessagesSendFileCmd) Run(ctx context.Context, flags *RootFlags) error {
 		if err != nil {
 			return err
 		}
+	}
+	if err := checkAndRememberNonIdempotentDuplicate(ctx, flags, "messages send-file", struct {
+		ChatID             string   `json:"chat_id"`
+		FilePath           string   `json:"file_path"`
+		Text               string   `json:"text"`
+		ReplyToMessageID   string   `json:"reply_to_message_id"`
+		FileName           string   `json:"file_name"`
+		MimeType           string   `json:"mime_type"`
+		AttachmentFileName string   `json:"attachment_file_name"`
+		AttachmentMimeType string   `json:"attachment_mime_type"`
+		AttachmentType     string   `json:"attachment_type"`
+		AttachmentDuration *float64 `json:"attachment_duration,omitempty"`
+		AttachmentWidth    *float64 `json:"attachment_width,omitempty"`
+		AttachmentHeight   *float64 `json:"attachment_height,omitempty"`
+	}{
+		ChatID:             chatID,
+		FilePath:           filePath,
+		Text:               text,
+		ReplyToMessageID:   c.ReplyToMessageID,
+		FileName:           c.FileName,
+		MimeType:           c.MimeType,
+		AttachmentFileName: c.AttachmentFileName,
+		AttachmentMimeType: c.AttachmentMimeType,
+		AttachmentType:     c.AttachmentType,
+		AttachmentDuration: attachmentDuration,
+		AttachmentWidth:    attachmentWidth,
+		AttachmentHeight:   attachmentHeight,
+	}); err != nil {
+		return err
 	}
 
 	upload, err := client.Assets().Upload(ctx, beeperapi.AssetUploadParams{

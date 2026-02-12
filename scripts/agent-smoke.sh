@@ -9,6 +9,7 @@ trap 'rm -rf "$tmpdir"' EXIT
 
 rr_bin="$tmpdir/rr"
 go build -o "$rr_bin" ./cmd/rr
+export XDG_CONFIG_HOME="$tmpdir/xdg"
 
 run_stdout=""
 run_stderr=""
@@ -84,5 +85,14 @@ assert_stdout_contains "readonly-restriction" '"request_id": "req-smoke-ro"'
 run_case "connection-error-hint" 1 env BEEPER_TOKEN=test-token BEEPER_URL=http://127.0.0.1:9 "$rr_bin" --agent --enable-commands=messages messages list '!room:beeper.local'
 assert_stdout_contains "connection-error-hint" '"code": "CONNECTION_ERROR"'
 assert_stdout_contains "connection-error-hint" '"hint": "Run `rr doctor` to verify Desktop API connectivity and token validity."'
+
+# 6) Dedupe guard should block repeated non-idempotent writes with same request ID + payload.
+run_case "dedupe-first-attempt" 1 env BEEPER_TOKEN=test-token BEEPER_URL=http://127.0.0.1:9 "$rr_bin" --json --envelope --request-id=req-smoke-dedupe --dedupe-window=10m messages send '!room:beeper.local' 'hello'
+assert_stdout_contains "dedupe-first-attempt" '"code": "CONNECTION_ERROR"'
+
+run_case "dedupe-repeat-blocked" 2 env BEEPER_TOKEN=test-token BEEPER_URL=http://127.0.0.1:9 "$rr_bin" --json --envelope --request-id=req-smoke-dedupe --dedupe-window=10m messages send '!room:beeper.local' 'hello'
+assert_stdout_contains "dedupe-repeat-blocked" '"code": "VALIDATION_ERROR"'
+assert_stdout_contains "dedupe-repeat-blocked" 'duplicate non-idempotent request blocked'
+assert_stdout_contains "dedupe-repeat-blocked" '"hint": "Use a new `--request-id` for a deliberate retry, or pass `--force` to bypass the dedupe guard."'
 
 echo "Agent smoke checks passed."

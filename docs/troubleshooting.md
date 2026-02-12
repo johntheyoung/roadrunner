@@ -48,3 +48,8 @@
 - Run `make test-agent-smoke` to validate agent-mode safety and envelope contracts locally.
 - In envelope mode, inspect `error.hint` for deterministic next-step remediation.
 - Set `--request-id` to correlate repeated attempts in logs and envelope `metadata.request_id`.
+
+## Duplicate write blocking
+
+- If you see `duplicate non-idempotent request blocked`, the same `--request-id` and payload was replayed within `--dedupe-window`.
+- Use a new `--request-id` for deliberate retries, or `--force` to bypass the dedupe guard.

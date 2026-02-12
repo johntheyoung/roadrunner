@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"runtime/debug"
+	"time"
 
 	"github.com/alecthomas/kong"
 
@@ -47,6 +48,7 @@ type RootFlags struct {
 	Envelope       bool             `help:"Wrap JSON output in {success,data,error,metadata} envelope" env:"BEEPER_ENVELOPE"`
 	Agent          bool             `help:"Agent profile: forces JSON, envelope, no-input, readonly" env:"BEEPER_AGENT"`
 	RequestID      string           `help:"Optional request ID for envelope metadata (agent tracing)" env:"BEEPER_REQUEST_ID"`
+	DedupeWindow   time.Duration    `help:"Block duplicate non-idempotent writes with same --request-id and payload within this window (0 disables)" default:"0s" env:"BEEPER_DEDUPE_WINDOW"`
 	Account        string           `help:"Default account ID for commands" env:"BEEPER_ACCOUNT"`
 }
 

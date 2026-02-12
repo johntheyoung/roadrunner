@@ -70,6 +70,10 @@ func TestHint_KnownUsagePatterns(t *testing.T) {
 			err:  errors.New("--max-items requires --all"),
 		},
 		{
+			name: "dedupe blocked",
+			err:  errors.New("duplicate non-idempotent request blocked"),
+		},
+		{
 			name: "connection error",
 			err:  errors.New("dial tcp 127.0.0.1:23373: connect: connection refused"),
 		},

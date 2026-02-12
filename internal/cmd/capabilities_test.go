@@ -41,10 +41,10 @@ func TestCapabilitiesResponse(t *testing.T) {
 }
 
 func TestCapabilitiesFeatures(t *testing.T) {
-	expectedFeatures := []string{"enable-commands", "readonly", "envelope", "agent-mode", "error-hints", "request-id"}
+	expectedFeatures := []string{"enable-commands", "readonly", "envelope", "agent-mode", "error-hints", "request-id", "dedupe-guard", "retry-classes"}
 
 	// Verify that the features we document are what we expect
-	features := []string{"enable-commands", "readonly", "envelope", "agent-mode", "error-hints", "request-id"}
+	features := []string{"enable-commands", "readonly", "envelope", "agent-mode", "error-hints", "request-id", "dedupe-guard", "retry-classes"}
 
 	if len(features) != len(expectedFeatures) {
 		t.Errorf("features count mismatch: got %d, want %d", len(features), len(expectedFeatures))
@@ -58,6 +58,26 @@ func TestCapabilitiesFeatures(t *testing.T) {
 	for _, expected := range expectedFeatures {
 		if !featureSet[expected] {
 			t.Errorf("missing expected feature: %s", expected)
+		}
+	}
+}
+
+func TestRetryClasses(t *testing.T) {
+	classes := retryClasses()
+
+	tests := map[string]string{
+		"messages send":      "non-idempotent",
+		"chats create":       "non-idempotent",
+		"messages edit":      "state-convergent",
+		"chats archive":      "state-convergent",
+		"messages list":      "safe",
+		"assets upload":      "non-idempotent",
+		"accounts alias set": "state-convergent",
+	}
+
+	for cmd, want := range tests {
+		if got := classes[cmd]; got != want {
+			t.Fatalf("retryClasses[%q] = %q, want %q", cmd, got, want)
 		}
 	}
 }

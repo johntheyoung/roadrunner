@@ -253,6 +253,8 @@ func Hint(err error) string {
 		return "Upload first via `rr assets upload <path> --json`, then pass `--attachment-upload-id`."
 	case strings.Contains(msg, "message text or --attachment-upload-id is required"):
 		return "Provide message text or an uploaded attachment ID."
+	case strings.Contains(msg, "duplicate non-idempotent request blocked"):
+		return "Use a new `--request-id` for a deliberate retry, or pass `--force` to bypass the dedupe guard."
 	case strings.Contains(msg, "requires --all"):
 		return "Add `--all` when using this max-items flag."
 	case strings.Contains(msg, "connection refused"),

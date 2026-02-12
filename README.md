@@ -442,6 +442,9 @@ rr --readonly messages list '!roomid:beeper.local'
 
 # Combine for read-only access to specific commands
 rr --enable-commands=chats,messages --readonly chats search "Alice"
+
+# Optional duplicate guard for non-idempotent writes (needs --request-id)
+rr --request-id=req-123 --dedupe-window=10m --enable-commands=messages messages send '!roomid:beeper.local' "Hello"
 ```
 
 Write commands blocked by `--readonly`: `messages send`, `messages send-file`, `messages edit`, `chats create`, `chats archive`, `reminders set`, `reminders clear`, `assets upload`, `assets upload-base64`, `accounts alias set`, `accounts alias unset`.
@@ -471,7 +474,7 @@ The `--enable-commands` flag is **required** in agent mode to ensure agents only
 $ rr version --json
 {
   "version": "0.11.0",
-  "features": ["enable-commands", "readonly", "envelope", "agent-mode", "error-hints", "request-id"]
+  "features": ["enable-commands", "readonly", "envelope", "agent-mode", "error-hints", "request-id", "dedupe-guard", "retry-classes"]
 }
 ```
 
@@ -481,7 +484,7 @@ For detailed capability discovery:
 $ rr capabilities --json
 {
   "version": "0.11.0",
-  "features": ["enable-commands", "readonly", "envelope", "agent-mode", "error-hints", "request-id"],
+  "features": ["enable-commands", "readonly", "envelope", "agent-mode", "error-hints", "request-id", "dedupe-guard", "retry-classes"],
   "defaults": { "timeout": 30, "base_url": "http://localhost:23373" },
   "output_modes": ["human", "json", "plain"],
   "safety": {
@@ -493,6 +496,11 @@ $ rr capabilities --json
     "read": ["accounts list", "chats list", "messages list", ...],
     "write": ["messages send", "chats create", "chats archive", ...],
     "exempt": ["auth set", "auth clear", "focus"]
+  },
+  "retry_classes": {
+    "messages send": "non-idempotent",
+    "messages edit": "state-convergent",
+    "messages list": "safe"
   },
   "flags": { ... }
 }
@@ -668,6 +676,7 @@ This validates:
 - `--agent` missing allowlist failure contract.
 - `--enable-commands` and `--readonly` restriction errors with `error.hint`.
 - Connectivity failures returning `CONNECTION_ERROR` + actionable hint.
+- Duplicate non-idempotent write blocking with `--dedupe-window` + `--request-id`.
 
 ## Environment Variables
 
@@ -686,6 +695,7 @@ This validates:
 | `BEEPER_ENVELOPE` | Wrap JSON in envelope structure |
 | `BEEPER_AGENT` | Enable agent profile mode |
 | `BEEPER_REQUEST_ID` | Optional request ID added to envelope metadata |
+| `BEEPER_DEDUPE_WINDOW` | Duplicate non-idempotent write window (e.g. `10m`) |
 | `BEEPER_ACCOUNT` | Default account ID for commands |
 | `NO_COLOR` | Disable colored output |
 

@@ -540,6 +540,21 @@ func (c *ChatsCreateCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if err != nil {
 		return err
 	}
+	if err := checkAndRememberNonIdempotentDuplicate(ctx, flags, "chats create", struct {
+		AccountID    string   `json:"account_id"`
+		Participants []string `json:"participants"`
+		Type         string   `json:"type"`
+		Title        string   `json:"title"`
+		Message      string   `json:"message"`
+	}{
+		AccountID:    accountID,
+		Participants: c.Participants,
+		Type:         chatType,
+		Title:        c.Title,
+		Message:      c.Message,
+	}); err != nil {
+		return err
+	}
 
 	resp, err := client.Chats().Create(ctx, beeperapi.ChatCreateParams{
 		AccountID:      accountID,

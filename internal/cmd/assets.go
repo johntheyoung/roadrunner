@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"net/url"
@@ -223,6 +225,17 @@ func (c *AssetsUploadCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if err != nil {
 		return err
 	}
+	if err := checkAndRememberNonIdempotentDuplicate(ctx, flags, "assets upload", struct {
+		FilePath string `json:"file_path"`
+		FileName string `json:"file_name"`
+		MimeType string `json:"mime_type"`
+	}{
+		FilePath: c.FilePath,
+		FileName: c.FileName,
+		MimeType: c.MimeType,
+	}); err != nil {
+		return err
+	}
 
 	resp, err := client.Assets().Upload(ctx, beeperapi.AssetUploadParams{
 		FilePath: c.FilePath,
@@ -278,6 +291,18 @@ func (c *AssetsUploadBase64Cmd) Run(ctx context.Context, flags *RootFlags) error
 	timeout := time.Duration(flags.Timeout) * time.Second
 	client, err := beeperapi.NewClient(token, flags.BaseURL, timeout)
 	if err != nil {
+		return err
+	}
+	contentSum := sha256.Sum256([]byte(content))
+	if err := checkAndRememberNonIdempotentDuplicate(ctx, flags, "assets upload-base64", struct {
+		ContentSHA256 string `json:"content_sha256"`
+		FileName      string `json:"file_name"`
+		MimeType      string `json:"mime_type"`
+	}{
+		ContentSHA256: hex.EncodeToString(contentSum[:]),
+		FileName:      c.FileName,
+		MimeType:      c.MimeType,
+	}); err != nil {
 		return err
 	}
 

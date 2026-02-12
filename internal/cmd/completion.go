@@ -387,5 +387,7 @@ complete -c rr -l timeout -d 'Timeout for API calls in seconds'
 complete -c rr -l base-url -d 'API base URL'
 complete -c rr -l agent -d 'Agent profile mode'
 complete -c rr -l account -d 'Default account ID'
+complete -c rr -l request-id -d 'Optional request ID for envelope metadata'
+complete -c rr -l dedupe-window -d 'Duplicate non-idempotent write window (e.g. 10m)'
 complete -c rr -l version -d 'Show version and exit'
 `

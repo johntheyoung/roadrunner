@@ -13,13 +13,14 @@ type CapabilitiesCmd struct{}
 
 // CapabilitiesResponse is the JSON output structure.
 type CapabilitiesResponse struct {
-	Version     string            `json:"version"`
-	Features    []string          `json:"features"`
-	Defaults    CapDefaults       `json:"defaults"`
-	OutputModes []string          `json:"output_modes"`
-	Safety      CapSafety         `json:"safety"`
-	Commands    CapCommands       `json:"commands"`
-	Flags       map[string]string `json:"flags"`
+	Version      string            `json:"version"`
+	Features     []string          `json:"features"`
+	Defaults     CapDefaults       `json:"defaults"`
+	OutputModes  []string          `json:"output_modes"`
+	Safety       CapSafety         `json:"safety"`
+	Commands     CapCommands       `json:"commands"`
+	RetryClasses map[string]string `json:"retry_classes"`
+	Flags        map[string]string `json:"flags"`
 }
 
 // CapDefaults shows default values for key settings.
@@ -70,6 +71,47 @@ func readCommands() []string {
 	}
 }
 
+func retryClasses() map[string]string {
+	return map[string]string{
+		"accounts list":        "safe",
+		"accounts alias list":  "safe",
+		"assets download":      "safe",
+		"assets serve":         "safe",
+		"auth status":          "safe",
+		"auth set":             "safe",
+		"auth clear":           "safe",
+		"capabilities":         "safe",
+		"chats get":            "safe",
+		"chats list":           "safe",
+		"chats resolve":        "safe",
+		"chats search":         "safe",
+		"contacts resolve":     "safe",
+		"contacts search":      "safe",
+		"doctor":               "safe",
+		"focus":                "safe",
+		"messages context":     "safe",
+		"messages list":        "safe",
+		"messages search":      "safe",
+		"messages tail":        "safe",
+		"messages wait":        "safe",
+		"search":               "safe",
+		"status":               "safe",
+		"unread":               "safe",
+		"version":              "safe",
+		"messages edit":        "state-convergent",
+		"chats archive":        "state-convergent",
+		"reminders set":        "state-convergent",
+		"reminders clear":      "state-convergent",
+		"accounts alias set":   "state-convergent",
+		"accounts alias unset": "state-convergent",
+		"messages send":        "non-idempotent",
+		"messages send-file":   "non-idempotent",
+		"chats create":         "non-idempotent",
+		"assets upload":        "non-idempotent",
+		"assets upload-base64": "non-idempotent",
+	}
+}
+
 // Run executes the capabilities command.
 func (c *CapabilitiesCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
@@ -85,7 +127,7 @@ func (c *CapabilitiesCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	resp := CapabilitiesResponse{
 		Version:  Version,
-		Features: []string{"enable-commands", "readonly", "envelope", "agent-mode", "error-hints", "request-id"},
+		Features: []string{"enable-commands", "readonly", "envelope", "agent-mode", "error-hints", "request-id", "dedupe-guard", "retry-classes"},
 		Defaults: CapDefaults{
 			Timeout: flags.Timeout,
 			BaseURL: flags.BaseURL,
@@ -101,6 +143,7 @@ func (c *CapabilitiesCmd) Run(ctx context.Context, flags *RootFlags) error {
 			Write:  writeList,
 			Exempt: exemptList,
 		},
+		RetryClasses: retryClasses(),
 		Flags: map[string]string{
 			"--json":            "Output JSON to stdout",
 			"--plain":           "Output stable TSV to stdout",
@@ -111,6 +154,7 @@ func (c *CapabilitiesCmd) Run(ctx context.Context, flags *RootFlags) error {
 			"--agent":           "Agent profile mode",
 			"--account":         "Default account ID for commands",
 			"--request-id":      "Optional request ID for envelope metadata",
+			"--dedupe-window":   "Window for duplicate non-idempotent write blocking",
 			"--timeout":         "API timeout in seconds",
 			"--force":           "Skip confirmations",
 		},
@@ -144,6 +188,7 @@ func (c *CapabilitiesCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u.Out().Dim("    ... use --json for full list")
 	u.Out().Printf("  Write (%d): %v", len(writeList), writeList)
 	u.Out().Printf("  Exempt (%d): %v", len(exemptList), exemptList)
+	u.Out().Printf("  Retry classes: safe | state-convergent | non-idempotent")
 
 	return nil
 }

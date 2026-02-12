@@ -150,4 +150,5 @@ Notes
 - Retry policy: retry `CONNECTION_ERROR` with backoff; do not blind-retry `AUTH_ERROR`/`VALIDATION_ERROR`; refresh IDs before retrying `NOT_FOUND`.
 - Non-idempotent writes: `messages send`, `messages send-file`, `chats create`, `assets upload`, `assets upload-base64`.
 - Use `--request-id`/`BEEPER_REQUEST_ID` to tag envelope metadata for cross-retry attempt tracing.
+- Use `--dedupe-window`/`BEEPER_DEDUPE_WINDOW` to block duplicate non-idempotent writes with repeated request IDs.
 - Local smoke check: `make test-agent-smoke`.

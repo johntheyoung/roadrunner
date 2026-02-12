@@ -44,7 +44,7 @@ func (c *VersionCmd) Run(ctx context.Context) error {
 			"version":  strings.TrimSpace(Version),
 			"commit":   strings.TrimSpace(Commit),
 			"date":     strings.TrimSpace(Date),
-			"features": []string{"enable-commands", "readonly", "envelope", "agent-mode", "error-hints", "request-id"},
+			"features": []string{"enable-commands", "readonly", "envelope", "agent-mode", "error-hints", "request-id", "dedupe-guard", "retry-classes"},
 		}, "version")
 	}
 

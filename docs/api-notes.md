@@ -39,6 +39,7 @@
   - retry `CONNECTION_ERROR` with backoff,
   - fix inputs/config before retrying `VALIDATION_ERROR`/`AUTH_ERROR`,
   - refresh IDs before retrying `NOT_FOUND`.
+- `--dedupe-window` can block duplicate non-idempotent writes when the same `--request-id` + payload repeats within the configured window (bypass with `--force`).
 
 ## Pagination
 

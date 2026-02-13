@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/alecthomas/kong v1.13.0
-	github.com/beeper/desktop-api-go v0.2.0
+	github.com/beeper/desktop-api-go v0.2.1
 	github.com/muesli/termenv v0.16.0
 	golang.org/x/term v0.39.0
 )

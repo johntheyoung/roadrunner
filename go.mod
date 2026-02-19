@@ -3,7 +3,7 @@ module github.com/johntheyoung/roadrunner
 go 1.24.0
 
 require (
-	github.com/alecthomas/kong v1.13.0
+	github.com/alecthomas/kong v1.14.0
 	github.com/beeper/desktop-api-go v0.3.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/muesli/termenv v0.16.0

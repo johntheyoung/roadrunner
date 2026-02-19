@@ -10,6 +10,7 @@
 - **Unread** — roll up unread chats across accounts
 - **Status** — unread and chat summary (optional per-account)
 - **Connect** — inspect local Connect server metadata and discovered endpoints
+- **Events (experimental)** — subscribe to live websocket chat/message events
 - **Reminders** — set and clear chat reminders
 - **Focus** — focus app window, pre-fill drafts with text or attachments
 - **Scripting** — stdin/text-file input, `--fail-if-empty`, and `--fields` for plain output
@@ -136,6 +137,22 @@ rr contacts resolve "<contact-id>" --account-id="<account-id>" --json
 rr connect info
 rr connect info --json
 ```
+
+## Events (Experimental)
+
+```bash
+# Subscribe to all chats over websocket
+rr events tail --all --json
+
+# Subscribe to specific chats
+rr events tail --chat-id '!roomid:beeper.local' --chat-id '!other:beeper.local' --json
+
+# Include control messages (ready/subscription updates/errors)
+rr events tail --all --include-control --stop-after 30s --json
+```
+
+If your desktop build does not expose `/v1/ws`, `rr events tail` returns an explicit unsupported-version error.
+For older builds or when you need polling semantics, continue using `rr messages tail`.
 
 ## Messages
 

@@ -14,6 +14,7 @@ import (
 // Client wraps the Beeper Desktop SDK.
 type Client struct {
 	SDK     *beeperdesktopapi.Client
+	token   string
 	baseURL string
 	timeout time.Duration
 
@@ -56,6 +57,7 @@ func NewClient(token string, baseURL string, timeout time.Duration) (*Client, er
 
 	return &Client{
 		SDK:     &sdk,
+		token:   token,
 		baseURL: baseURL,
 		timeout: timeout,
 	}, nil
@@ -92,4 +94,9 @@ func (c *Client) Assets() *AssetsService {
 // Connect returns the connect/discovery service.
 func (c *Client) Connect() *ConnectService {
 	return &ConnectService{client: c}
+}
+
+// Events returns the experimental WebSocket events service.
+func (c *Client) Events() *EventsService {
+	return &EventsService{client: c}
 }

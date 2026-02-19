@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## v0.16.0 - 2026-02-19
+
+### Added
+- Experimental websocket live event support via `rr events tail` (connects to `GET /v1/ws`, sends `subscriptions.set`, supports `--all` or repeated `--chat-id` selectors).
+
+### Changed
+- Shell completion metadata, root command registration, and capabilities retry/read lists now include `events tail`.
+
 ## v0.15.0 - 2026-02-19
 
 ### Added

@@ -1,6 +1,6 @@
 ---
 name: roadrunner
-description: Beeper Desktop CLI for chats, messages, contacts, connect info, search, and reminders.
+description: Beeper Desktop CLI for chats, messages, contacts, connect info, websocket events, search, and reminders.
 homepage: https://github.com/johntheyoung/roadrunner
 metadata:
   clawdbot:
@@ -17,7 +17,7 @@ metadata:
         label: Install rr (brew)
       - id: go
         kind: go
-        module: github.com/johntheyoung/roadrunner/cmd/rr@v0.15.0
+        module: github.com/johntheyoung/roadrunner/cmd/rr@v0.16.0
         bins:
           - rr
         label: Install rr (go)
@@ -50,6 +50,7 @@ Common commands
 - List accounts: `rr accounts list --json`
 - Capabilities: `rr capabilities --json`
 - Connect metadata: `rr connect info --json`
+- Live websocket events (experimental): `rr events tail --all --stop-after 30s --json`
 - List contacts: `rr contacts list "<account-id>" --json`
 - Search contacts: `rr contacts search "<account-id>" "Alice" --json`
 - Search contacts (flag): `rr contacts search "Alice" --account-id="<account-id>" --json`
@@ -136,6 +137,7 @@ Notes
 - In bash/zsh, `!` triggers history expansion. Prefer single quotes, or disable history expansion (`set +H` in bash, `setopt NO_HIST_EXPAND` in zsh).
 - `rr version --json` returns `features` array for capability discovery.
 - `rr capabilities --json` returns full CLI capability metadata.
+- `rr events tail` depends on experimental `/v1/ws` support in Beeper Desktop; fall back to `rr messages tail` when unavailable.
 - Envelope error codes: `AUTH_ERROR`, `NOT_FOUND`, `VALIDATION_ERROR`, `CONNECTION_ERROR`, `INTERNAL_ERROR`.
 - Retry policy: retry `CONNECTION_ERROR` with backoff; do not blind-retry `AUTH_ERROR`/`VALIDATION_ERROR`; refresh IDs before retrying `NOT_FOUND`.
 - Non-idempotent writes: `messages send`, `messages send-file`, `chats create`, `chats start`, `assets upload`, `assets upload-base64`.

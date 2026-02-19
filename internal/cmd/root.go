@@ -58,6 +58,7 @@ type CLI struct {
 
 	Auth         AuthCmd         `cmd:"" help:"Manage authentication"`
 	Connect      ConnectCmd      `cmd:"" help:"Discover Connect server metadata"`
+	Events       EventsCmd       `cmd:"" help:"Manage websocket live events (experimental)"`
 	Accounts     AccountsCmd     `cmd:"" help:"Manage messaging accounts"`
 	Contacts     ContactsCmd     `cmd:"" help:"Manage contacts"`
 	Assets       AssetsCmd       `cmd:"" help:"Manage assets"`

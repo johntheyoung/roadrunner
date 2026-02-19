@@ -33,9 +33,10 @@ _rr_completions() {
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    commands="auth connect accounts contacts assets chats messages reminders search status unread focus doctor version capabilities completion"
+    commands="auth connect events accounts contacts assets chats messages reminders search status unread focus doctor version capabilities completion"
     auth_cmds="set status clear"
     connect_cmds="info"
+    events_cmds="tail"
     accounts_cmds="list alias"
     accounts_alias_cmds="set list unset"
     contacts_cmds="list search resolve"
@@ -55,6 +56,10 @@ _rr_completions() {
             ;;
         connect)
             COMPREPLY=( $(compgen -W "${connect_cmds}" -- "${cur}") )
+            return 0
+            ;;
+        events)
+            COMPREPLY=( $(compgen -W "${events_cmds}" -- "${cur}") )
             return 0
             ;;
         accounts)
@@ -103,6 +108,7 @@ _rr() {
     commands=(
         'auth:Manage authentication'
         'connect:Discover Connect server metadata'
+        'events:Manage websocket live events (experimental)'
         'accounts:Manage messaging accounts'
         'contacts:Search contacts'
         'assets:Manage assets'
@@ -149,6 +155,11 @@ _rr() {
     local -a connect_cmds
     connect_cmds=(
         'info:Show Connect server metadata and discovered endpoints'
+    )
+
+    local -a events_cmds
+    events_cmds=(
+        'tail:Follow live websocket events'
     )
 
     local -a assets_cmds
@@ -217,6 +228,9 @@ _rr() {
                 connect)
                     _describe -t commands 'connect commands' connect_cmds
                     ;;
+                events)
+                    _describe -t commands 'events commands' events_cmds
+                    ;;
                 contacts)
                     _describe -t commands 'contacts commands' contacts_cmds
                     ;;
@@ -258,6 +272,7 @@ complete -c rr -f
 # Top-level commands
 complete -c rr -n '__fish_use_subcommand' -a 'auth' -d 'Manage authentication'
 complete -c rr -n '__fish_use_subcommand' -a 'connect' -d 'Discover Connect server metadata'
+complete -c rr -n '__fish_use_subcommand' -a 'events' -d 'Manage websocket live events (experimental)'
 complete -c rr -n '__fish_use_subcommand' -a 'accounts' -d 'Manage messaging accounts'
 complete -c rr -n '__fish_use_subcommand' -a 'contacts' -d 'Search contacts'
 complete -c rr -n '__fish_use_subcommand' -a 'assets' -d 'Manage assets'
@@ -284,6 +299,9 @@ complete -c rr -n '__fish_seen_subcommand_from accounts' -a 'alias' -d 'Manage a
 
 # connect subcommands
 complete -c rr -n '__fish_seen_subcommand_from connect' -a 'info' -d 'Show Connect server metadata and discovered endpoints'
+
+# events subcommands
+complete -c rr -n '__fish_seen_subcommand_from events' -a 'tail' -d 'Follow live websocket events'
 
 # contacts subcommands
 complete -c rr -n '__fish_seen_subcommand_from contacts' -a 'list' -d 'List contacts on an account'

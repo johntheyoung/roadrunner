@@ -101,15 +101,19 @@ func (c *AuthStatusCmd) Run(ctx context.Context, flags *RootFlags) error {
 			}, "auth status")
 		}
 		if outfmt.IsPlain(ctx) {
-			fields, err := resolveFields(c.Fields, []string{"authenticated", "source", "config_path", "valid"})
+			fields, err := resolveFields(c.Fields, []string{"authenticated", "source", "config_path", "valid", "validation_method", "connect_name", "connect_version", "connect_runtime"})
 			if err != nil {
 				return err
 			}
 			writePlainFields(u, fields, map[string]string{
-				"authenticated": "false",
-				"source":        "none",
-				"config_path":   "",
-				"valid":         "",
+				"authenticated":     "false",
+				"source":            "none",
+				"config_path":       "",
+				"valid":             "",
+				"validation_method": "",
+				"connect_name":      "",
+				"connect_version":   "",
+				"connect_runtime":   "",
 			})
 			return nil
 		}
@@ -145,6 +149,31 @@ func (c *AuthStatusCmd) Run(ctx context.Context, flags *RootFlags) error {
 			if validation.Account != "" {
 				result["account"] = validation.Account
 			}
+			if validation.ValidationMethod != "" {
+				result["validation_method"] = validation.ValidationMethod
+			}
+			if validation.IntrospectionAvailable {
+				result["introspection_available"] = true
+				result["introspection_active"] = validation.IntrospectionActive
+				if validation.Subject != "" {
+					result["subject"] = validation.Subject
+				}
+			}
+			if validation.ConnectInfoAvailable {
+				connectInfo := map[string]any{}
+				if validation.ConnectName != "" {
+					connectInfo["name"] = validation.ConnectName
+				}
+				if validation.ConnectVersion != "" {
+					connectInfo["version"] = validation.ConnectVersion
+				}
+				if validation.ConnectRuntime != "" {
+					connectInfo["runtime"] = validation.ConnectRuntime
+				}
+				if len(connectInfo) > 0 {
+					result["connect"] = connectInfo
+				}
+			}
 			if validation.Error != "" {
 				result["validation_error"] = validation.Error
 			}
@@ -155,19 +184,31 @@ func (c *AuthStatusCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// Plain output (TSV)
 	if outfmt.IsPlain(ctx) {
-		fields, err := resolveFields(c.Fields, []string{"authenticated", "source", "config_path", "valid"})
+		fields, err := resolveFields(c.Fields, []string{"authenticated", "source", "config_path", "valid", "validation_method", "connect_name", "connect_version", "connect_runtime"})
 		if err != nil {
 			return err
 		}
 		valid := ""
+		validationMethod := ""
+		connectName := ""
+		connectVersion := ""
+		connectRuntime := ""
 		if validation != nil {
 			valid = formatBool(validation.Valid)
+			validationMethod = validation.ValidationMethod
+			connectName = validation.ConnectName
+			connectVersion = validation.ConnectVersion
+			connectRuntime = validation.ConnectRuntime
 		}
 		writePlainFields(u, fields, map[string]string{
-			"authenticated": "true",
-			"source":        source.String(),
-			"config_path":   configPath,
-			"valid":         valid,
+			"authenticated":     "true",
+			"source":            source.String(),
+			"config_path":       configPath,
+			"valid":             valid,
+			"validation_method": validationMethod,
+			"connect_name":      connectName,
+			"connect_version":   connectVersion,
+			"connect_runtime":   connectRuntime,
 		})
 		return nil
 	}
@@ -192,6 +233,18 @@ func (c *AuthStatusCmd) Run(ctx context.Context, flags *RootFlags) error {
 			u.Out().Error("Token valid:   no")
 			if validation.Error != "" {
 				u.Out().Dim("  " + validation.Error)
+			}
+		}
+		if validation.ValidationMethod != "" {
+			u.Out().Printf("Validated via: %s", validation.ValidationMethod)
+		}
+		if validation.ConnectInfoAvailable {
+			connectSummary := validation.ConnectVersion
+			if connectSummary == "" {
+				connectSummary = validation.ConnectName
+			}
+			if connectSummary != "" {
+				u.Out().Printf("Connect info:  %s", connectSummary)
 			}
 		}
 	}

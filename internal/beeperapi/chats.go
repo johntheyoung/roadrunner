@@ -109,9 +109,27 @@ type ChatCreateParams struct {
 	MessageText    string
 }
 
+// ChatStartUser contains merged user hints for start-mode chat creation.
+type ChatStartUser struct {
+	ID          string
+	Email       string
+	FullName    string
+	PhoneNumber string
+	Username    string
+}
+
+// ChatStartParams configures mode=start chat creation.
+type ChatStartParams struct {
+	AccountID   string
+	User        ChatStartUser
+	AllowInvite *bool
+	MessageText string
+}
+
 // ChatCreateResult is the response from creating a chat.
 type ChatCreateResult struct {
 	ChatID string `json:"chat_id"`
+	Status string `json:"status,omitempty"`
 }
 
 // List retrieves chats with cursor-based pagination.
@@ -244,7 +262,7 @@ func (s *ChatsService) Search(ctx context.Context, params ChatSearchParams) (Cha
 			DisplayName: displayName,
 			AccountID:   chat.AccountID,
 			Type:        string(chat.Type),
-			Network:     accountNetworks[chat.AccountID],
+			Network:     networkForAccount(accountNetworks, chat.AccountID),
 			UnreadCount: chat.UnreadCount,
 			IsArchived:  chat.IsArchived,
 			IsMuted:     chat.IsMuted,
@@ -274,7 +292,7 @@ func (s *ChatsService) Get(ctx context.Context, chatID string, params ChatGetPar
 		ID:                     chat.ID,
 		Title:                  chat.Title,
 		AccountID:              chat.AccountID,
-		Network:                accountNetworks[chat.AccountID],
+		Network:                networkForAccount(accountNetworks, chat.AccountID),
 		Type:                   string(chat.Type),
 		UnreadCount:            chat.UnreadCount,
 		IsArchived:             chat.IsArchived,
@@ -299,21 +317,24 @@ func (s *ChatsService) Create(ctx context.Context, params ChatCreateParams) (Cha
 	ctx, cancel := s.client.contextWithTimeout(ctx)
 	defer cancel()
 
-	sdkParams := beeperdesktopapi.ChatNewParams{
+	sdkBody := &beeperdesktopapi.ChatNewParamsBodyObject{
 		AccountID:      params.AccountID,
 		ParticipantIDs: params.ParticipantIDs,
 	}
 	switch params.Type {
 	case "single":
-		sdkParams.Type = beeperdesktopapi.ChatNewParamsTypeSingle
+		sdkBody.Type = "single"
 	case "group":
-		sdkParams.Type = beeperdesktopapi.ChatNewParamsTypeGroup
+		sdkBody.Type = "group"
 	}
 	if params.Title != "" {
-		sdkParams.Title = beeperdesktopapi.String(params.Title)
+		sdkBody.Title = beeperdesktopapi.String(params.Title)
 	}
 	if params.MessageText != "" {
-		sdkParams.MessageText = beeperdesktopapi.String(params.MessageText)
+		sdkBody.MessageText = beeperdesktopapi.String(params.MessageText)
+	}
+	sdkParams := beeperdesktopapi.ChatNewParams{
+		OfObject: sdkBody,
 	}
 
 	resp, err := s.client.SDK.Chats.New(ctx, sdkParams)
@@ -321,7 +342,65 @@ func (s *ChatsService) Create(ctx context.Context, params ChatCreateParams) (Cha
 		return ChatCreateResult{}, err
 	}
 
-	return ChatCreateResult{ChatID: resp.ChatID}, nil
+	return ChatCreateResult{
+		ChatID: resp.ChatID,
+		Status: string(resp.Status),
+	}, nil
+}
+
+// ChatStartResult is the response from start-mode chat resolution/creation.
+type ChatStartResult struct {
+	ChatID string `json:"chat_id"`
+	Status string `json:"status,omitempty"`
+}
+
+// Start resolves or creates a direct chat from merged contact data (mode=start).
+func (s *ChatsService) Start(ctx context.Context, params ChatStartParams) (ChatStartResult, error) {
+	ctx, cancel := s.client.contextWithTimeout(ctx)
+	defer cancel()
+
+	type startUser struct {
+		ID          string `json:"id,omitempty"`
+		Email       string `json:"email,omitempty"`
+		FullName    string `json:"fullName,omitempty"`
+		PhoneNumber string `json:"phoneNumber,omitempty"`
+		Username    string `json:"username,omitempty"`
+	}
+	type startBody struct {
+		AccountID   string    `json:"accountID"`
+		Mode        string    `json:"mode"`
+		User        startUser `json:"user"`
+		AllowInvite *bool     `json:"allowInvite,omitempty"`
+		MessageText string    `json:"messageText,omitempty"`
+	}
+	type startResponse struct {
+		ChatID string `json:"chatID"`
+		Status string `json:"status,omitempty"`
+	}
+
+	body := startBody{
+		AccountID: params.AccountID,
+		Mode:      "start",
+		User: startUser{
+			ID:          params.User.ID,
+			Email:       params.User.Email,
+			FullName:    params.User.FullName,
+			PhoneNumber: params.User.PhoneNumber,
+			Username:    params.User.Username,
+		},
+		AllowInvite: params.AllowInvite,
+		MessageText: params.MessageText,
+	}
+
+	var resp startResponse
+	if err := s.client.SDK.Post(ctx, "v1/chats", body, &resp); err != nil {
+		return ChatStartResult{}, err
+	}
+
+	return ChatStartResult{
+		ChatID: resp.ChatID,
+		Status: resp.Status,
+	}, nil
 }
 
 // Archive archives or unarchives a chat.
@@ -333,6 +412,6 @@ func (s *ChatsService) Archive(ctx context.Context, chatID string, archived bool
 		Archived: beeperdesktopapi.Bool(archived),
 	}
 
-	_, err := s.client.SDK.Chats.Archive(ctx, chatID, sdkParams)
+	err := s.client.SDK.Chats.Archive(ctx, chatID, sdkParams)
 	return err
 }

@@ -41,8 +41,8 @@ func (s *AccountsService) List(ctx context.Context) ([]Account, error) {
 		accounts = append(accounts, Account{
 			ID:          a.AccountID,
 			DisplayName: displayName,
-			//nolint:staticcheck // Network is deprecated in SDK but still returned by API for display.
-			Network: a.Network,
+			//nolint:staticcheck // Network may still be returned by some API versions.
+			Network: normalizeNetwork(a.Network),
 		})
 	}
 

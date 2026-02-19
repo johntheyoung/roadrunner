@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Added
+- `rr chats start` to resolve/create direct chats from merged contact hints (`mode=start`).
+- Message reaction commands: `rr messages react` and `rr messages unreact`.
+- `rr contacts list` with cursor pagination (`--cursor`, `--direction`, `--all`, `--max-items`).
+- Connect discovery command: `rr connect info` (reads `/v1/info` metadata/endpoints).
+
+### Changed
+- Upgraded SDK dependency to `github.com/beeper/desktop-api-go v0.3.0`.
+- `auth status --check` and `doctor` now use OAuth introspection (`/oauth/introspect`) when available, with fallback to account-list validation for older API builds.
+- Message list/search JSON/plain output now includes `message_type` and `linked_message_id`; reactions include image URL.
+- Account network handling now degrades gracefully to `"unknown"` when newer API builds omit `Account.network`.
+
+### Fixed
+- Updated completion metadata and capabilities/read-only coverage for new commands (`connect info`, `contacts list`, `messages react`, `messages unreact`, `chats start`).
+- Updated skill docs (`SKILL.md`, `skill/SKILL.md`) and README examples to match current command surface.
+
 ## v0.14.4 - 2026-02-12
 
 ### Fixed

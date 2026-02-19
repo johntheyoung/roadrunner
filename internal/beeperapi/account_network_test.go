@@ -34,8 +34,8 @@ func TestAccountNetworkMapFiltersInvalidEntries(t *testing.T) {
 	if got["acc-telegram"] != "Telegram" {
 		t.Fatalf("network for acc-telegram = %q, want %q", got["acc-telegram"], "Telegram")
 	}
-	if _, ok := got["acc-empty-network"]; ok {
-		t.Fatalf("unexpected mapping for acc-empty-network: %q", got["acc-empty-network"])
+	if got["acc-empty-network"] != unknownNetwork {
+		t.Fatalf("network for acc-empty-network = %q, want %q", got["acc-empty-network"], unknownNetwork)
 	}
 	if _, ok := got[""]; ok {
 		t.Fatalf("unexpected mapping for empty account ID: %q", got[""])

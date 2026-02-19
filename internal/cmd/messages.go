@@ -24,6 +24,8 @@ type MessagesCmd struct {
 	Send     MessagesSendCmd     `cmd:"" help:"Send a text message and/or attachment to a chat"`
 	SendFile MessagesSendFileCmd `cmd:"" name:"send-file" help:"Upload a file and send it as an attachment"`
 	Edit     MessagesEditCmd     `cmd:"" help:"Edit a previously sent message"`
+	React    MessagesReactCmd    `cmd:"" help:"Add a reaction to a message"`
+	Unreact  MessagesUnreactCmd  `cmd:"" help:"Remove a reaction from a message"`
 	Tail     MessagesTailCmd     `cmd:"" help:"Follow messages in a chat"`
 	Wait     MessagesWaitCmd     `cmd:"" help:"Wait for a matching message"`
 	Context  MessagesContextCmd  `cmd:"" help:"Fetch context around a message"`
@@ -139,7 +141,7 @@ func (c *MessagesListCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// Plain output (TSV)
 	if outfmt.IsPlain(ctx) {
-		fields, err := resolveFields(c.Fields, []string{"id", "sender_name", "timestamp", "text", "chat_id", "sort_key", "account_id", "is_sender", "is_unread", "attachments_count", "reaction_keys", "downloaded_attachments"})
+		fields, err := resolveFields(c.Fields, []string{"id", "sender_name", "timestamp", "text", "message_type", "linked_message_id", "chat_id", "sort_key", "account_id", "is_sender", "is_unread", "attachments_count", "reaction_keys", "downloaded_attachments"})
 		if err != nil {
 			return err
 		}
@@ -151,6 +153,8 @@ func (c *MessagesListCmd) Run(ctx context.Context, flags *RootFlags) error {
 				"sender_name":            item.SenderName,
 				"timestamp":              item.Timestamp,
 				"text":                   ui.Truncate(item.Text, 50),
+				"message_type":           item.MessageType,
+				"linked_message_id":      item.LinkedMessageID,
 				"sort_key":               item.SortKey,
 				"is_sender":              formatBool(item.IsSender),
 				"is_unread":              formatBool(item.IsUnread),
@@ -249,6 +253,20 @@ type MessagesEditCmd struct {
 	TextFile        string `help:"Read replacement text from file ('-' for stdin)" name:"text-file"`
 	Stdin           bool   `help:"Read replacement text from stdin" name:"stdin"`
 	AllowToolOutput bool   `help:"Allow sending message text that looks like rr tool output (dangerous; may leak private data)" name:"allow-tool-output"`
+}
+
+// MessagesReactCmd adds a reaction to a message.
+type MessagesReactCmd struct {
+	ChatID      string `arg:"" name:"chatID" help:"Chat ID containing the message"`
+	MessageID   string `arg:"" name:"messageID" help:"Message ID to react to"`
+	ReactionKey string `arg:"" name:"reactionKey" help:"Reaction key (emoji, shortcode, or network-specific key)"`
+}
+
+// MessagesUnreactCmd removes a reaction from a message.
+type MessagesUnreactCmd struct {
+	ChatID      string `arg:"" name:"chatID" help:"Chat ID containing the message"`
+	MessageID   string `arg:"" name:"messageID" help:"Message ID to remove reaction from"`
+	ReactionKey string `arg:"" name:"reactionKey" help:"Reaction key to remove"`
 }
 
 // Run executes the messages search command.
@@ -398,7 +416,7 @@ func (c *MessagesSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// Plain output (TSV)
 	if outfmt.IsPlain(ctx) {
-		fields, err := resolveFields(c.Fields, []string{"id", "chat_id", "sender_name", "text", "timestamp", "sort_key", "account_id", "is_sender", "is_unread", "attachments_count", "reaction_keys", "downloaded_attachments"})
+		fields, err := resolveFields(c.Fields, []string{"id", "chat_id", "sender_name", "text", "message_type", "linked_message_id", "timestamp", "sort_key", "account_id", "is_sender", "is_unread", "attachments_count", "reaction_keys", "downloaded_attachments"})
 		if err != nil {
 			return err
 		}
@@ -410,6 +428,8 @@ func (c *MessagesSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 				"sender_name":            item.SenderName,
 				"timestamp":              item.Timestamp,
 				"text":                   ui.Truncate(item.Text, 50),
+				"message_type":           item.MessageType,
+				"linked_message_id":      item.LinkedMessageID,
 				"sort_key":               item.SortKey,
 				"is_sender":              formatBool(item.IsSender),
 				"is_unread":              formatBool(item.IsUnread),
@@ -758,6 +778,110 @@ func (c *MessagesEditCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u.Out().Printf("Chat ID:    %s", resp.ChatID)
 	u.Out().Printf("Message ID: %s", resp.MessageID)
 
+	return nil
+}
+
+// Run executes the messages react command.
+func (c *MessagesReactCmd) Run(ctx context.Context, flags *RootFlags) error {
+	u := ui.FromContext(ctx)
+	chatID := normalizeChatID(c.ChatID)
+	messageID := strings.TrimSpace(c.MessageID)
+	reactionKey := strings.TrimSpace(c.ReactionKey)
+
+	if messageID == "" {
+		return errfmt.UsageError("messageID is required")
+	}
+	if reactionKey == "" {
+		return errfmt.UsageError("reactionKey is required")
+	}
+
+	token, _, err := config.GetToken()
+	if err != nil {
+		return err
+	}
+
+	timeout := time.Duration(flags.Timeout) * time.Second
+	client, err := beeperapi.NewClient(token, flags.BaseURL, timeout)
+	if err != nil {
+		return err
+	}
+	if err := client.Messages().React(ctx, chatID, messageID, reactionKey); err != nil {
+		if beeperapi.IsUnsupportedRoute(err, "POST", "/reactions") {
+			return fmt.Errorf("message reactions are not supported by this Beeper Desktop API version (requires a newer Beeper Desktop build)")
+		}
+		return err
+	}
+
+	result := map[string]any{
+		"chat_id":      chatID,
+		"message_id":   messageID,
+		"reaction_key": reactionKey,
+		"success":      true,
+	}
+	if outfmt.IsJSON(ctx) {
+		return writeJSON(ctx, result, "messages react")
+	}
+	if outfmt.IsPlain(ctx) {
+		u.Out().Printf("%s\t%s\t%s\ttrue", chatID, messageID, reactionKey)
+		return nil
+	}
+
+	u.Out().Success("Reaction added")
+	u.Out().Printf("Chat ID:    %s", chatID)
+	u.Out().Printf("Message ID: %s", messageID)
+	u.Out().Printf("Reaction:   %s", reactionKey)
+	return nil
+}
+
+// Run executes the messages unreact command.
+func (c *MessagesUnreactCmd) Run(ctx context.Context, flags *RootFlags) error {
+	u := ui.FromContext(ctx)
+	chatID := normalizeChatID(c.ChatID)
+	messageID := strings.TrimSpace(c.MessageID)
+	reactionKey := strings.TrimSpace(c.ReactionKey)
+
+	if messageID == "" {
+		return errfmt.UsageError("messageID is required")
+	}
+	if reactionKey == "" {
+		return errfmt.UsageError("reactionKey is required")
+	}
+
+	token, _, err := config.GetToken()
+	if err != nil {
+		return err
+	}
+
+	timeout := time.Duration(flags.Timeout) * time.Second
+	client, err := beeperapi.NewClient(token, flags.BaseURL, timeout)
+	if err != nil {
+		return err
+	}
+	if err := client.Messages().Unreact(ctx, chatID, messageID, reactionKey); err != nil {
+		if beeperapi.IsUnsupportedRoute(err, "DELETE", "/reactions") {
+			return fmt.Errorf("message reactions are not supported by this Beeper Desktop API version (requires a newer Beeper Desktop build)")
+		}
+		return err
+	}
+
+	result := map[string]any{
+		"chat_id":      chatID,
+		"message_id":   messageID,
+		"reaction_key": reactionKey,
+		"success":      true,
+	}
+	if outfmt.IsJSON(ctx) {
+		return writeJSON(ctx, result, "messages unreact")
+	}
+	if outfmt.IsPlain(ctx) {
+		u.Out().Printf("%s\t%s\t%s\ttrue", chatID, messageID, reactionKey)
+		return nil
+	}
+
+	u.Out().Success("Reaction removed")
+	u.Out().Printf("Chat ID:    %s", chatID)
+	u.Out().Printf("Message ID: %s", messageID)
+	u.Out().Printf("Reaction:   %s", reactionKey)
 	return nil
 }
 

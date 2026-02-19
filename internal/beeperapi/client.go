@@ -88,3 +88,8 @@ func (c *Client) Messages() *MessagesService {
 func (c *Client) Assets() *AssetsService {
 	return &AssetsService{client: c}
 }
+
+// Connect returns the connect/discovery service.
+func (c *Client) Connect() *ConnectService {
+	return &ConnectService{client: c}
+}

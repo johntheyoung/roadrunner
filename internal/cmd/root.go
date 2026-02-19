@@ -57,8 +57,9 @@ type CLI struct {
 	RootFlags
 
 	Auth         AuthCmd         `cmd:"" help:"Manage authentication"`
+	Connect      ConnectCmd      `cmd:"" help:"Discover Connect server metadata"`
 	Accounts     AccountsCmd     `cmd:"" help:"Manage messaging accounts"`
-	Contacts     ContactsCmd     `cmd:"" help:"Search contacts"`
+	Contacts     ContactsCmd     `cmd:"" help:"Manage contacts"`
 	Assets       AssetsCmd       `cmd:"" help:"Manage assets"`
 	Chats        ChatsCmd        `cmd:"" help:"Manage chats"`
 	Messages     MessagesCmd     `cmd:"" help:"Manage messages"`

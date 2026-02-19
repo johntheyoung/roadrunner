@@ -37,7 +37,7 @@ func (s *RemindersService) Set(ctx context.Context, chatID string, params SetPar
 		sdkParams.Reminder.DismissOnIncomingMessage = beeperdesktopapi.Bool(true)
 	}
 
-	_, err := s.client.SDK.Chats.Reminders.New(ctx, chatID, sdkParams)
+	err := s.client.SDK.Chats.Reminders.New(ctx, chatID, sdkParams)
 	return err
 }
 
@@ -46,6 +46,6 @@ func (s *RemindersService) Clear(ctx context.Context, chatID string) error {
 	ctx, cancel := s.client.contextWithTimeout(ctx)
 	defer cancel()
 
-	_, err := s.client.SDK.Chats.Reminders.Delete(ctx, chatID)
+	err := s.client.SDK.Chats.Reminders.Delete(ctx, chatID)
 	return err
 }

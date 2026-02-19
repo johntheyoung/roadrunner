@@ -22,6 +22,7 @@ type ChatsCmd struct {
 	Resolve ChatsResolveCmd `cmd:"" help:"Resolve a chat by exact match"`
 	Get     ChatsGetCmd     `cmd:"" help:"Get chat details"`
 	Create  ChatsCreateCmd  `cmd:"" help:"Create a new chat"`
+	Start   ChatsStartCmd   `cmd:"" help:"Resolve/create a direct chat from merged contact data"`
 	Archive ChatsArchiveCmd `cmd:"" help:"Archive or unarchive a chat"`
 }
 
@@ -413,6 +414,18 @@ type ChatsCreateCmd struct {
 	Message      string   `help:"Optional first message content"`
 }
 
+// ChatsStartCmd resolves or creates a direct chat from merged contact data.
+type ChatsStartCmd struct {
+	AccountID   string `arg:"" name:"accountID" optional:"" help:"Account ID to start the chat on (uses --account default if omitted)"`
+	UserID      string `help:"Known user ID candidate" name:"user-id"`
+	Email       string `help:"Email candidate" name:"email"`
+	PhoneNumber string `help:"Phone number candidate (E.164 preferred)" name:"phone-number"`
+	Username    string `help:"Username/handle candidate" name:"username"`
+	FullName    string `help:"Display name hint for ranking" name:"full-name"`
+	AllowInvite *bool  `help:"Allow invite-based DM creation when required by the platform" name:"allow-invite"`
+	Message     string `help:"Optional first message content if required by the platform"`
+}
+
 // Run executes the chats get command.
 func (c *ChatsGetCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
@@ -580,6 +593,86 @@ func (c *ChatsCreateCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	u.Out().Success("Chat created")
 	u.Out().Printf("Chat ID: %s", resp.ChatID)
+	return nil
+}
+
+// Run executes the chats start command.
+func (c *ChatsStartCmd) Run(ctx context.Context, flags *RootFlags) error {
+	u := ui.FromContext(ctx)
+
+	accountID := resolveAccount(c.AccountID, flags.Account)
+	if accountID == "" {
+		return errfmt.UsageError("account ID is required")
+	}
+
+	user := beeperapi.ChatStartUser{
+		ID:          strings.TrimSpace(c.UserID),
+		Email:       strings.TrimSpace(c.Email),
+		PhoneNumber: strings.TrimSpace(c.PhoneNumber),
+		Username:    strings.TrimSpace(c.Username),
+		FullName:    strings.TrimSpace(c.FullName),
+	}
+	if user.ID == "" && user.Email == "" && user.PhoneNumber == "" && user.Username == "" && user.FullName == "" {
+		return errfmt.UsageError("at least one user identifier is required (--user-id, --email, --phone-number, --username, or --full-name)")
+	}
+
+	token, _, err := config.GetToken()
+	if err != nil {
+		return err
+	}
+
+	timeout := time.Duration(flags.Timeout) * time.Second
+	client, err := beeperapi.NewClient(token, flags.BaseURL, timeout)
+	if err != nil {
+		return err
+	}
+	if err := checkAndRememberNonIdempotentDuplicate(ctx, flags, "chats start", struct {
+		AccountID   string                  `json:"account_id"`
+		User        beeperapi.ChatStartUser `json:"user"`
+		AllowInvite *bool                   `json:"allow_invite,omitempty"`
+		Message     string                  `json:"message"`
+	}{
+		AccountID:   accountID,
+		User:        user,
+		AllowInvite: c.AllowInvite,
+		Message:     c.Message,
+	}); err != nil {
+		return err
+	}
+
+	resp, err := client.Chats().Start(ctx, beeperapi.ChatStartParams{
+		AccountID:   accountID,
+		User:        user,
+		AllowInvite: c.AllowInvite,
+		MessageText: c.Message,
+	})
+	if err != nil {
+		return err
+	}
+
+	// JSON output
+	if outfmt.IsJSON(ctx) {
+		return writeJSON(ctx, resp, "chats start")
+	}
+
+	// Plain output
+	if outfmt.IsPlain(ctx) {
+		u.Out().Printf("%s\t%s", resp.ChatID, resp.Status)
+		return nil
+	}
+
+	switch resp.Status {
+	case "existing":
+		u.Out().Success("Existing direct chat resolved")
+	case "created":
+		u.Out().Success("Direct chat created")
+	default:
+		u.Out().Success("Chat started")
+	}
+	u.Out().Printf("Chat ID: %s", resp.ChatID)
+	if resp.Status != "" {
+		u.Out().Printf("Status:  %s", resp.Status)
+	}
 	return nil
 }
 

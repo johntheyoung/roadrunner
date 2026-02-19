@@ -17,8 +17,21 @@ import (
 
 // ContactsCmd is the parent command for contacts subcommands.
 type ContactsCmd struct {
+	List    ContactsListCmd    `cmd:"" help:"List contacts on an account"`
 	Search  ContactsSearchCmd  `cmd:"" help:"Search contacts on an account"`
 	Resolve ContactsResolveCmd `cmd:"" help:"Resolve a contact by exact match"`
+}
+
+// ContactsListCmd lists contacts within an account.
+type ContactsListCmd struct {
+	AccountID     string   `arg:"" optional:"" name:"accountID" help:"Account ID or alias"`
+	AccountIDFlag string   `help:"Account ID to list (uses --account default if omitted)" name:"account-id"`
+	Cursor        string   `help:"Pagination cursor"`
+	Direction     string   `help:"Pagination direction: before|after" enum:"before,after," default:""`
+	All           bool     `help:"Fetch all pages automatically" name:"all"`
+	MaxItems      int      `help:"Maximum items to collect with --all (default 500, max 5000)" name:"max-items" default:"0"`
+	Fields        []string `help:"Comma-separated list of fields for --plain output" name:"fields" sep:","`
+	FailIfEmpty   bool     `help:"Exit with code 1 if no results" name:"fail-if-empty"`
 }
 
 // ContactsSearchCmd searches contacts within an account.
@@ -36,6 +49,161 @@ type ContactsResolveCmd struct {
 	Query         string   `arg:"" optional:"" help:"Exact contact name, username, email, phone, or ID"`
 	AccountIDFlag string   `help:"Account ID to search (uses --account default if omitted)" name:"account-id"`
 	Fields        []string `help:"Comma-separated list of fields for --plain output" name:"fields" sep:","`
+}
+
+// Run executes the contacts list command.
+func (c *ContactsListCmd) Run(ctx context.Context, flags *RootFlags) error {
+	u := ui.FromContext(ctx)
+
+	autoPageLimit, err := resolveAutoPageLimit(c.All, c.MaxItems)
+	if err != nil {
+		return err
+	}
+
+	accountID := resolveAccount(c.AccountIDFlag, flags.Account)
+	if accountID == "" {
+		accountID = resolveAccount(c.AccountID, flags.Account)
+	}
+	if accountID == "" {
+		return errfmt.UsageError("account ID is required")
+	}
+
+	token, _, err := config.GetToken()
+	if err != nil {
+		return err
+	}
+
+	timeout := time.Duration(flags.Timeout) * time.Second
+	client, err := beeperapi.NewClient(token, flags.BaseURL, timeout)
+	if err != nil {
+		return err
+	}
+
+	resp, err := client.Accounts().ListContacts(ctx, accountID, beeperapi.ContactListParams{
+		Cursor:    c.Cursor,
+		Direction: c.Direction,
+	})
+	if err != nil {
+		if beeperapi.IsUnsupportedRoute(err, "GET", "/contacts/list") {
+			return fmt.Errorf("contacts list is not supported by this Beeper Desktop API version (requires a newer Beeper Desktop build)")
+		}
+		return err
+	}
+	capped := false
+	if c.All {
+		items := make([]beeperapi.Contact, 0, len(resp.Items))
+		items = append(items, resp.Items...)
+		lastCursor := c.Cursor
+
+		for resp.HasMore {
+			if limitReached(len(items), autoPageLimit) {
+				capped = true
+				break
+			}
+
+			nextCursor := nextSearchCursor(c.Direction, resp.OldestCursor, resp.NewestCursor)
+			if nextCursor == "" || nextCursor == lastCursor {
+				break
+			}
+			lastCursor = nextCursor
+
+			page, err := client.Accounts().ListContacts(ctx, accountID, beeperapi.ContactListParams{
+				Cursor:    nextCursor,
+				Direction: c.Direction,
+			})
+			if err != nil {
+				return err
+			}
+			items = append(items, page.Items...)
+			resp.HasMore = page.HasMore
+			resp.OldestCursor = page.OldestCursor
+			resp.NewestCursor = page.NewestCursor
+		}
+		if limitReached(len(items), autoPageLimit) {
+			if len(items) > autoPageLimit {
+				items = items[:autoPageLimit]
+			}
+			capped = true
+		}
+		resp.Items = items
+		if capped {
+			resp.HasMore = true
+		}
+	}
+
+	if err := failIfEmpty(c.FailIfEmpty, len(resp.Items), "contacts"); err != nil {
+		return err
+	}
+
+	if outfmt.IsJSON(ctx) {
+		maxItems := 0
+		if c.All {
+			maxItems = autoPageLimit
+		}
+		return writeJSONWithPagination(ctx, resp, "contacts list", &outfmt.EnvelopePagination{
+			HasMore:      resp.HasMore,
+			Direction:    c.Direction,
+			OldestCursor: resp.OldestCursor,
+			NewestCursor: resp.NewestCursor,
+			AutoPaged:    c.All,
+			Capped:       capped,
+			MaxItems:     maxItems,
+		})
+	}
+
+	if outfmt.IsPlain(ctx) {
+		fields, err := resolveFields(c.Fields, []string{"id", "full_name", "username", "phone_number", "email", "cannot_message"})
+		if err != nil {
+			return err
+		}
+		for _, item := range resp.Items {
+			writePlainFields(u, fields, map[string]string{
+				"id":             item.ID,
+				"full_name":      item.FullName,
+				"username":       item.Username,
+				"phone_number":   item.PhoneNumber,
+				"email":          item.Email,
+				"cannot_message": formatBool(item.CannotMessage),
+			})
+		}
+		return nil
+	}
+
+	if len(resp.Items) == 0 {
+		u.Out().Warn("No contacts found")
+		return nil
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	u.Out().Printf("Contacts (%d):\n", len(resp.Items))
+	for _, item := range resp.Items {
+		name := item.FullName
+		if name == "" {
+			name = item.Username
+		}
+		if name == "" {
+			name = item.ID
+		}
+		status := ""
+		if item.CannotMessage {
+			status = "cannot-message"
+		}
+		if _, err := fmt.Fprintf(w, "  %s\t%s\t%s\t%s\n", name, item.ID, item.Username, status); err != nil {
+			return err
+		}
+	}
+	if err := w.Flush(); err != nil {
+		return err
+	}
+
+	if resp.HasMore && resp.OldestCursor != "" {
+		u.Out().Dim(fmt.Sprintf("\nMore contacts available. Use --cursor=%q --direction=before", resp.OldestCursor))
+	}
+	if capped {
+		u.Out().Dim(autoPageStoppedMessage(autoPageLimit))
+	}
+
+	return nil
 }
 
 // Run executes the contacts search command.

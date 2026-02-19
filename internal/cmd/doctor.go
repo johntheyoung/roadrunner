@@ -20,16 +20,21 @@ type DoctorCmd struct {
 
 // DoctorResult holds the results of all checks.
 type DoctorResult struct {
-	ConfigPath   string   `json:"config_path"`
-	ConfigExists bool     `json:"config_exists"`
-	TokenSource  string   `json:"token_source"`
-	HasToken     bool     `json:"has_token"`
-	APIReachable bool     `json:"api_reachable"`
-	APIURL       string   `json:"api_url"`
-	TokenValid   bool     `json:"token_valid"`
-	AccountID    string   `json:"account_id,omitempty"`
-	AllPassed    bool     `json:"all_passed"`
-	Errors       []string `json:"errors,omitempty"`
+	ConfigPath           string   `json:"config_path"`
+	ConfigExists         bool     `json:"config_exists"`
+	TokenSource          string   `json:"token_source"`
+	HasToken             bool     `json:"has_token"`
+	APIReachable         bool     `json:"api_reachable"`
+	APIURL               string   `json:"api_url"`
+	TokenValid           bool     `json:"token_valid"`
+	AccountID            string   `json:"account_id,omitempty"`
+	ValidationMethod     string   `json:"validation_method,omitempty"`
+	ConnectInfoAvailable bool     `json:"connect_info_available,omitempty"`
+	ConnectName          string   `json:"connect_name,omitempty"`
+	ConnectVersion       string   `json:"connect_version,omitempty"`
+	ConnectRuntime       string   `json:"connect_runtime,omitempty"`
+	AllPassed            bool     `json:"all_passed"`
+	Errors               []string `json:"errors,omitempty"`
 }
 
 // Run executes the doctor command.
@@ -75,6 +80,11 @@ func (c *DoctorCmd) Run(ctx context.Context, flags *RootFlags) error {
 		validation := ValidateToken(ctx, token, flags.BaseURL, flags.Timeout)
 		result.TokenValid = validation.Valid
 		result.AccountID = validation.Account
+		result.ValidationMethod = validation.ValidationMethod
+		result.ConnectInfoAvailable = validation.ConnectInfoAvailable
+		result.ConnectName = validation.ConnectName
+		result.ConnectVersion = validation.ConnectVersion
+		result.ConnectRuntime = validation.ConnectRuntime
 		if !validation.Valid {
 			result.Errors = append(result.Errors, fmt.Sprintf("auth: %s", validation.Error))
 		}
@@ -90,19 +100,23 @@ func (c *DoctorCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	// Plain output (TSV)
 	if outfmt.IsPlain(ctx) {
-		fields, err := resolveFields(c.Fields, []string{"config_path", "config_exists", "token_source", "has_token", "api_reachable", "api_url", "token_valid", "all_passed"})
+		fields, err := resolveFields(c.Fields, []string{"config_path", "config_exists", "token_source", "has_token", "api_reachable", "api_url", "token_valid", "validation_method", "connect_name", "connect_version", "connect_runtime", "all_passed"})
 		if err != nil {
 			return err
 		}
 		writePlainFields(u, fields, map[string]string{
-			"config_path":   result.ConfigPath,
-			"config_exists": formatBool(result.ConfigExists),
-			"token_source":  result.TokenSource,
-			"has_token":     formatBool(result.HasToken),
-			"api_reachable": formatBool(result.APIReachable),
-			"api_url":       result.APIURL,
-			"token_valid":   formatBool(result.TokenValid),
-			"all_passed":    formatBool(result.AllPassed),
+			"config_path":       result.ConfigPath,
+			"config_exists":     formatBool(result.ConfigExists),
+			"token_source":      result.TokenSource,
+			"has_token":         formatBool(result.HasToken),
+			"api_reachable":     formatBool(result.APIReachable),
+			"api_url":           result.APIURL,
+			"token_valid":       formatBool(result.TokenValid),
+			"validation_method": result.ValidationMethod,
+			"connect_name":      result.ConnectName,
+			"connect_version":   result.ConnectVersion,
+			"connect_runtime":   result.ConnectRuntime,
+			"all_passed":        formatBool(result.AllPassed),
 		})
 		return nil
 	}
@@ -119,6 +133,18 @@ func (c *DoctorCmd) Run(ctx context.Context, flags *RootFlags) error {
 			authValue = "valid (account: " + result.AccountID + ")"
 		}
 		printCheck(u, "Auth", authValue, result.TokenValid, "", "invalid")
+		if result.ValidationMethod != "" {
+			u.Out().Dim("  method: " + result.ValidationMethod)
+		}
+		if result.ConnectInfoAvailable {
+			connectValue := result.ConnectVersion
+			if connectValue == "" {
+				connectValue = result.ConnectName
+			}
+			if connectValue != "" {
+				u.Out().Dim("  connect: " + connectValue)
+			}
+		}
 	}
 
 	u.Out().Println("")

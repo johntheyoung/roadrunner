@@ -2,6 +2,8 @@ package beeperapi
 
 import (
 	"context"
+	"fmt"
+	"net/url"
 	"time"
 
 	beeperdesktopapi "github.com/beeper/desktop-api-go"
@@ -58,8 +60,10 @@ type MessageItem struct {
 	SenderID              string              `json:"sender_id,omitempty"`
 	SenderName            string              `json:"sender_name,omitempty"`
 	Text                  string              `json:"text,omitempty"`
+	MessageType           string              `json:"message_type,omitempty"`
 	Timestamp             string              `json:"timestamp,omitempty"`
 	SortKey               string              `json:"sort_key,omitempty"`
+	LinkedMessageID       string              `json:"linked_message_id,omitempty"`
 	IsSender              bool                `json:"is_sender,omitempty"`
 	IsUnread              bool                `json:"is_unread,omitempty"`
 	HasMedia              bool                `json:"has_media,omitempty"`
@@ -91,6 +95,7 @@ type MessageReaction struct {
 	ParticipantID string `json:"participant_id,omitempty"`
 	ReactionKey   string `json:"reaction_key,omitempty"`
 	Emoji         bool   `json:"emoji,omitempty"`
+	ImgURL        string `json:"img_url,omitempty"`
 }
 
 // List retrieves messages for a chat with cursor-based pagination.
@@ -121,15 +126,17 @@ func (s *MessagesService) List(ctx context.Context, chatID string, params Messag
 
 	for _, msg := range page.Items {
 		item := MessageItem{
-			ID:        msg.ID,
-			AccountID: msg.AccountID,
-			ChatID:    msg.ChatID,
-			SenderID:  msg.SenderID,
-			Text:      msg.Text,
-			SortKey:   msg.SortKey,
-			IsSender:  msg.IsSender,
-			IsUnread:  msg.IsUnread,
-			HasMedia:  len(msg.Attachments) > 0,
+			ID:              msg.ID,
+			AccountID:       msg.AccountID,
+			ChatID:          msg.ChatID,
+			SenderID:        msg.SenderID,
+			Text:            msg.Text,
+			MessageType:     string(msg.Type),
+			SortKey:         msg.SortKey,
+			LinkedMessageID: msg.LinkedMessageID,
+			IsSender:        msg.IsSender,
+			IsUnread:        msg.IsUnread,
+			HasMedia:        len(msg.Attachments) > 0,
 		}
 		if msg.SenderName != "" {
 			item.SenderName = msg.SenderName
@@ -167,6 +174,7 @@ func (s *MessagesService) List(ctx context.Context, chatID string, params Messag
 					ParticipantID: r.ParticipantID,
 					ReactionKey:   r.ReactionKey,
 					Emoji:         r.Emoji,
+					ImgURL:        r.ImgURL,
 				})
 				item.ReactionKeys = append(item.ReactionKeys, r.ReactionKey)
 			}
@@ -218,6 +226,14 @@ type EditResult struct {
 	ChatID    string `json:"chat_id"`
 	MessageID string `json:"message_id"`
 	Success   bool   `json:"success"`
+}
+
+type messageReactionBody struct {
+	ReactionKey string `json:"reactionKey"`
+}
+
+func messageReactionPath(chatID, messageID, reactionKey string) string {
+	return fmt.Sprintf("v1/chats/%s/messages/%s/reactions?reactionKey=%s", chatID, messageID, url.QueryEscape(reactionKey))
 }
 
 // Send sends a text message to a chat.
@@ -288,6 +304,24 @@ func (s *MessagesService) Edit(ctx context.Context, chatID, messageID string, pa
 	}, nil
 }
 
+// React adds a reaction to a message.
+func (s *MessagesService) React(ctx context.Context, chatID, messageID, reactionKey string) error {
+	ctx, cancel := s.client.contextWithTimeout(ctx)
+	defer cancel()
+
+	path := messageReactionPath(chatID, messageID, reactionKey)
+	return s.client.SDK.Post(ctx, path, messageReactionBody{ReactionKey: reactionKey}, nil)
+}
+
+// Unreact removes a reaction from a message.
+func (s *MessagesService) Unreact(ctx context.Context, chatID, messageID, reactionKey string) error {
+	ctx, cancel := s.client.contextWithTimeout(ctx)
+	defer cancel()
+
+	path := messageReactionPath(chatID, messageID, reactionKey)
+	return s.client.SDK.Delete(ctx, path, messageReactionBody{ReactionKey: reactionKey}, nil)
+}
+
 // Search retrieves messages matching a query.
 func (s *MessagesService) Search(ctx context.Context, params MessageSearchParams) (MessageSearchResult, error) {
 	ctx, cancel := s.client.contextWithTimeout(ctx)
@@ -354,13 +388,15 @@ func (s *MessagesService) Search(ctx context.Context, params MessageSearchParams
 
 	for _, msg := range page.Items {
 		item := MessageItem{
-			ID:        msg.ID,
-			AccountID: msg.AccountID,
-			ChatID:    msg.ChatID,
-			SenderID:  msg.SenderID,
-			Text:      msg.Text,
-			IsSender:  msg.IsSender,
-			IsUnread:  msg.IsUnread,
+			ID:              msg.ID,
+			AccountID:       msg.AccountID,
+			ChatID:          msg.ChatID,
+			SenderID:        msg.SenderID,
+			Text:            msg.Text,
+			MessageType:     string(msg.Type),
+			LinkedMessageID: msg.LinkedMessageID,
+			IsSender:        msg.IsSender,
+			IsUnread:        msg.IsUnread,
 		}
 		if msg.SenderName != "" {
 			item.SenderName = msg.SenderName
@@ -398,6 +434,7 @@ func (s *MessagesService) Search(ctx context.Context, params MessageSearchParams
 					ParticipantID: r.ParticipantID,
 					ReactionKey:   r.ReactionKey,
 					Emoji:         r.Emoji,
+					ImgURL:        r.ImgURL,
 				})
 				item.ReactionKeys = append(item.ReactionKeys, r.ReactionKey)
 			}

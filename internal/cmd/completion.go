@@ -33,14 +33,15 @@ _rr_completions() {
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    commands="auth accounts contacts assets chats messages reminders search status unread focus doctor version capabilities completion"
+    commands="auth connect accounts contacts assets chats messages reminders search status unread focus doctor version capabilities completion"
     auth_cmds="set status clear"
+    connect_cmds="info"
     accounts_cmds="list alias"
     accounts_alias_cmds="set list unset"
-    contacts_cmds="search resolve"
+    contacts_cmds="list search resolve"
     assets_cmds="download serve upload upload-base64"
-    chats_cmds="list search resolve get create archive"
-    messages_cmds="list search send send-file edit tail wait context"
+    chats_cmds="list search resolve get create start archive"
+    messages_cmds="list search send send-file edit react unreact tail wait context"
     reminders_cmds="set clear"
 
     case "${prev}" in
@@ -50,6 +51,10 @@ _rr_completions() {
             ;;
         auth)
             COMPREPLY=( $(compgen -W "${auth_cmds}" -- "${cur}") )
+            return 0
+            ;;
+        connect)
+            COMPREPLY=( $(compgen -W "${connect_cmds}" -- "${cur}") )
             return 0
             ;;
         accounts)
@@ -97,6 +102,7 @@ _rr() {
     local -a commands
     commands=(
         'auth:Manage authentication'
+        'connect:Discover Connect server metadata'
         'accounts:Manage messaging accounts'
         'contacts:Search contacts'
         'assets:Manage assets'
@@ -135,8 +141,14 @@ _rr() {
 
     local -a contacts_cmds
     contacts_cmds=(
+        'list:List contacts on an account'
         'search:Search contacts on an account'
         'resolve:Resolve a contact by exact match'
+    )
+
+    local -a connect_cmds
+    connect_cmds=(
+        'info:Show Connect server metadata and discovered endpoints'
     )
 
     local -a assets_cmds
@@ -154,6 +166,7 @@ _rr() {
         'resolve:Resolve a chat by exact match'
         'get:Get chat details'
         'create:Create a new chat'
+        'start:Resolve/create a direct chat from merged contact data'
         'archive:Archive or unarchive a chat'
     )
 
@@ -164,6 +177,8 @@ _rr() {
         'send:Send a text message and/or attachment to a chat'
         'send-file:Upload a file and send it as an attachment'
         'edit:Edit a previously sent message'
+        'react:Add a reaction to a message'
+        'unreact:Remove a reaction from a message'
         'tail:Follow messages in a chat'
         'wait:Wait for a matching message'
         'context:Fetch context around a message'
@@ -198,6 +213,9 @@ _rr() {
                     ;;
                 accounts)
                     _describe -t commands 'accounts commands' accounts_cmds
+                    ;;
+                connect)
+                    _describe -t commands 'connect commands' connect_cmds
                     ;;
                 contacts)
                     _describe -t commands 'contacts commands' contacts_cmds
@@ -239,6 +257,7 @@ complete -c rr -f
 
 # Top-level commands
 complete -c rr -n '__fish_use_subcommand' -a 'auth' -d 'Manage authentication'
+complete -c rr -n '__fish_use_subcommand' -a 'connect' -d 'Discover Connect server metadata'
 complete -c rr -n '__fish_use_subcommand' -a 'accounts' -d 'Manage messaging accounts'
 complete -c rr -n '__fish_use_subcommand' -a 'contacts' -d 'Search contacts'
 complete -c rr -n '__fish_use_subcommand' -a 'assets' -d 'Manage assets'
@@ -263,7 +282,11 @@ complete -c rr -n '__fish_seen_subcommand_from auth' -a 'clear' -d 'Remove store
 complete -c rr -n '__fish_seen_subcommand_from accounts' -a 'list' -d 'List connected messaging accounts'
 complete -c rr -n '__fish_seen_subcommand_from accounts' -a 'alias' -d 'Manage account aliases'
 
+# connect subcommands
+complete -c rr -n '__fish_seen_subcommand_from connect' -a 'info' -d 'Show Connect server metadata and discovered endpoints'
+
 # contacts subcommands
+complete -c rr -n '__fish_seen_subcommand_from contacts' -a 'list' -d 'List contacts on an account'
 complete -c rr -n '__fish_seen_subcommand_from contacts' -a 'search' -d 'Search contacts on an account'
 complete -c rr -n '__fish_seen_subcommand_from contacts' -a 'resolve' -d 'Resolve a contact by exact match'
 
@@ -288,6 +311,7 @@ complete -c rr -n '__fish_seen_subcommand_from chats' -a 'search' -d 'Search cha
 complete -c rr -n '__fish_seen_subcommand_from chats' -a 'resolve' -d 'Resolve a chat by exact match'
 complete -c rr -n '__fish_seen_subcommand_from chats' -a 'get' -d 'Get chat details'
 complete -c rr -n '__fish_seen_subcommand_from chats' -a 'create' -d 'Create a new chat'
+complete -c rr -n '__fish_seen_subcommand_from chats' -a 'start' -d 'Resolve/create a direct chat from merged contact data'
 complete -c rr -n '__fish_seen_subcommand_from chats' -a 'archive' -d 'Archive or unarchive a chat'
 
 # messages subcommands
@@ -296,6 +320,8 @@ complete -c rr -n '__fish_seen_subcommand_from messages' -a 'search' -d 'Search 
 complete -c rr -n '__fish_seen_subcommand_from messages' -a 'send' -d 'Send a text message and/or attachment to a chat'
 complete -c rr -n '__fish_seen_subcommand_from messages' -a 'send-file' -d 'Upload a file and send it as an attachment'
 complete -c rr -n '__fish_seen_subcommand_from messages' -a 'edit' -d 'Edit a previously sent message'
+complete -c rr -n '__fish_seen_subcommand_from messages' -a 'react' -d 'Add a reaction to a message'
+complete -c rr -n '__fish_seen_subcommand_from messages' -a 'unreact' -d 'Remove a reaction from a message'
 complete -c rr -n '__fish_seen_subcommand_from messages' -a 'tail' -d 'Follow messages in a chat'
 complete -c rr -n '__fish_seen_subcommand_from messages' -a 'wait' -d 'Wait for a matching message'
 complete -c rr -n '__fish_seen_subcommand_from messages' -a 'context' -d 'Fetch context around a message'
@@ -347,6 +373,8 @@ complete -c rr -n '__fish_seen_subcommand_from chats; and __fish_seen_subcommand
 complete -c rr -n '__fish_seen_subcommand_from chats; and __fish_seen_subcommand_from list' -l max-items -d 'Maximum items to collect with --all'
 complete -c rr -n '__fish_seen_subcommand_from chats; and __fish_seen_subcommand_from search' -l all -d 'Fetch all pages automatically'
 complete -c rr -n '__fish_seen_subcommand_from chats; and __fish_seen_subcommand_from search' -l max-items -d 'Maximum items to collect with --all'
+complete -c rr -n '__fish_seen_subcommand_from contacts; and __fish_seen_subcommand_from list' -l all -d 'Fetch all pages automatically'
+complete -c rr -n '__fish_seen_subcommand_from contacts; and __fish_seen_subcommand_from list' -l max-items -d 'Maximum items to collect with --all'
 
 # chats get flags
 complete -c rr -n '__fish_seen_subcommand_from chats; and __fish_seen_subcommand_from get' -l max-participant-count -d 'Maximum participants to return'

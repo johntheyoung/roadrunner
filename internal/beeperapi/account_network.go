@@ -33,10 +33,10 @@ func accountNetworkMap(accounts *[]beeperdesktopapi.Account) map[string]string {
 
 	networks := make(map[string]string, len(*accounts))
 	for _, account := range *accounts {
-		if account.AccountID == "" || account.Network == "" {
+		if account.AccountID == "" {
 			continue
 		}
-		networks[account.AccountID] = account.Network
+		networks[account.AccountID] = normalizeNetwork(account.Network)
 	}
 
 	if len(networks) == 0 {

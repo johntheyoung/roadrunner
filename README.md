@@ -2,13 +2,14 @@
 
 ## Features
 
-- **Chats** — list, search, resolve, get, create, archive conversations
+- **Chats** — list, search, resolve, get, create, start, archive conversations
 - **Contacts** — search and resolve contacts on an account
-- **Messages** — list, search, send, edit, reply, tail (polling), wait, and context
+- **Messages** — list, search, send, edit, react, unreact, reply, tail (polling), wait, and context
 - **Assets** — download, serve (stream), upload, and base64 upload for attachments
 - **Search** — global search across all chats and messages
 - **Unread** — roll up unread chats across accounts
 - **Status** — unread and chat summary (optional per-account)
+- **Connect** — inspect local Connect server metadata and discovered endpoints
 - **Reminders** — set and clear chat reminders
 - **Focus** — focus app window, pre-fill drafts with text or attachments
 - **Scripting** — stdin/text-file input, `--fail-if-empty`, and `--fields` for plain output
@@ -86,6 +87,10 @@ rr chats get '!roomid:beeper.local' --max-participant-count=50
 # Create a new chat (single)
 rr chats create "<account-id>" --participant "<user-id>"
 
+# Resolve/create a direct chat from merged contact hints
+rr chats start "<account-id>" --email "alice@example.com" --full-name "Alice"
+rr chats start "<account-id>" --user-id "<user-id>"
+
 # Create a group chat
 rr chats create "<account-id>" \
   --participant "<user-a>" \
@@ -104,6 +109,10 @@ rr chats archive '!roomid:beeper.local' --unarchive
 ## Contacts
 
 ```bash
+# List contacts on an account
+rr contacts list "<account-id>"
+rr contacts list "<account-id>" --all --max-items=1000
+
 # Search contacts on an account (positional or flag)
 rr contacts search "<account-id>" "Alice"
 rr contacts search "Alice" --account-id="<account-id>"
@@ -118,6 +127,14 @@ rr contacts resolve "Alice" --account-id="<account-id>"
 # If a name is ambiguous, resolve by ID
 rr contacts search "Michael Johnson" --account-id="<account-id>" --json
 rr contacts resolve "<contact-id>" --account-id="<account-id>" --json
+```
+
+## Connect
+
+```bash
+# Show Connect server metadata and discovered endpoints
+rr connect info
+rr connect info --json
 ```
 
 ## Messages
@@ -179,6 +196,10 @@ rr messages send-file '!roomid:beeper.local' ./clip.mp4 "see this" \
 # Edit a message
 rr messages edit '!roomid:beeper.local' "<message-id>" "Updated text"
 rr messages edit --chat "Alice" "<message-id>" "Updated text"
+
+# Add/remove message reactions
+rr messages react '!roomid:beeper.local' "<message-id>" "👍"
+rr messages unreact '!roomid:beeper.local' "<message-id>" "👍"
 
 # Edit from file/stdin
 rr messages edit '!roomid:beeper.local' "<message-id>" --text-file ./edit.txt
@@ -373,7 +394,7 @@ $ rr chats list --json
 }
 ```
 
-Message JSON includes `is_sender`, `is_unread`, `attachments`, and `reactions`.
+Message JSON includes `message_type`, `linked_message_id`, `is_sender`, `is_unread`, `attachments`, and `reactions`.
 `downloaded_attachments` is only populated when `--download-media` is used.
 
 ### Plain (TSV)
@@ -391,7 +412,7 @@ JSON and plain output go to stdout. Errors and hints go to stderr.
 
 Commands supporting `--plain --fields`:
 - `accounts list`, `chats list/search/resolve`, `messages list/search`
-- `contacts search/resolve`, `search`, `unread`
+- `contacts list/search/resolve`, `connect info`, `search`, `unread`
 - `status`, `doctor`, `auth status`, `version`
 
 ### Envelope Mode
@@ -454,7 +475,7 @@ rr --enable-commands=chats,messages --readonly chats search "Alice"
 rr --request-id=req-123 --dedupe-window=10m --enable-commands=messages messages send '!roomid:beeper.local' "Hello"
 ```
 
-Write commands blocked by `--readonly`: `messages send`, `messages send-file`, `messages edit`, `chats create`, `chats archive`, `reminders set`, `reminders clear`, `assets upload`, `assets upload-base64`, `accounts alias set`, `accounts alias unset`.
+Write commands blocked by `--readonly`: `messages send`, `messages send-file`, `messages edit`, `messages react`, `messages unreact`, `chats create`, `chats start`, `chats archive`, `reminders set`, `reminders clear`, `assets upload`, `assets upload-base64`, `accounts alias set`, `accounts alias unset`.
 
 Exemptions: `auth set`, `auth clear`, and `focus` are always allowed (local-only operations).
 

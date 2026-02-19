@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## v0.15.0 - 2026-02-19
+
 ### Added
 - `rr chats start` to resolve/create direct chats from merged contact hints (`mode=start`).
 - Message reaction commands: `rr messages react` and `rr messages unreact`.

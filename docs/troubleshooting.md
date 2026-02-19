@@ -30,6 +30,13 @@ rr auth set --stdin
   your Beeper Desktop build is older than the required Desktop API routes.
 - Update Beeper Desktop and retry `rr doctor`, then re-run the command.
 
+## `events tail` websocket issues
+
+- If you see `websocket events are not supported`, your Beeper Desktop build does not expose `/v1/ws` yet. Use `rr messages tail` or upgrade Desktop.
+- If your stream reconnects repeatedly, verify local connectivity and auth first (`rr auth status --check`, `rr doctor`).
+- `rr events tail` reconnects by default; disable with `--reconnect=false` if you want failures surfaced immediately.
+- For deterministic CI/script runs, bound runtime with `--stop-after` and use `--include-control` when you need subscription/control diagnostics.
+
 ## Attachment send validation errors
 
 - `--attachment-upload-id` is required when using attachment metadata override flags.

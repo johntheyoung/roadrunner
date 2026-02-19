@@ -51,3 +51,17 @@
 - In `--json --envelope` mode, cursor-based commands include normalized machine metadata at
   `metadata.pagination` with fields: `has_more`, `direction`, `next_cursor`, `oldest_cursor`,
   `newest_cursor`, `auto_paged`, `capped`, and `max_items` (when auto-paging is enabled).
+
+## WebSocket (Experimental) guardrails
+
+- `rr events tail` connects to `/v1/ws` and is intentionally treated as best-effort because upstream marks it experimental.
+- Unsupported websocket route behavior is explicit and stable: `rr events tail` returns an unsupported-version error if `/v1/ws` is unavailable.
+- The stream is live-only (no replay cursor). Treat reconnects as potential event gaps and re-query state with `messages list/search` when exact completeness matters.
+- `seq` is monotonic per-connection only. Do not treat it as a global durable checkpoint across reconnects.
+- Reconnect behavior is automatic by default:
+  - on disconnect/read failure, `rr events tail` reconnects and re-sends subscriptions;
+  - disable with `--reconnect=false` for strict single-connection behavior.
+- Control-message handling is explicit:
+  - default output suppresses `ready`, `subscriptions.updated`, and websocket `error` control events;
+  - pass `--include-control` to include control events in output streams.
+- If websocket semantics are not desired (or unavailable), use `rr messages tail` polling mode as a stable fallback.

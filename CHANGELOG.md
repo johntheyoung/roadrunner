@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## v0.16.1 - 2026-02-19
+
+### Added
+- Websocket compatibility guardrails in docs (`docs/api-notes.md`) covering reconnect semantics, control-message behavior, and polling fallback expectations.
+- Troubleshooting guidance for `rr events tail` websocket support/reconnect diagnostics (`docs/troubleshooting.md`).
+
+### Fixed
+- Added regression tests for `rr events tail` control-message filtering and reconnect/re-subscribe paths to prevent behavior drift.
+- Clarified README caveat that websocket streaming is live-only and reconnects can require follow-up list/search reconciliation.
+
 ## v0.16.0 - 2026-02-19
 
 ### Added

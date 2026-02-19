@@ -153,6 +153,7 @@ rr events tail --all --include-control --stop-after 30s --json
 
 If your desktop build does not expose `/v1/ws`, `rr events tail` returns an explicit unsupported-version error.
 For older builds or when you need polling semantics, continue using `rr messages tail`.
+This stream is live-only; on reconnect there may be gaps, so re-query state with `rr messages list/search` when exact completeness matters.
 
 ## Messages
 

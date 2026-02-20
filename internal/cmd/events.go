@@ -20,8 +20,6 @@ import (
 	"github.com/johntheyoung/roadrunner/internal/ui"
 )
 
-const eventsReadPollTimeout = 1 * time.Second
-
 // EventsCmd is the parent command for websocket event streaming.
 type EventsCmd struct {
 	Tail EventsTailCmd `cmd:"" help:"Follow live websocket events"`
@@ -128,10 +126,15 @@ func (c *EventsTailCmd) readLoop(ctx context.Context, stopDeadline time.Time, co
 
 		readCtx, cancel := nextEventsReadContext(ctx, stopDeadline)
 		evt, err := conn.ReadEvent(readCtx)
+		deadlineReached := errors.Is(readCtx.Err(), context.DeadlineExceeded)
 		cancel()
 		if err != nil {
 			if isReadTimeout(err) {
-				continue
+				// WebSocket reads are not safely repeatable after a read deadline timeout.
+				// Only treat timeout as graceful completion when we've reached --stop-after.
+				if stopReached(stopDeadline) || (deadlineReached && !stopDeadline.IsZero()) {
+					return nil
+				}
 			}
 			return err
 		}
@@ -231,27 +234,15 @@ func waitForReconnect(ctx context.Context, delay time.Duration, stopDeadline tim
 }
 
 func nextEventsReadContext(ctx context.Context, stopDeadline time.Time) (context.Context, context.CancelFunc) {
-	timeout := eventsReadPollTimeout
-	if deadline, ok := ctx.Deadline(); ok {
-		remaining := time.Until(deadline)
-		if remaining <= 0 {
-			return context.WithDeadline(ctx, deadline)
-		}
-		if remaining < timeout {
-			timeout = remaining
-		}
+	ctxDeadline, hasCtxDeadline := ctx.Deadline()
+	switch {
+	case !stopDeadline.IsZero() && (!hasCtxDeadline || stopDeadline.Before(ctxDeadline)):
+		return context.WithDeadline(ctx, stopDeadline)
+	case hasCtxDeadline:
+		return context.WithDeadline(ctx, ctxDeadline)
+	default:
+		return ctx, func() {}
 	}
-	if !stopDeadline.IsZero() {
-		remaining := time.Until(stopDeadline)
-		if remaining <= 0 {
-			return context.WithDeadline(ctx, stopDeadline)
-		}
-		if remaining < timeout {
-			timeout = remaining
-		}
-	}
-
-	return context.WithTimeout(ctx, timeout)
 }
 
 func stopReached(deadline time.Time) bool {

@@ -61,6 +61,7 @@
 - Reconnect behavior is automatic by default:
   - on disconnect/read failure, `rr events tail` reconnects and re-sends subscriptions;
   - disable with `--reconnect=false` for strict single-connection behavior.
+- For bounded runs (`--stop-after`), the CLI exits cleanly on idle/deadline instead of retrying reads on a failed websocket connection.
 - Control-message handling is explicit:
   - default output suppresses `ready`, `subscriptions.updated`, and websocket `error` control events;
   - pass `--include-control` to include control events in output streams.

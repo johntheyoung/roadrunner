@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Fixed
+- Prevented `rr events tail` from panicking on idle websocket streams after read timeouts (`repeated read on failed websocket connection`), especially when bounded with `--stop-after`.
+- Added regression coverage for the control-events-then-idle websocket path to ensure clean exits/reconnect behavior.
+
 ## v0.16.1 - 2026-02-19
 
 ### Added

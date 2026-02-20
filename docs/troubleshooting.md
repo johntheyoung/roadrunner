@@ -33,6 +33,7 @@ rr auth set --stdin
 ## `events tail` websocket issues
 
 - If you see `websocket events are not supported`, your Beeper Desktop build does not expose `/v1/ws` yet. Use `rr messages tail` or upgrade Desktop.
+- If you see `repeated read on failed websocket connection`, you are likely on `v0.16.1`; upgrade to a build that includes the websocket idle-timeout fix.
 - If your stream reconnects repeatedly, verify local connectivity and auth first (`rr auth status --check`, `rr doctor`).
 - `rr events tail` reconnects by default; disable with `--reconnect=false` if you want failures surfaced immediately.
 - For deterministic CI/script runs, bound runtime with `--stop-after` and use `--include-control` when you need subscription/control diagnostics.

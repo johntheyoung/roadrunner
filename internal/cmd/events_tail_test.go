@@ -360,3 +360,64 @@ func TestEventsTailReconnectsAfterTemporaryHandshakeFailure(t *testing.T) {
 		t.Fatalf("expected at least two connection attempts, got %d", got)
 	}
 }
+
+func TestEventsTailIdleAfterControlEventsStopsCleanly(t *testing.T) {
+	t.Setenv("BEEPER_TOKEN", "test-token")
+	t.Setenv("BEEPER_ACCESS_TOKEN", "")
+
+	upgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool { return true },
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/ws" {
+			http.NotFound(w, r)
+			return
+		}
+		if got := r.Header.Get("Authorization"); got != "Bearer test-token" {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer func() { _ = conn.Close() }()
+
+		var sub map[string]any
+		if err := conn.ReadJSON(&sub); err != nil {
+			return
+		}
+
+		_ = conn.WriteJSON(map[string]any{
+			"type":    "ready",
+			"version": 1,
+			"chatIDs": []string{"*"},
+		})
+		_ = conn.WriteJSON(map[string]any{
+			"type":      "subscriptions.updated",
+			"requestID": "sub-1",
+			"chatIDs":   []string{"*"},
+		})
+
+		// Keep the connection open while idle. The client should stop on --stop-after
+		// without attempting a second read on a failed websocket.
+		time.Sleep(400 * time.Millisecond)
+	}))
+	defer server.Close()
+
+	ctx := outfmt.WithMode(context.Background(), outfmt.Mode{JSON: true})
+	cmd := EventsTailCmd{
+		All:            true,
+		Reconnect:      true,
+		ReconnectDelay: 10 * time.Millisecond,
+		StopAfter:      200 * time.Millisecond,
+	}
+
+	_, _ = captureOutput(t, func() {
+		if err := cmd.Run(ctx, &RootFlags{BaseURL: server.URL, Timeout: 5}); err != nil {
+			t.Fatalf("Run() error = %v", err)
+		}
+	})
+}

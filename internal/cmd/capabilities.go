@@ -138,7 +138,7 @@ func (c *CapabilitiesCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	resp := CapabilitiesResponse{
 		Version:  Version,
-		Features: []string{"enable-commands", "readonly", "envelope", "agent-mode", "error-hints", "request-id", "dedupe-guard", "retry-classes", "describe"},
+		Features: []string{"enable-commands", "readonly", "dry-run", "envelope", "agent-mode", "error-hints", "request-id", "dedupe-guard", "retry-classes", "describe"},
 		Defaults: CapDefaults{
 			Timeout: flags.Timeout,
 			BaseURL: flags.BaseURL,
@@ -161,6 +161,7 @@ func (c *CapabilitiesCmd) Run(ctx context.Context, flags *RootFlags) error {
 			"--envelope":        "Wrap JSON in {success,data,error,metadata}",
 			"--no-input":        "Never prompt; fail instead",
 			"--readonly":        "Block data write operations",
+			"--dry-run":         "Validate and preview mutating operations without API requests",
 			"--enable-commands": "Allowlist of commands",
 			"--agent":           "Agent profile mode",
 			"--account":         "Default account ID for commands",

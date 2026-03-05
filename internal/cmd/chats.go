@@ -542,6 +542,15 @@ func (c *ChatsCreateCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if chatType == "group" && len(c.Participants) < 2 {
 		return errfmt.UsageError("group chats require at least two --participant values")
 	}
+	if handled, err := handleDryRunWrite(ctx, flags, "chats create", map[string]any{
+		"account_id":   accountID,
+		"participants": c.Participants,
+		"type":         chatType,
+		"title":        c.Title,
+		"message":      c.Message,
+	}); handled {
+		return err
+	}
 
 	token, _, err := config.GetToken()
 	if err != nil {
@@ -614,6 +623,14 @@ func (c *ChatsStartCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 	if user.ID == "" && user.Email == "" && user.PhoneNumber == "" && user.Username == "" && user.FullName == "" {
 		return errfmt.UsageError("at least one user identifier is required (--user-id, --email, --phone-number, --username, or --full-name)")
+	}
+	if handled, err := handleDryRunWrite(ctx, flags, "chats start", map[string]any{
+		"account_id":   accountID,
+		"user":         user,
+		"allow_invite": c.AllowInvite,
+		"message":      c.Message,
+	}); handled {
+		return err
 	}
 
 	token, _, err := config.GetToken()
@@ -751,6 +768,18 @@ type ChatsArchiveCmd struct {
 func (c *ChatsArchiveCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
 	chatID := normalizeChatID(c.ChatID)
+	archived := !c.Unarchive
+	action := "archive chat " + chatID
+	if c.Unarchive {
+		action = "unarchive chat " + chatID
+	}
+	if handled, err := handleDryRunWrite(ctx, flags, "chats archive", map[string]any{
+		"chat_id":  chatID,
+		"archived": archived,
+		"action":   action,
+	}); handled {
+		return err
+	}
 
 	token, _, err := config.GetToken()
 	if err != nil {
@@ -763,11 +792,6 @@ func (c *ChatsArchiveCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
-	archived := !c.Unarchive
-	action := "archive chat " + chatID
-	if c.Unarchive {
-		action = "unarchive chat " + chatID
-	}
 	if err := confirmDestructive(flags, action); err != nil {
 		return err
 	}

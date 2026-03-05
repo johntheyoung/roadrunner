@@ -214,6 +214,13 @@ func (c *AssetsUploadCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if strings.TrimSpace(c.FilePath) == "" {
 		return errfmt.UsageError("file path is required")
 	}
+	if handled, err := handleDryRunWrite(ctx, flags, "assets upload", map[string]any{
+		"file_path": c.FilePath,
+		"file_name": c.FileName,
+		"mime_type": c.MimeType,
+	}); handled {
+		return err
+	}
 
 	token, _, err := config.GetToken()
 	if err != nil {
@@ -282,6 +289,14 @@ func (c *AssetsUploadBase64Cmd) Run(ctx context.Context, flags *RootFlags) error
 	if content == "" {
 		return errfmt.UsageError("base64 content is required")
 	}
+	contentSum := sha256.Sum256([]byte(content))
+	if handled, err := handleDryRunWrite(ctx, flags, "assets upload-base64", map[string]any{
+		"content_sha256": hex.EncodeToString(contentSum[:]),
+		"file_name":      c.FileName,
+		"mime_type":      c.MimeType,
+	}); handled {
+		return err
+	}
 
 	token, _, err := config.GetToken()
 	if err != nil {
@@ -293,7 +308,6 @@ func (c *AssetsUploadBase64Cmd) Run(ctx context.Context, flags *RootFlags) error
 	if err != nil {
 		return err
 	}
-	contentSum := sha256.Sum256([]byte(content))
 	if err := checkAndRememberNonIdempotentDuplicate(ctx, flags, "assets upload-base64", struct {
 		ContentSHA256 string `json:"content_sha256"`
 		FileName      string `json:"file_name"`

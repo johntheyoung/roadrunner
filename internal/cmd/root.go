@@ -45,6 +45,7 @@ type RootFlags struct {
 	Version        kong.VersionFlag `help:"Show version and exit"`
 	EnableCommands []string         `help:"Comma-separated allowlist of top-level commands" env:"BEEPER_ENABLE_COMMANDS" sep:","`
 	Readonly       bool             `help:"Block data write operations" env:"BEEPER_READONLY"`
+	DryRun         bool             `help:"Validate and preview mutating operations without sending API requests" env:"BEEPER_DRY_RUN"`
 	Envelope       bool             `help:"Wrap JSON output in {success,data,error,metadata} envelope" env:"BEEPER_ENVELOPE"`
 	Agent          bool             `help:"Agent profile: forces JSON, envelope, no-input, readonly" env:"BEEPER_AGENT"`
 	RequestID      string           `help:"Optional request ID for envelope metadata (agent tracing)" env:"BEEPER_REQUEST_ID"`

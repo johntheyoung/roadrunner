@@ -111,8 +111,14 @@ type AccountsAliasSetCmd struct {
 }
 
 // Run executes the accounts alias set command.
-func (c *AccountsAliasSetCmd) Run(ctx context.Context) error {
+func (c *AccountsAliasSetCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
+	if handled, err := handleDryRunWrite(ctx, flags, "accounts alias set", map[string]any{
+		"alias":      c.Alias,
+		"account_id": c.AccountID,
+	}); handled {
+		return err
+	}
 
 	if err := config.SetAccountAlias(c.Alias, c.AccountID); err != nil {
 		return err
@@ -175,8 +181,13 @@ type AccountsAliasUnsetCmd struct {
 }
 
 // Run executes the accounts alias unset command.
-func (c *AccountsAliasUnsetCmd) Run(ctx context.Context) error {
+func (c *AccountsAliasUnsetCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
+	if handled, err := handleDryRunWrite(ctx, flags, "accounts alias unset", map[string]any{
+		"alias": c.Alias,
+	}); handled {
+		return err
+	}
 
 	if err := config.UnsetAccountAlias(c.Alias); err != nil {
 		return err

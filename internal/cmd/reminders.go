@@ -54,6 +54,14 @@ func (c *RemindersSetCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if remindAt.Before(time.Now()) {
 		return errfmt.UsageError("reminder time must be in the future")
 	}
+	if handled, err := handleDryRunWrite(ctx, flags, "reminders set", map[string]any{
+		"chat_id":                     chatID,
+		"chat_query":                  chatQuery,
+		"remind_at":                   remindAt.Format(time.RFC3339),
+		"dismiss_on_incoming_message": c.DismissOnIncomingMessage,
+	}); handled {
+		return err
+	}
 
 	token, _, err := config.GetToken()
 	if err != nil {
@@ -113,6 +121,13 @@ func (c *RemindersClearCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
 	chatID, chatQuery, err := resolveChatTargetInput(c.ChatID, c.Chat)
 	if err != nil {
+		return err
+	}
+	if handled, err := handleDryRunWrite(ctx, flags, "reminders clear", map[string]any{
+		"chat_id":    chatID,
+		"chat_query": chatQuery,
+		"cleared":    true,
+	}); handled {
 		return err
 	}
 	if chatQuery == "" {

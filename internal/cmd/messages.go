@@ -733,6 +733,14 @@ func (c *MessagesEditCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if err := guardAgainstPastedToolOutput(text, c.AllowToolOutput); err != nil {
 		return err
 	}
+	if handled, err := handleDryRunWrite(ctx, flags, "messages edit", map[string]any{
+		"chat_id":    chatID,
+		"chat_query": chatQuery,
+		"message_id": messageID,
+		"text":       text,
+	}); handled {
+		return err
+	}
 
 	token, _, err := config.GetToken()
 	if err != nil {
@@ -794,6 +802,13 @@ func (c *MessagesReactCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if reactionKey == "" {
 		return errfmt.UsageError("reactionKey is required")
 	}
+	if handled, err := handleDryRunWrite(ctx, flags, "messages react", map[string]any{
+		"chat_id":      chatID,
+		"message_id":   messageID,
+		"reaction_key": reactionKey,
+	}); handled {
+		return err
+	}
 
 	token, _, err := config.GetToken()
 	if err != nil {
@@ -845,6 +860,13 @@ func (c *MessagesUnreactCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 	if reactionKey == "" {
 		return errfmt.UsageError("reactionKey is required")
+	}
+	if handled, err := handleDryRunWrite(ctx, flags, "messages unreact", map[string]any{
+		"chat_id":      chatID,
+		"message_id":   messageID,
+		"reaction_key": reactionKey,
+	}); handled {
+		return err
 	}
 
 	token, _, err := config.GetToken()
@@ -1058,6 +1080,29 @@ func (c *MessagesSendCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
+	params := beeperapi.SendParams{
+		Text:             text,
+		ReplyToMessageID: c.ReplyToMessageID,
+	}
+	if attachmentUploadID != "" {
+		params.Attachment = &beeperapi.SendAttachmentParams{
+			UploadID: attachmentUploadID,
+			FileName: c.AttachmentFileName,
+			MimeType: c.AttachmentMimeType,
+			Type:     c.AttachmentType,
+			Duration: attachmentDuration,
+			Width:    attachmentWidth,
+			Height:   attachmentHeight,
+		}
+	}
+	if handled, err := handleDryRunWrite(ctx, flags, "messages send", map[string]any{
+		"chat_id":    chatID,
+		"chat_query": chatQuery,
+		"params":     params,
+	}); handled {
+		return err
+	}
+
 	token, _, err := config.GetToken()
 	if err != nil {
 		return err
@@ -1072,22 +1117,6 @@ func (c *MessagesSendCmd) Run(ctx context.Context, flags *RootFlags) error {
 		chatID, err = resolveChatIDByQuery(ctx, client, chatQuery, applyAccountDefault(nil, flags.Account))
 		if err != nil {
 			return err
-		}
-	}
-
-	params := beeperapi.SendParams{
-		Text:             text,
-		ReplyToMessageID: c.ReplyToMessageID,
-	}
-	if attachmentUploadID != "" {
-		params.Attachment = &beeperapi.SendAttachmentParams{
-			UploadID: attachmentUploadID,
-			FileName: c.AttachmentFileName,
-			MimeType: c.AttachmentMimeType,
-			Type:     c.AttachmentType,
-			Duration: attachmentDuration,
-			Width:    attachmentWidth,
-			Height:   attachmentHeight,
 		}
 	}
 	if err := checkAndRememberNonIdempotentDuplicate(ctx, flags, "messages send", struct {
@@ -1178,6 +1207,25 @@ func (c *MessagesSendFileCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 	if err := validateAttachmentSize(attachmentWidth, attachmentHeight); err != nil {
+		return err
+	}
+	if handled, err := handleDryRunWrite(ctx, flags, "messages send-file", map[string]any{
+		"chat_id":    chatID,
+		"chat_query": chatQuery,
+		"file_path":  filePath,
+		"text":       text,
+		"reply_to":   c.ReplyToMessageID,
+		"file_name":  c.FileName,
+		"mime_type":  c.MimeType,
+		"attachment": map[string]any{
+			"file_name": c.AttachmentFileName,
+			"mime_type": c.AttachmentMimeType,
+			"type":      c.AttachmentType,
+			"duration":  attachmentDuration,
+			"width":     attachmentWidth,
+			"height":    attachmentHeight,
+		},
+	}); handled {
 		return err
 	}
 

@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## v0.17.0 - 2026-03-05
+
+### Added
+- `rr describe` for runtime command/flag introspection (`--json`/`--plain`/human output).
+- Global `--dry-run` and `BEEPER_DRY_RUN` for mutating commands to validate and preview without sending API write requests.
+- Global `--jsonl` and `BEEPER_JSONL` output mode for high-volume query commands (`chats list/search`, `messages list/search`, `contacts list/search`).
+
+### Changed
+- Capabilities/version/completion metadata now advertise `describe`, `dry-run`, and `jsonl` support.
+
+### Fixed
+- Hardened mutating ID input validation by rejecting control characters and unsafe delimiter characters (`?`, `#`, `%`) in IDs.
+- Expanded troubleshooting guidance for nightly conflict handling in `docs/troubleshooting.md`.
+
 ## v0.16.2 - 2026-02-20
 
 ### Fixed

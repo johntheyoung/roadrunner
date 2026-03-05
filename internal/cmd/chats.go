@@ -768,6 +768,9 @@ type ChatsArchiveCmd struct {
 func (c *ChatsArchiveCmd) Run(ctx context.Context, flags *RootFlags) error {
 	u := ui.FromContext(ctx)
 	chatID := normalizeChatID(c.ChatID)
+	if err := validateResourceID(chatID, "chatID"); err != nil {
+		return err
+	}
 	archived := !c.Unarchive
 	action := "archive chat " + chatID
 	if c.Unarchive {

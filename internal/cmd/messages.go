@@ -725,6 +725,9 @@ func (c *MessagesEditCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if strings.TrimSpace(messageID) == "" {
 		return errfmt.UsageError("messageID is required")
 	}
+	if err := validateResourceID(messageID, "messageID"); err != nil {
+		return err
+	}
 
 	text, err := resolveTextInput(textInput, c.TextFile, c.Stdin, true, "message text", "--text-file", "--stdin")
 	if err != nil {
@@ -802,6 +805,15 @@ func (c *MessagesReactCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if reactionKey == "" {
 		return errfmt.UsageError("reactionKey is required")
 	}
+	if err := validateResourceID(chatID, "chatID"); err != nil {
+		return err
+	}
+	if err := validateResourceID(messageID, "messageID"); err != nil {
+		return err
+	}
+	if err := rejectControlChars(reactionKey, "reactionKey"); err != nil {
+		return err
+	}
 	if handled, err := handleDryRunWrite(ctx, flags, "messages react", map[string]any{
 		"chat_id":      chatID,
 		"message_id":   messageID,
@@ -860,6 +872,15 @@ func (c *MessagesUnreactCmd) Run(ctx context.Context, flags *RootFlags) error {
 	}
 	if reactionKey == "" {
 		return errfmt.UsageError("reactionKey is required")
+	}
+	if err := validateResourceID(chatID, "chatID"); err != nil {
+		return err
+	}
+	if err := validateResourceID(messageID, "messageID"); err != nil {
+		return err
+	}
+	if err := rejectControlChars(reactionKey, "reactionKey"); err != nil {
+		return err
 	}
 	if handled, err := handleDryRunWrite(ctx, flags, "messages unreact", map[string]any{
 		"chat_id":      chatID,
@@ -1076,6 +1097,12 @@ func (c *MessagesSendCmd) Run(ctx context.Context, flags *RootFlags) error {
 	if strings.TrimSpace(text) == "" && attachmentUploadID == "" {
 		return errfmt.UsageError("message text or --attachment-upload-id is required")
 	}
+	if err := validateResourceID(c.ReplyToMessageID, "reply-to"); err != nil {
+		return err
+	}
+	if err := validateResourceID(attachmentUploadID, "attachment-upload-id"); err != nil {
+		return err
+	}
 	if err := guardAgainstPastedToolOutput(text, c.AllowToolOutput); err != nil {
 		return err
 	}
@@ -1207,6 +1234,9 @@ func (c *MessagesSendFileCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 	if err := validateAttachmentSize(attachmentWidth, attachmentHeight); err != nil {
+		return err
+	}
+	if err := validateResourceID(c.ReplyToMessageID, "reply-to"); err != nil {
 		return err
 	}
 	if handled, err := handleDryRunWrite(ctx, flags, "messages send-file", map[string]any{

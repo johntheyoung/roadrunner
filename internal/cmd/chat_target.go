@@ -12,6 +12,9 @@ import (
 func resolveChatTargetInput(chatIDArg, chatQuery string) (string, string, error) {
 	chatID := normalizeChatID(chatIDArg)
 	query := strings.TrimSpace(chatQuery)
+	if err := validateResourceID(chatID, "chatID"); err != nil {
+		return "", "", err
+	}
 
 	if chatID != "" && query != "" {
 		return "", "", errfmt.UsageError("cannot use chatID argument with --chat")
@@ -30,7 +33,11 @@ func resolveChatIDByQuery(ctx context.Context, client *beeperapi.Client, query s
 	}
 
 	if looksLikeChatID(q) {
-		return normalizeChatID(q), nil
+		normalized := normalizeChatID(q)
+		if err := validateResourceID(normalized, "chatID"); err != nil {
+			return "", err
+		}
+		return normalized, nil
 	}
 
 	cursor := ""

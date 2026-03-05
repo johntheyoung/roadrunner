@@ -6,16 +6,46 @@
 - Confirm the base URL (default is http://localhost:23373).
 - If you changed the port, set `BEEPER_URL` or pass `--base-url`.
 
+## Beeper Nightly launcher or API conflicts
+
+If Nightly appears to "not open", or `rr` connects to the wrong instance, you likely have multiple Beeper instances or launcher entries fighting over the same single-instance lock and API port.
+
+- Keep one local launcher entry for Nightly (for example `~/.local/share/applications/beeper-nightly.desktop`).
+- Disable duplicate Nightly entries such as `~/.local/share/applications/beepertexts.desktop` if both point to AppImage builds.
+- Official and Nightly can coexist on disk, but only one active Beeper instance should own `localhost:23373` at a time.
+- If you use a headless Nightly unit, stop it before opening GUI Nightly:
+
+```bash
+systemctl --user stop beeper-nightly.service
+```
+
+- Launch Nightly GUI explicitly:
+
+```bash
+gtk-launch beeper-nightly
+```
+
+- Verify expected instance and API endpoint:
+
+```bash
+rr connect info --json
+ss -ltnp | rg 23373
+```
+
+- For stable Nightly testing, use a separate profile directory:
+  `--user-data-dir=$HOME/.config/BeeperTexts-Nightly`
+
 ## Token errors
 
-- If you see "no token configured", run `rr auth set --stdin` (recommended) or `rr auth set <token>`.
+- If you see "no token configured", run `rr auth set '' --stdin` (recommended) or `rr auth set <token>`.
 - `BEEPER_TOKEN` overrides the config file.
 - Use `rr auth status --check` to validate the token.
+- If `rr auth set --stdin` returns `expected "<token>"`, use `rr auth set '' --stdin` (current parser workaround).
 
 Tip: avoid putting tokens in your shell history:
 
 ```bash
-rr auth set --stdin
+rr auth set '' --stdin
 ```
 
 ## Non-interactive failures

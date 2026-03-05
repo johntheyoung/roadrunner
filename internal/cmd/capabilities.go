@@ -60,6 +60,7 @@ func readCommands() []string {
 		"contacts resolve",
 		"contacts search",
 		"doctor",
+		"describe",
 		"events tail",
 		"messages context",
 		"messages list",
@@ -93,6 +94,7 @@ func retryClasses() map[string]string {
 		"contacts search":      "safe",
 		"contacts list":        "safe",
 		"doctor":               "safe",
+		"describe":             "safe",
 		"events tail":          "safe",
 		"focus":                "safe",
 		"messages context":     "safe",
@@ -136,7 +138,7 @@ func (c *CapabilitiesCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	resp := CapabilitiesResponse{
 		Version:  Version,
-		Features: []string{"enable-commands", "readonly", "envelope", "agent-mode", "error-hints", "request-id", "dedupe-guard", "retry-classes"},
+		Features: []string{"enable-commands", "readonly", "envelope", "agent-mode", "error-hints", "request-id", "dedupe-guard", "retry-classes", "describe"},
 		Defaults: CapDefaults{
 			Timeout: flags.Timeout,
 			BaseURL: flags.BaseURL,

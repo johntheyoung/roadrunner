@@ -33,7 +33,7 @@ _rr_completions() {
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    commands="auth connect events accounts contacts assets chats messages reminders search status unread focus doctor version capabilities completion"
+    commands="auth connect events accounts contacts assets chats messages reminders search status unread focus doctor version describe capabilities completion"
     auth_cmds="set status clear"
     connect_cmds="info"
     events_cmds="tail"
@@ -121,6 +121,7 @@ _rr() {
         'focus:Focus Beeper Desktop app'
         'doctor:Diagnose configuration and connectivity'
         'version:Show version information'
+        'describe:Describe command schema for runtime introspection'
         'capabilities:Show CLI capabilities for agent discovery'
         'completion:Generate shell completions'
     )
@@ -285,6 +286,7 @@ complete -c rr -n '__fish_use_subcommand' -a 'unread' -d 'List unread chats'
 complete -c rr -n '__fish_use_subcommand' -a 'focus' -d 'Focus Beeper Desktop app'
 complete -c rr -n '__fish_use_subcommand' -a 'doctor' -d 'Diagnose configuration and connectivity'
 complete -c rr -n '__fish_use_subcommand' -a 'version' -d 'Show version information'
+complete -c rr -n '__fish_use_subcommand' -a 'describe' -d 'Describe command schema for runtime introspection'
 complete -c rr -n '__fish_use_subcommand' -a 'capabilities' -d 'Show CLI capabilities for agent discovery'
 complete -c rr -n '__fish_use_subcommand' -a 'completion' -d 'Generate shell completions'
 

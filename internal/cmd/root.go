@@ -71,6 +71,7 @@ type CLI struct {
 	Focus        FocusCmd        `cmd:"" help:"Focus Beeper Desktop app"`
 	Doctor       DoctorCmd       `cmd:"" help:"Diagnose configuration and connectivity"`
 	Version      VersionCmd      `cmd:"" help:"Show version information"`
+	Describe     DescribeCmd     `cmd:"" help:"Describe command schema for runtime introspection"`
 	Capabilities CapabilitiesCmd `cmd:"" help:"Show CLI capabilities for agent discovery"`
 	Completion   CompletionCmd   `cmd:"" help:"Generate shell completions"`
 }

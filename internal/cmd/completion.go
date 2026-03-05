@@ -428,6 +428,7 @@ complete -c rr -n '__fish_seen_subcommand_from completion' -a 'fish' -d 'Generat
 # Global flags
 complete -c rr -l help -s h -d 'Show help'
 complete -c rr -l json -d 'Output JSON to stdout'
+complete -c rr -l jsonl -d 'Output JSON Lines (one JSON object per line)'
 complete -c rr -l plain -d 'Output stable TSV to stdout'
 complete -c rr -l verbose -s v -d 'Enable debug logging'
 complete -c rr -l force -s f -d 'Skip confirmations'

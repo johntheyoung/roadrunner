@@ -138,12 +138,12 @@ func (c *CapabilitiesCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	resp := CapabilitiesResponse{
 		Version:  Version,
-		Features: []string{"enable-commands", "readonly", "dry-run", "envelope", "agent-mode", "error-hints", "request-id", "dedupe-guard", "retry-classes", "describe"},
+		Features: []string{"enable-commands", "readonly", "dry-run", "envelope", "agent-mode", "error-hints", "request-id", "dedupe-guard", "retry-classes", "describe", "jsonl"},
 		Defaults: CapDefaults{
 			Timeout: flags.Timeout,
 			BaseURL: flags.BaseURL,
 		},
-		OutputModes: []string{"human", "json", "plain"},
+		OutputModes: []string{"human", "json", "jsonl", "plain"},
 		Safety: CapSafety{
 			EnableCommandsDesc: "Comma-separated allowlist of top-level commands",
 			ReadonlyDesc:       "Block data write operations",
@@ -157,6 +157,7 @@ func (c *CapabilitiesCmd) Run(ctx context.Context, flags *RootFlags) error {
 		RetryClasses: retryClasses(),
 		Flags: map[string]string{
 			"--json":            "Output JSON to stdout",
+			"--jsonl":           "Output JSON Lines to stdout (one object per line)",
 			"--plain":           "Output stable TSV to stdout",
 			"--envelope":        "Wrap JSON in {success,data,error,metadata}",
 			"--no-input":        "Never prompt; fail instead",

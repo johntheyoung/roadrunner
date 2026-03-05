@@ -24,3 +24,12 @@ func writeJSONWithPagination(ctx context.Context, data any, command string, pagi
 	}
 	return outfmt.WriteJSON(os.Stdout, data)
 }
+
+func writeJSONLines[T any](items []T) error {
+	for _, item := range items {
+		if err := outfmt.WriteJSONLine(os.Stdout, item); err != nil {
+			return err
+		}
+	}
+	return nil
+}

@@ -33,8 +33,23 @@ func TestExecute_JSONPlainConflict(t *testing.T) {
 		if code != errfmt.ExitUsageError {
 			t.Fatalf("exit code = %d, want %d", code, errfmt.ExitUsageError)
 		}
-		if !strings.Contains(errText, "cannot use both --json and --plain") {
+		if !strings.Contains(errText, "cannot combine output modes") {
 			t.Fatalf("expected flag conflict error, got %q", errText)
+		}
+	})
+}
+
+func TestExecute_JSONLEnvelopeConflict(t *testing.T) {
+	withArgs(t, []string{"rr", "--jsonl", "--envelope", "version"}, func() {
+		var code int
+		_, errText := captureOutput(t, func() {
+			code = Execute()
+		})
+		if code != errfmt.ExitUsageError {
+			t.Fatalf("exit code = %d, want %d", code, errfmt.ExitUsageError)
+		}
+		if !strings.Contains(errText, "cannot use --jsonl with --envelope") {
+			t.Fatalf("expected jsonl+envelope conflict error, got %q", errText)
 		}
 	})
 }

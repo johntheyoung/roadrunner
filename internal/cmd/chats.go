@@ -114,6 +114,10 @@ func (c *ChatsListCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
+	if outfmt.IsJSONL(ctx) {
+		return writeJSONLines(resp.Items)
+	}
+
 	// JSON output
 	if outfmt.IsJSON(ctx) {
 		maxItems := 0
@@ -315,6 +319,10 @@ func (c *ChatsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	if err := failIfEmpty(c.FailIfEmpty, len(resp.Items), "chats"); err != nil {
 		return err
+	}
+
+	if outfmt.IsJSONL(ctx) {
+		return writeJSONLines(resp.Items)
 	}
 
 	// JSON output

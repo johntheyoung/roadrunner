@@ -135,6 +135,10 @@ func (c *ContactsListCmd) Run(ctx context.Context, flags *RootFlags) error {
 		return err
 	}
 
+	if outfmt.IsJSONL(ctx) {
+		return writeJSONLines(resp.Items)
+	}
+
 	if outfmt.IsJSON(ctx) {
 		maxItems := 0
 		if c.All {
@@ -243,6 +247,10 @@ func (c *ContactsSearchCmd) Run(ctx context.Context, flags *RootFlags) error {
 
 	if err := failIfEmpty(c.FailIfEmpty, len(resp), "contacts"); err != nil {
 		return err
+	}
+
+	if outfmt.IsJSONL(ctx) {
+		return writeJSONLines(resp)
 	}
 
 	// JSON output

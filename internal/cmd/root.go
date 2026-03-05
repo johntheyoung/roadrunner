@@ -36,6 +36,7 @@ func init() {
 type RootFlags struct {
 	Color          string           `help:"Color output: auto|always|never" default:"auto" env:"BEEPER_COLOR"`
 	JSON           bool             `help:"Output JSON to stdout (best for scripting)" env:"BEEPER_JSON"`
+	JSONL          bool             `help:"Output JSON Lines (one JSON object per line)" env:"BEEPER_JSONL"`
 	Plain          bool             `help:"Output stable TSV to stdout (no colors)" env:"BEEPER_PLAIN"`
 	Verbose        bool             `help:"Enable debug logging" short:"v"`
 	NoInput        bool             `help:"Never prompt; fail instead (useful for CI)" env:"BEEPER_NO_INPUT"`
@@ -109,6 +110,7 @@ func Execute() int {
 	// Apply agent mode: force JSON, Envelope, NoInput, Readonly
 	if cli.Agent {
 		cli.JSON = true
+		cli.JSONL = false
 		cli.Envelope = true
 		cli.NoInput = true
 		cli.Readonly = true
@@ -125,17 +127,21 @@ func Execute() int {
 	}
 
 	// Validate flag combinations
-	mode, err := outfmt.FromFlags(cli.JSON, cli.Plain)
+	mode, err := outfmt.FromFlags(cli.JSON, cli.JSONL, cli.Plain)
 	if err != nil {
 		// Can't use envelope here - conflicting flags mean envelope state is ambiguous
 		_, _ = os.Stderr.WriteString("error: " + errfmt.Format(err) + "\n")
+		return errfmt.ExitUsageError
+	}
+	if cli.JSONL && cli.Envelope {
+		_, _ = os.Stderr.WriteString("error: cannot use --jsonl with --envelope\n")
 		return errfmt.ExitUsageError
 	}
 
 	// Create UI (respects --color and NO_COLOR)
 	// Disable colors for JSON/Plain output
 	colorMode := cli.Color
-	if cli.JSON || cli.Plain {
+	if cli.JSON || cli.JSONL || cli.Plain {
 		colorMode = "never"
 	}
 

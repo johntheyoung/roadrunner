@@ -10,6 +10,7 @@ import (
 // Mode represents the output mode.
 type Mode struct {
 	JSON  bool
+	JSONL bool
 	Plain bool
 }
 
@@ -21,13 +22,23 @@ type ParseError struct {
 func (e *ParseError) Error() string { return e.Msg }
 
 // FromFlags creates a Mode from flag values.
-// Returns error if both JSON and Plain are set.
-func FromFlags(jsonOut bool, plainOut bool) (Mode, error) {
-	if jsonOut && plainOut {
-		return Mode{}, &ParseError{Msg: "cannot use both --json and --plain"}
+// Returns error if more than one output mode is set.
+func FromFlags(jsonOut bool, jsonlOut bool, plainOut bool) (Mode, error) {
+	count := 0
+	if jsonOut {
+		count++
+	}
+	if jsonlOut {
+		count++
+	}
+	if plainOut {
+		count++
+	}
+	if count > 1 {
+		return Mode{}, &ParseError{Msg: "cannot combine output modes; use only one of --json, --jsonl, or --plain"}
 	}
 
-	return Mode{JSON: jsonOut, Plain: plainOut}, nil
+	return Mode{JSON: jsonOut, JSONL: jsonlOut, Plain: plainOut}, nil
 }
 
 type ctxKey struct{}
@@ -51,7 +62,13 @@ func FromContext(ctx context.Context) Mode {
 
 // IsJSON returns true if JSON output mode is enabled.
 func IsJSON(ctx context.Context) bool {
-	return FromContext(ctx).JSON
+	m := FromContext(ctx)
+	return m.JSON || m.JSONL
+}
+
+// IsJSONL returns true if JSONL output mode is enabled.
+func IsJSONL(ctx context.Context) bool {
+	return FromContext(ctx).JSONL
 }
 
 // IsPlain returns true if plain output mode is enabled.
@@ -62,7 +79,7 @@ func IsPlain(ctx context.Context) bool {
 // IsHuman returns true if human-readable output (default) is enabled.
 func IsHuman(ctx context.Context) bool {
 	m := FromContext(ctx)
-	return !m.JSON && !m.Plain
+	return !m.JSON && !m.JSONL && !m.Plain
 }
 
 // WithRequestID attaches an optional request ID to context for output metadata.
@@ -88,6 +105,18 @@ func WriteJSON(w io.Writer, v any) error {
 
 	if err := enc.Encode(v); err != nil {
 		return fmt.Errorf("encode json: %w", err)
+	}
+
+	return nil
+}
+
+// WriteJSONLine writes v as single-line JSON to w.
+func WriteJSONLine(w io.Writer, v any) error {
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(false)
+
+	if err := enc.Encode(v); err != nil {
+		return fmt.Errorf("encode json line: %w", err)
 	}
 
 	return nil

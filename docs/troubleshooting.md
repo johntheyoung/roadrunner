@@ -6,6 +6,41 @@
 - Confirm the base URL (default is http://localhost:23373).
 - If you changed the port, set `BEEPER_URL` or pass `--base-url`.
 
+## Stable Beeper AppImage on Linux
+
+- In this setup, the preferred stable install is a local AppImage at `/home/jmy/apps/beeper/stable/Beeper-latest.AppImage`.
+- The local launcher override is `~/.local/share/applications/beeper.desktop`.
+- If Beeper's in-app `Download update` button appears to do nothing, do not rely on it. Replace the local AppImage instead and relaunch.
+- Verify the live build with `rr connect info --json` or `curl -fsS http://localhost:23373/v1/info`.
+- If you previously mixed package-managed Beeper, stable AppImages, and Nightly AppImages, remove duplicate launcher entries before debugging API issues.
+
+## Stable headless service
+
+- The stable headless service is `beeper.service`.
+- Start it with:
+
+```bash
+systemctl --user start beeper.service
+```
+
+- Stop it with:
+
+```bash
+systemctl --user stop beeper.service
+```
+
+- Verify the stable API is up on the default port:
+
+```bash
+ss -ltnp | rg 23373
+curl -fsS http://localhost:23373/v1/info
+rr doctor --json
+```
+
+- After `systemctl --user restart beeper.service`, give Beeper a few seconds to rebind the API socket before treating a failed `rr doctor` as a real problem.
+- In this setup, stable Beeper stores Desktop API settings in the main profile at `~/.config/BeeperTexts`.
+- After removing Nightly, stable Beeper should own `localhost:23373`.
+
 ## Beeper Nightly launcher or API conflicts
 
 If Nightly appears to "not open", or `rr` connects to the wrong instance, you likely have multiple Beeper instances or launcher entries fighting over the same single-instance lock and API port.
@@ -59,6 +94,7 @@ rr auth set '' --stdin
 - If you see `message editing is not supported` or `asset upload is not supported`,
   your Beeper Desktop build is older than the required Desktop API routes.
 - Update Beeper Desktop and retry `rr doctor`, then re-run the command.
+- On stable Beeper `4.2.605`, send, react/unreact, and websocket events were validated, but `messages edit` still returned unsupported. Treat edit support as build-dependent and verify against your current Desktop version.
 
 ## `events tail` websocket issues
 
